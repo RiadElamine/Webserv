@@ -99,11 +99,13 @@ void ConfigFile::verifyDelimiter(std::string &word, CharSymbol char_symbol)
 	if (char_symbol == SEMICOLON)
 	{
 		index_of_t = 2;
+		check_semi = false;
 	}
 	if (char_symbol == CLOSE_BRACKET)
 	{
 		index_of_t = 0;
 		check_final =  false;
+		check_semi = false;
 	}
 }
 
@@ -185,6 +187,68 @@ void verifyLocationPath(std::string	&word)
 	(void)word;
 }
 
+
+bool ConfigFile::HasSpecialDelimiter(const std::string& word)
+{
+    for (size_t i = 0; i < word.length(); ++i)
+	{
+        if (word[i] == '{' || word[i] == '}')
+		{
+            return (true);
+        }
+    }
+    return (false);
+}
+
+bool ConfigFile::L_HasSpecialDelimiter(const std::string& word)
+{
+    for (size_t i = 0; i < word.length(); ++i)
+	{
+        if (word[i] == '}' || word[i] == ';')
+		{
+            return (true);
+        }
+    }
+    return (false);
+}
+
+void ConfigFile::get_data(std::string &word)
+{
+	size_t pos;
+	std::string data;
+
+	if (i >= word.length() || check_semi == true)
+	{
+		return;
+	}
+	pos = word.find(";", i);
+	data = word.substr(i, pos);
+	if (data.length() == 0 || HasSpecialDelimiter(data))
+		throw std::invalid_argument("syntax error : fail to get data");
+	std::cout << data << std::endl;
+	i += pos;
+	check_semi = true;
+}
+
+
+void ConfigFile::GetNameOfLocation(std::string &word)
+{
+	size_t pos;
+	std::string data;
+
+	if (i >= word.length())
+	{
+		return;
+	}
+	pos = word.find("{", i);
+	data = word.substr(i, pos);
+	if (data.length() == 0 || L_HasSpecialDelimiter(data))
+		throw std::invalid_argument("syntax error : fail to get path of location");
+	std::cout << data << std::endl;
+	i += pos;
+	index_of_lm++;
+}
+
 void ConfigFile::verifyDelimiterLocation(std::string &word, CharSymbol char_symbol)
 {
 	if (i >= word.length())
@@ -201,7 +265,6 @@ void ConfigFile::verifyDelimiterLocation(std::string &word, CharSymbol char_symb
 		index_of_lm = 2;
 		call = &ConfigFile::Parselocationblock;
 		check_final_location =  false;
-		std::cout << "semicolon\n";
 	}
 	if (char_symbol == CLOSE_BRACKET)
 	{
@@ -214,10 +277,7 @@ void ConfigFile::verifyDelimiterLocation(std::string &word, CharSymbol char_symb
 
 void ConfigFile::verifyLocationPath(std::string	&word)
 {
-	(void)word;
-	// std::cout << word << " " << i << &word[i] << std::endl;
-	// i++;
-	index_of_lm++;
+	GetNameOfLocation(word);
 }
 void ConfigFile::Parselocationblock(std::string	&word)
 {
@@ -238,42 +298,14 @@ void ConfigFile::Parselocationblock(std::string	&word)
 
 void ConfigFile::ParseIndex(std::string	&word)
 {
-	if (i >= word.length())
-	{
-		return;
-	}
-	if (word[i] == CLOSE_BRACKET)
-	{
-		check_final = false;
-		check_final_location =  false;
-		index_of_lm = 0;
-		index_of_t = 2;
-		i++;
-		std::cout << "++++good" << std::endl;
-		return;
-	}
+	get_data(word);
 	verifyDelimiterLocation(word, SEMICOLON);
-	std::cout << "++++good" << check_final_location << std::endl;
 }
 
-void ConfigFile::ParseDomain(std::string	&word)
+void ConfigFile::ParseDomain(std::string &word)
 {
-	if (i >= word.length())
-	{
-		return;
-	}
-	if (word[i] == CLOSE_BRACKET)
-	{
-		check_final =  false;
-		index_of_t = 0;
-		i++;
-		    std::cout << "good" << std::endl;
-
-		return;
-	}
+	get_data(word);
 	verifyDelimiter(word, SEMICOLON);
-	    std::cout << " -good" << check_final_location << std::endl;
-
 }
 
 void ConfigFile::parse(const std::string& file_path)
@@ -326,6 +358,7 @@ void ConfigFile::parse(const std::string& file_path)
 					if (index_of_t == 3)
 					{
 						check_final =  false;
+						check_semi = false;
 					}
 				}
 			}

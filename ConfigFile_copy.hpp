@@ -65,6 +65,7 @@ class ConfigFile
     bool is_location = false;
     bool check_final = false;
     bool check_final_location = false;
+    bool check_semi = false;
 
     void verifyServerKeyword(std::string &word);
     void verifyDelimiter(std::string &word, CharSymbol char_symbol);
@@ -98,6 +99,12 @@ class ConfigFile
     void ParseIndex(std::string	&word);
     
     void (ConfigFile::*call)(std::string&);
+    void get_data(std::string &word);
+    void GetNameOfLocation(std::string &word);
+    bool HasSpecialDelimiter(const std::string& word);
+    bool L_HasSpecialDelimiter(const std::string& word);
+
+
     public:
     // std::vector<ServerConfig> servers;
     void parse(const std::string& file_path);
