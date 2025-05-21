@@ -1,0 +1,14 @@
+server{domain ;
+    location {
+        index ;index ;
+    }domain ;
+
+}server 
+{
+        domain ;
+    location {
+        index ;index ;
+    }    location {
+        index ;index 
+    }
+}
