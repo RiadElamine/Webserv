@@ -1,10 +1,10 @@
 NAME = tests
 
-SOURCE = main.cpp ConfigFile_copy.cpp
+SOURCE = main.cpp ConfigFile.cpp
 
 OBJECT = $(SOURCE:.cpp=.o)
 
-HEARDER = ConfigFile_copy.cpp
+HEARDER = ConfigFile.cpp
 
 # CFLAGS = -Wall -Wextra -Werror -std=c++98
 

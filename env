@@ -1,6 +1,1 @@
-server{
-    domain riad;
-        domain lsdfs
- ;
- location 
- sfddsfdsfds{index riadelamine;}}server{domain s;}
+server{ error_page 300 fdsf; location f { methods get post delete ; } }
