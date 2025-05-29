@@ -534,18 +534,37 @@ void ConfigFile::parse(const std::string& file_path)
 		throw std::invalid_argument("syntax error : in delimiter");
 	}
 
+	fill_server_defaults();
+
 }
 
 
+	void ConfigFile::fill_server_defaults() {
+		for (std::vector<ServerConfig>::iterator it = servers.begin(); it != servers.end(); ++it) {
+			if (it->host.empty())
+				it->host = "0.0.0.0";
 
-	// void ServerConfig::fill_default() {
-	// 	host = "0.0.0.0";
-	// 	port = 8080;
-	// 	client_max_body_size = 1024 * 1024;
-	// 	global_root = "/home/relamine/nginx-1.25.3/tt";
-	// 	root = "/home/relamine/nginx-1.25.3/tt";
-	// 	index = "index.html";
-	// 	methods = {"get"};
-	// 	autoindex = false;
-	// 	upload_store = "/tmp";
-	// }
+			if (it->port == -1)
+				it->port = 8080;
+
+			if (it->client_max_body_size == -1)
+				it->client_max_body_size = 1024 * 1024;
+
+			if (it->global_root.empty())
+				it->global_root = "/home/relamine/nginx-1.25.3/tt";
+
+			for (std::vector<Location>::iterator loc = it->locations.begin(); loc != it->locations.end(); ++loc) {
+				if (loc->root.empty())
+					loc->root = it->global_root;
+
+				if (loc->index.empty())
+					loc->index = "index.html";
+
+				if (loc->methods.empty())
+					loc->methods.push_back("get");
+
+				if (loc->upload_store.empty())
+					loc->upload_store = "/tmp";
+			}
+		}
+}

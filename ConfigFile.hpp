@@ -110,6 +110,9 @@ class ConfigFile
     void reset();
     void resetLocation();
 
+
+	void fill_server_defaults();
+
     public:
     std::vector<ServerConfig> servers;
     ConfigFile();
