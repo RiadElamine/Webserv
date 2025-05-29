@@ -49,16 +49,16 @@ enum CharSymbol
 
 class ConfigFile
 {
-    int index_of_t = 0;
-    int index_of_lm = 0;
-    size_t i = 0;
-    int check_semi = 0;
+    int index_of_t;
+    int index_of_lm;
+    size_t i;
+    int check_semi;
     std::string	word;
     void (ConfigFile::*call)();
     ServerConfig server;
     Location location;
-    int indexOfErrorPages = 0;
-    int indexOfRedircat = 0;
+    int indexOfErrorPages;
+    int indexOfRedircat;
     size_t length;
     
     // first detect key

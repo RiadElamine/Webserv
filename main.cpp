@@ -10,7 +10,7 @@ int main()
     {
         c.parse("env");
         int i = 0;
-        for (auto it = c.servers.begin(); it != c.servers.end(); ++it) {
+        for (std::vector<ServerConfig>::iterator it = c.servers.begin(); it != c.servers.end(); ++it) {
             std::cout << (*it).server_name << std::endl;
             std::cout << (*(*it).locations.begin()).URI << std::endl;
             std::cout << (*(*it).error_pages.begin()).first << " "  << (*(*it).error_pages.begin()).second << std::endl;

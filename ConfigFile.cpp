@@ -18,27 +18,23 @@
 
 		reset();
 
-		funcs = {
-			{ "location", &ConfigFile::Parselocationblock },
-			{ "error_page", &ConfigFile::ParseErrorPages },
-			{ "root", &ConfigFile::ParseGlobalRoot },
-			{ "server_name", &ConfigFile::ParseDomain },
-			{ "client_max_body_size", &ConfigFile::ParseClientMaxBodySize },
-			{ "listen", &ConfigFile::ParsePort }
-		};
+		funcs.insert(std::make_pair("location", &ConfigFile::Parselocationblock));
+		funcs.insert(std::make_pair("error_page", &ConfigFile::ParseErrorPages));
+		funcs.insert(std::make_pair("root", &ConfigFile::ParseGlobalRoot));
+		funcs.insert(std::make_pair("server_name", &ConfigFile::ParseDomain));
+		funcs.insert(std::make_pair("client_max_body_size", &ConfigFile::ParseClientMaxBodySize));
+		funcs.insert(std::make_pair("listen", &ConfigFile::ParsePort));
 
 		resetLocation();
 
-		funcs_location = {
-			{ "autoindex", &ConfigFile::ParseAutoindex },
-			{ "methods", &ConfigFile::ParseMethods },
-			{ "cgi_ext", &ConfigFile::ParseCGI },
-			{ "cgi_Path_Info", &ConfigFile::ParseCGIPath },
-			{ "upload", &ConfigFile::ParseUpload },
-			{ "redir", &ConfigFile::ParseRedir },
-			{ "root", &ConfigFile::ParseLocationRoot },
-			{ "index", &ConfigFile::ParseIndex }
-		};
+		funcs_location.insert(std::make_pair("autoindex", &ConfigFile::ParseAutoindex));
+		funcs_location.insert(std::make_pair("methods", &ConfigFile::ParseMethods));
+		funcs_location.insert(std::make_pair("cgi_ext", &ConfigFile::ParseCGI));
+		funcs_location.insert(std::make_pair("cgi_Path_Info", &ConfigFile::ParseCGIPath));
+		funcs_location.insert(std::make_pair("upload", &ConfigFile::ParseUpload));
+		funcs_location.insert(std::make_pair("redir", &ConfigFile::ParseRedir));
+		funcs_location.insert(std::make_pair("root", &ConfigFile::ParseLocationRoot));
+		funcs_location.insert(std::make_pair("index", &ConfigFile::ParseIndex));
 
 	}
 
@@ -69,28 +65,24 @@
 
 	void ConfigFile::reset() 
 	{
-		directiveFlags = {
-			{ "location", false },
-			{ "error_page", false },
-			{ "root", false },
-			{ "server_name", false },
-			{ "client_max_body_size", false },
-			{ "listen", false }
-		};
+		directiveFlags["location"] = false;
+		directiveFlags["error_page"] = false;
+		directiveFlags["root"] = false;
+		directiveFlags["server_name"] = false;
+		directiveFlags["client_max_body_size"] = false;
+		directiveFlags["listen"] = false;
 	}
 
 	void ConfigFile::resetLocation()
 	{
-		directiveFlagsLocation = {
-			{ "autoindex", false },
-			{ "methods", false },
-			{ "cgi_ext", false },
-			{ "cgi_Path_Info", false },
-			{ "upload", false },
-			{ "redir", false },
-			{ "root", false },
-			{ "index", false }
-		};
+		directiveFlagsLocation["autoindex"] = false;
+		directiveFlagsLocation["methods"] = false;
+		directiveFlagsLocation["cgi_ext"] = false;
+		directiveFlagsLocation["cgi_Path_Info"] = false;
+		directiveFlagsLocation["upload"] = false;
+		directiveFlagsLocation["redir"] = false;
+		directiveFlagsLocation["root"] = false;
+		directiveFlagsLocation["index"] = false;
 	}
 
 	// utils functions
@@ -520,29 +512,17 @@ void ConfigFile::parse(const std::string& file_path)
 			while (i < length)
 			{
 				if (index_of_t == 0)
-				{
 					verifyServerKeyword();
-				}
 				else if (index_of_t == 1)
-				{
 					verifyDelimiter(OPEN_BRACKET);
-				}
 				else if (index_of_t == 2)
-				{
 					DispatchParser();
-				}
 				else if (index_of_t == 3)
-				{
 					(this->*call)();
-				}
 				else if (index_of_t == 4)
-				{
 					verifyDelimiter(SEMICOLON);
-				}
 				else if (index_of_t == 5)
-				{
 					verifyDelimiter(CLOSE_BRACKET);
-				}
 			}
 		}
 		
@@ -558,24 +538,14 @@ void ConfigFile::parse(const std::string& file_path)
 
 
 
-	// void Location::reset()
-	// {
-	// 	URI.clear();
+	// void ServerConfig::fill_default() {
+	// 	host = "0.0.0.0";
+	// 	port = 8080;
+	// 	client_max_body_size = 1024 * 1024;
+	// 	global_root = "/home/relamine/nginx-1.25.3/tt";
 	// 	root = "/home/relamine/nginx-1.25.3/tt";
 	// 	index = "index.html";
 	// 	methods = {"get"};
 	// 	autoindex = false;
-	// 	redirect.clear();
 	// 	upload_store = "/tmp";
-	// 	cgi_ext.clear();
-	// 	cgi_Path_Info.clear();
-	// }
-	// void ServerConfig::reset() {
-	// 	host = "0.0.0.0";
-	// 	port = 8080;
-	// 	server_name.clear();
-	// 	client_max_body_size = 1024 * 1024;
-	// 	global_root = "/home/relamine/nginx-1.25.3/tt";
-	// 	error_pages.clear();
-	// 	locations.clear();
 	// }

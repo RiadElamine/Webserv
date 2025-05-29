@@ -6,7 +6,7 @@ OBJECT = $(SOURCE:.cpp=.o)
 
 HEARDER = ConfigFile.cpp
 
-# CFLAGS = -Wall -Wextra -Werror -std=c++98
+CFLAGS = -Wall -Wextra -Werror -std=c++98
 
 all : $(NAME)
 
