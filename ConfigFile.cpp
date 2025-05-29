@@ -2,6 +2,97 @@
 #include "ConfigFile.hpp"
 
 
+	ConfigFile::ConfigFile()
+	{
+		index_of_t = 0;
+		index_of_lm = 0;
+		i = 0;
+		check_semi = 0;
+		indexOfErrorPages = 0;
+		indexOfRedircat = 0;
+		length = 0;
+
+		server.reset();
+		location.reset();
+
+
+		reset();
+
+		funcs = {
+			{ "location", &ConfigFile::Parselocationblock },
+			{ "error_page", &ConfigFile::ParseErrorPages },
+			{ "root", &ConfigFile::ParseGlobalRoot },
+			{ "server_name", &ConfigFile::ParseDomain },
+			{ "client_max_body_size", &ConfigFile::ParseClientMaxBodySize },
+			{ "listen", &ConfigFile::ParsePort }
+		};
+
+		resetLocation();
+
+		funcs_location = {
+			{ "autoindex", &ConfigFile::ParseAutoindex },
+			{ "methods", &ConfigFile::ParseMethods },
+			{ "cgi_ext", &ConfigFile::ParseCGI },
+			{ "cgi_Path_Info", &ConfigFile::ParseCGIPath },
+			{ "upload", &ConfigFile::ParseUpload },
+			{ "redir", &ConfigFile::ParseRedir },
+			{ "root", &ConfigFile::ParseLocationRoot },
+			{ "index", &ConfigFile::ParseIndex }
+		};
+
+	}
+
+	void Location::reset()
+	{
+		URI.clear();
+		root.clear();;
+		index.clear();;
+		methods.clear();;
+		autoindex = false;
+		redirect.clear();
+		upload_store.clear();;
+		cgi_ext.clear();
+		cgi_Path_Info.clear();
+
+	}
+	void ServerConfig::reset() {
+		host.clear();
+		port = -1;
+		server_name.clear();
+		client_max_body_size = -1;
+		global_root.clear();
+		error_pages.clear();
+		locations.clear();
+
+	}
+
+
+	void ConfigFile::reset() 
+	{
+		directiveFlags = {
+			{ "location", false },
+			{ "error_page", false },
+			{ "root", false },
+			{ "server_name", false },
+			{ "client_max_body_size", false },
+			{ "listen", false }
+		};
+	}
+
+	void ConfigFile::resetLocation()
+	{
+		directiveFlagsLocation = {
+			{ "autoindex", false },
+			{ "methods", false },
+			{ "cgi_ext", false },
+			{ "cgi_Path_Info", false },
+			{ "upload", false },
+			{ "redir", false },
+			{ "root", false },
+			{ "index", false }
+		};
+	}
+
 	// utils functions
 	long convert_long(const std::string &data)
 	{
@@ -33,124 +124,113 @@
 	// inside location
     void ConfigFile::ParseAutoindex()
 	{
-		std::string check = get_data();
-		if (!check.empty())
-		{
-			if (check.compare("on") == 0)
-				location.autoindex = true;
-			else
-				location.autoindex = false;
-		}
-		verifyDelimiterLocation(SEMICOLON);
+		std::string check = get_data_location();
+		if (check.compare("on") == 0)
+			location.autoindex = true;
+		else
+			location.autoindex = false;
 	}
 
-	std::string ConfigFile::get_method()
+	void ConfigFile::addMethod(const std::string &method)
+	{
+		if (std::find(location.methods.begin(), location.methods.end(), method) == location.methods.end())
+		{
+			location.methods.push_back(method);
+		}
+		else 
+		{
+			throw std::invalid_argument("Duplicate mothod definition for " + method);
+		}
+	}
+	void ConfigFile::get_method()
 	{
 		size_t pos;
 		std::string data;
 
-		if (i >= word.length() || check_semi == 3)
-		{
-			return ("");
-		}
 		pos = word.find(";", i);
 		data = word.substr(i, pos);
-		if (!data.compare("get"))
+		if (!data.compare("GET"))
 		{
-			location.methods.push_back("get");
+			addMethod(data);
 		}
-		else if ((!data.compare("post")))
+		else if ((!data.compare("POST")))
 		{
-			location.methods.push_back("post");
+			addMethod(data);
 		}
-		else if ((!data.compare("delete")))
+		else if ((!data.compare("DELETE")))
 		{
-			location.methods.push_back("delete");
+			addMethod(data);
 		}
-		else if ((data.length() == 0 && !check_semi))
+		else if ((i == pos && !check_semi))
 			throw std::invalid_argument("syntax error : fail to get data");
+		else 
+			return ;
+
+		if (pos == std::string::npos)
+			i += data.length();
 		else
-			return ("");
-		std::cout << data << std::endl;
-		i += pos;
+			i += pos;
+
 		check_semi++;
-		return (data);
+		if (check_semi == 3)
+		{
+			index_of_lm++;
+			call = &ConfigFile::Parselocationblock;
+		}
 	}
 
     void ConfigFile::ParseMethods()
 	{
 		get_method();
+		if (i >= length)
+			return;
 		verifyDelimiterLocation(SEMICOLON);
 	}
 	
     void ConfigFile::ParseUpload()
 	{
-		std::string data = get_data();
-		if (!data.empty())
-		{
-			location.upload_store = data;
-		}
-		verifyDelimiterLocation(SEMICOLON);
+		std::string data = get_data_location();
+		location.upload_store = data;
 	}
 
     void ConfigFile::ParseRedir()
 	{
-		std::string data = get_data(2);
-		if (!data.empty())
+		std::string data = get_data_location(2);
+		if (check_semi == 1)
 		{
-			if (check_semi == 1)
-			{
-				indexOfRedircat = convert_long(data);
-				if (indexOfRedircat < 100 || indexOfRedircat > 599)
-					throw std::out_of_range("value " + data + " must be between 300 and 599");
-			}
-			else
-			{
-				location.redirect[indexOfRedircat] = data;
-			}
+			indexOfRedircat = convert_long(data);
+			if (indexOfRedircat < 100 || indexOfRedircat > 599)
+				throw std::out_of_range("value " + data + " must be between 300 and 599");
 		}
-		if (check_semi == 2)
-			verifyDelimiterLocation(SEMICOLON);
+		else
+		{
+			if (location.redirect.empty())
+				location.redirect[indexOfRedircat] = data;
+		}
 	}
 	
     void ConfigFile::ParseLocationRoot()
 	{
-		std::string data = get_data();
-		if (!data.empty())
-		{
-			location.root = data;
-		}
-		verifyDelimiterLocation(SEMICOLON);
+		std::string data = get_data_location();
+		location.root = data;
 	}
 	
 	void ConfigFile::ParseCGI()
 	{
-		std::string data = get_data();
-		if (!data.empty())
-		{
-			location.cgi_ext = data;
-		}
-		verifyDelimiterLocation(SEMICOLON);
+		std::string data = get_data_location();
+		location.cgi_ext = data;
 	}	
 
     void ConfigFile::ParseCGIPath()
 	{
-		std::string data = get_data();
-		if (!data.empty())
-		{
-			location.cgi_Path_Info = data;
-		}
-		verifyDelimiterLocation(SEMICOLON);
+		std::string data = get_data_location();
+		location.cgi_Path_Info = data;
 	}
 
 	void ConfigFile::ParseIndex()
 	{
-		std::string data = get_data();
-		if (!data.empty())
-		{
-			location.index = data;
-		}
-		verifyDelimiterLocation(SEMICOLON);
+		std::string data = get_data_location();
+		location.index = data;
 	}
 
 	
@@ -158,64 +238,49 @@
     void ConfigFile::ParseErrorPages()
 	{
 		std::string data = get_data(2);
-		if (!data.empty())
+		if (check_semi == 1)
 		{
-			if (check_semi == 1)
-			{
-				indexOfErrorPages = convert_long(data);
-				if (indexOfErrorPages < 300 || indexOfErrorPages > 599)
-					throw std::out_of_range("value " + data + " must be between 300 and 599");
-			}
-			else
-			{
+			indexOfErrorPages = convert_long(data);
+			if (indexOfErrorPages < 300 || indexOfErrorPages > 599)
+				throw std::out_of_range("value " + data + " must be between 300 and 599");
+		}
+		else
+		{
+			if (server.error_pages.find(indexOfErrorPages) == server.error_pages.end())
 				server.error_pages[indexOfErrorPages] = data;
+			else 
+			{
+				std::ostringstream errorPage ; errorPage << indexOfErrorPages;
+				throw std::invalid_argument("Duplicate error_page definition for " + errorPage.str());
 			}
 		}
-		if (check_semi == 2)
-			verifyDelimiter(SEMICOLON);
 	}
 
 	void ConfigFile::ParseGlobalRoot()
 	{
 		std::string data = get_data();
-		if (!data.empty())
-		{
-			server.global_root = data;
-		}
-		verifyDelimiter(SEMICOLON);
+		server.global_root = data;
 	}
 
 
     void ConfigFile::ParsePort()
 	{
 		std::string data = get_data();
-		if (!data.empty())
-		{
-			server.port = convert_long(data);
-			if (server.port < 1 || server.port > 65535)
-				throw std::runtime_error("Port must be between 1 and 65535");
-		}
-		verifyDelimiter(SEMICOLON);
+		server.port = convert_long(data);
+		if (server.port < 1 || server.port > 65535)
+			throw std::runtime_error("Port must be between 1 and 65535");
 	}
 	
 	void ConfigFile::ParseDomain()
 	{
 		std::string data = get_data();
-		if (!data.empty())
-		{
-			server.server_name = data;
-		}
-		verifyDelimiter(SEMICOLON);
+		server.server_name = data;
 	}
 
 	void ConfigFile::ParseClientMaxBodySize()
 	{
 		std::string data = get_data();
-		if (!data.empty())
-		{
-			server.client_max_body_size = convert_long(data);
-		}
-		verifyDelimiter(SEMICOLON);
+		server.client_max_body_size = convert_long(data);
 	}
 
 	// parsing inside server
@@ -235,36 +300,19 @@
 	void ConfigFile::DispatchParser()
 	{
 		const std::string &key = &word[i];
-		typedef void (ConfigFile::*ParserFunc)();
-		const std::string keys[] = {
-			"location",
-			"error_page",
-			"root",
-			"server_name",
-			"client_max_body_size",
-			"listen"
-		};
-		ParserFunc funcs[] = {
-			&ConfigFile::Parselocationblock,
-			&ConfigFile::ParseErrorPages,
-			&ConfigFile::ParseGlobalRoot,
-			&ConfigFile::ParseDomain,
-			&ConfigFile::ParseClientMaxBodySize,
-			&ConfigFile::ParsePort
-		};
 
-		for (int j = 0; j < 6; ++j)
+		if (directiveFlags.find(key) != directiveFlags.end())
 		{
-			if (keys[j] == key)
-			{
-				call = funcs[j];
-				index_of_t++;
-				i += key.length();
-				check_semi = 0;
-				return;
-			}
+			if (directiveFlags[key] == true && key.compare("location") && key.compare("error_page"))
+				throw std::invalid_argument("Duplicate definition for " + key);
+			call = funcs[key];
+			i += key.length();
+			index_of_t = 3;
+			check_semi = 0;
+			directiveFlags[key] = true;
+			return;
 		}
-		check_final = true;
+		index_of_t = 5;
 	}
 	
 	void ConfigFile::Parselocationblock()
@@ -273,13 +321,21 @@
 		{
 			verifyLocationPath();
 		}
-		if (index_of_lm == 1)
+		else if (index_of_lm == 1)
 		{
 			verifyDelimiterLocation(OPEN_BRACKET);
 		}
-		if (index_of_lm == 2)
+		else if (index_of_lm == 2)
 		{
 			DispatchParserLocation();
+		}
+		else if (index_of_lm == 4)
+		{
+			verifyDelimiterLocation(SEMICOLON);
+		}
+		else if (index_of_lm == 5)
+		{
+			verifyDelimiterLocation(CLOSE_BRACKET);
 		}
 	}
 
@@ -300,94 +356,110 @@
 		size_t pos;
 		std::string data;
 
-		if (i >= word.length() || check_semi == max_data)
-		{
-			return ("");
-		}
 		pos = word.find(";", i);
 		data = word.substr(i, pos);
 		if (data.length() == 0 || HasSpecialDelimiter(data))
 			throw std::invalid_argument("syntax error : fail to get data");
-		std::cout << data << std::endl;
-		i += pos;
+		if (pos == std::string::npos)
+			i+= data.length();
+		else
+			i += pos;
+
 		check_semi++;
+		if (check_semi == max_data)
+		{
+			index_of_t++;
+		}
+		return (data);
+	}
+
+
+	std::string ConfigFile::get_data_location(int max_data)
+	{
+		size_t pos;
+		std::string data;
+
+		pos = word.find(";", i);
+		data = word.substr(i, pos);
+		if (i == pos || HasSpecialDelimiter(data))
+			throw std::invalid_argument("syntax error : fail to get data");
+		if (pos == std::string::npos)
+			i+= data.length();
+		else
+			i += pos;
+
+		check_semi++;
+		if (check_semi == max_data)
+		{
+			index_of_lm++;
+			call = &ConfigFile::Parselocationblock;
+		}
 		return (data);
 	}
 
 
 	void ConfigFile::verifyDelimiter(CharSymbol char_symbol)
 	{
-		if (i >= word.length())
-		{
-			return;
-		}
 		if (word[i] != char_symbol)
 			throw std::invalid_argument("syntax error : in delimiter");
-		index_of_t++;
 		i++;
-		if (char_symbol == SEMICOLON)
-		{
-			index_of_t = 2;
-		}
 		if (char_symbol == CLOSE_BRACKET)
 		{
 			index_of_t = 0;
-			check_final =  false;
+			servers.push_back(server);
+			server.reset();
+			reset();
 		}
+		else 
+			index_of_t = 2;
 	}
 		
-	
-
-
-
 	// Location Syntax
 
-	void ConfigFile::verifyLocationPath()
+	void ConfigFile::checkDuplicateURIs(std::string &path_name)
 	{
-		GetNameOfLocation();
+		for (std::vector<Location>::iterator it = server.locations.begin(); it != server.locations.end(); ++it) {
+			const std::string& uri = it->URI;
+			if (!uri.compare(path_name))
+				throw std::runtime_error("Duplicate URI found: " + uri);
+		}
 	}
 
-	void ConfigFile::GetNameOfLocation()
+	void ConfigFile::verifyLocationPath()
 	{
 		size_t pos;
 		std::string data;
 
-		if (i >= word.length())
-		{
-			return;
-		}
 		pos = word.find("{", i);
 		data = word.substr(i, pos);
-		if (data.length() == 0 || L_HasSpecialDelimiter(data))
+		if (pos == i || L_HasSpecialDelimiter(data))
 			throw std::invalid_argument("syntax error : fail to get path of location");
-		std::cout << data << std::endl;
-		i += pos;
+		else if (pos != std::string::npos)
+			i += data.length();
+		else
+			i += pos;
+		checkDuplicateURIs(data);
+		location.URI = data;
 		index_of_lm++;
 	}
 
 	void ConfigFile::verifyDelimiterLocation(CharSymbol char_symbol)
 	{
-		if (i >= word.length())
-		{
-			return;
-		}
 		if (word[i] != char_symbol)
 			throw std::invalid_argument("syntax error : delimiter in Location");
-		index_of_lm++;
 		i++;
-
-		if (char_symbol == SEMICOLON)
-		{
-			index_of_lm = 2;
-			call = &ConfigFile::Parselocationblock;
-			check_final_location =  false;
-		}
 		if (char_symbol == CLOSE_BRACKET)
 		{
 			index_of_t = 2;
 			index_of_lm = 0;
-			check_final_location =  false;
-			check_final = false;
+			server.locations.push_back(location);
+			location.reset();
+			resetLocation();
+		}
+		else
+		{
+			index_of_lm = 2;
+			call = &ConfigFile::Parselocationblock;
 		}
 	}
 
@@ -406,40 +478,20 @@
 	void ConfigFile::DispatchParserLocation()
 	{
 		const std::string& key = &word[i];
-		typedef void (ConfigFile::*ParserFunc)();
 
-		std::string names[] = {
-			"autoindex",
-			"methods",
-			"cgi_ext",
-			"cgi_Path_Info",
-			"upload",
-			"redir",
-			"root",
-			"index"
-		};
-
-		ParserFunc funcs[] = {
-			&ConfigFile::ParseAutoindex,
-			&ConfigFile::ParseMethods,
-			&ConfigFile::ParseCGI,
-			&ConfigFile::ParseCGIPath,
-			&ConfigFile::ParseUpload,
-			&ConfigFile::ParseRedir,
-			&ConfigFile::ParseLocationRoot,
-			&ConfigFile::ParseIndex
-		};
-
-		for (int j = 0; j < 8; ++j) {
-			if (names[j] == key) {
-				call = funcs[j];
-				index_of_lm++;
-				i += key.length();
-				check_semi = 0;
-				return;
-			}
+		if (directiveFlagsLocation.find(key) != directiveFlagsLocation.end())
+		{
+			if (directiveFlagsLocation[key] == true)
+				throw std::invalid_argument("Duplicate definition for " + key);
+			call = funcs_location[key];
+			i += key.length();
+			check_semi = 0;
+			index_of_lm = 3;
+			directiveFlagsLocation[key] = true;
+			return;
 		}
-		check_final_location = true;
+
+		index_of_lm = 5;
 	}
 
 // main function
@@ -464,39 +516,32 @@ void ConfigFile::parse(const std::string& file_path)
 		while (string >> word)
 		{
 			i = 0;
-			while (i < word.length())
+			length = word.length();
+			while (i < length)
 			{
 				if (index_of_t == 0)
 				{
 					verifyServerKeyword();
 				}
-				if (index_of_t == 1)
+				else if (index_of_t == 1)
 				{
 					verifyDelimiter(OPEN_BRACKET);
 				}
-				if (index_of_t == 2)
+				else if (index_of_t == 2)
 				{
 					DispatchParser();
 				}
-				if (index_of_t == 3)
+				else if (index_of_t == 3)
 				{
 					(this->*call)();
 				}
-				if (check_final_location)
+				else if (index_of_t == 4)
 				{
-					verifyDelimiterLocation(CLOSE_BRACKET);
-					if (index_of_lm == 3)
-					{
-						check_final_location =  false;
-					}
+					verifyDelimiter(SEMICOLON);
 				}
-				if (check_final)
+				else if (index_of_t == 5)
 				{
 					verifyDelimiter(CLOSE_BRACKET);
-					if (index_of_t == 3)
-					{
-						check_final =  false;
-					}
 				}
 			}
 		}
@@ -510,3 +555,27 @@ void ConfigFile::parse(const std::string& file_path)
 	}
 
 }
+
+
+
+	// void Location::reset()
+	// {
+	// 	URI.clear();
+	// 	root = "/home/relamine/nginx-1.25.3/tt";
+	// 	index = "index.html";
+	// 	methods = {"get"};
+	// 	autoindex = false;
+	// 	redirect.clear();
+	// 	upload_store = "/tmp";
+	// 	cgi_ext.clear();
+	// 	cgi_Path_Info.clear();
+	// }
+	// void ServerConfig::reset() {
+	// 	host = "0.0.0.0";
+	// 	port = 8080;
+	// 	server_name.clear();
+	// 	client_max_body_size = 1024 * 1024;
+	// 	global_root = "/home/relamine/nginx-1.25.3/tt";
+	// 	error_pages.clear();
+	// 	locations.clear();
+	// }

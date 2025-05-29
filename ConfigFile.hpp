@@ -6,11 +6,12 @@
 #include <fstream>
 #include <sstream>
 #include <limits>
-
+#include <algorithm>
 
 class Location
 {
     public:
+        std::string URI;
         std::string root;
         std::string index;
         std::vector<std::string> methods;
@@ -20,7 +21,7 @@ class Location
         std::string cgi_ext;
         std::string cgi_Path_Info;
 
-        // Location();
+        void reset();
 };
     
 class ServerConfig
@@ -35,6 +36,7 @@ class ServerConfig
             std::vector<Location> locations;
 
         // ServerConfig();
+        void reset();
 };
             
 
@@ -49,9 +51,7 @@ class ConfigFile
 {
     int index_of_t = 0;
     int index_of_lm = 0;
-    int i = 0;
-    bool check_final = false;
-    bool check_final_location = false;
+    size_t i = 0;
     int check_semi = 0;
     std::string	word;
     void (ConfigFile::*call)();
@@ -59,6 +59,7 @@ class ConfigFile
     Location location;
     int indexOfErrorPages = 0;
     int indexOfRedircat = 0;
+    size_t length;
     
     // first detect key
     void DispatchParser();
@@ -74,6 +75,7 @@ class ConfigFile
 
     //keys: this in location
     void Parselocationblock();
+    void checkDuplicateURIs(std::string &path_name);
     void verifyLocationPath();
     void verifyDelimiterLocation(CharSymbol char_symbol);
 
@@ -92,13 +94,24 @@ class ConfigFile
     void ParseIndex();
     
     std::string get_data(int max_data = 1);
-    std::string get_method();
-    void GetNameOfLocation();
+    std::string get_data_location (int max_data = 1);
+    void addMethod(const std::string &method);
+    void get_method();
     bool HasSpecialDelimiter(const std::string &data) const;
     bool L_HasSpecialDelimiter(const std::string &data) const;
 
 
+    std::map<std::string, bool> directiveFlags;
+    std::map<std::string, void (ConfigFile::*)()> funcs;
+
+    std::map<std::string, bool> directiveFlagsLocation;
+    std::map<std::string, void (ConfigFile::*)()> funcs_location;
+
+    void reset();
+    void resetLocation();
+
     public:
     std::vector<ServerConfig> servers;
+    ConfigFile();
     void parse(const std::string& file_path);
 };

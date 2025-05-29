@@ -1,1 +1,15 @@
-server{ error_page 300 fdsf; location f { methods get post delete ; } }
+server{ 
+    error_page 300 fdsf; 
+    
+    location f { index hi; methods GET POST DELETE ; } 
+    server_name lawal;
+}
+    
+    server
+{
+    error_page 301 dfsdf;location hhh { methods 
+        GET POST DELETE
+        ; }
+    server_name riad
+    ;
+}

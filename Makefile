@@ -14,7 +14,7 @@ $(NAME): $(OBJECT)
 	c++ $(CFLAGS) $(OBJECT) -o $(NAME)
 
 %.o: %.cpp $(HEARDER)
-	c++ $(CFLAGS) -c $< -o $@
+	c++ $(CFLAGS) -c $<  -o $@
 
 clean:
 	rm -f $(OBJECT)
