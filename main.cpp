@@ -31,6 +31,12 @@ int main()
                     std::cout << "    autoindex: " << (loc.autoindex ? "true" : "false") << std::endl;
                     std::cout << "    upload_store: " << loc.upload_store << std::endl;
                 }
+
+                std::cout << " Error Pages : {" <<std::endl;
+                for (std::map<int, std::string>::iterator m = servers[i].error_pages.begin(); m != servers[i].error_pages.end(); ++m) {
+                    std::cout << "      " << m->second << std::endl;
+                }
+                std::cout << " }" <<std::endl;
             }
 
     }

@@ -7,6 +7,7 @@
 #include <sstream>
 #include <limits>
 #include <algorithm>
+#include <unistd.h>
 
 class Location
 {
@@ -35,7 +36,6 @@ class ServerConfig
             std::map<int, std::string> error_pages;
             std::vector<Location> locations;
 
-        // ServerConfig();
         void reset();
 };
             

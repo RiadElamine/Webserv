@@ -539,32 +539,57 @@ void ConfigFile::parse(const std::string& file_path)
 }
 
 
-	void ConfigFile::fill_server_defaults() {
-		for (std::vector<ServerConfig>::iterator it = servers.begin(); it != servers.end(); ++it) {
-			if (it->host.empty())
-				it->host = "0.0.0.0";
+void ConfigFile::fill_server_defaults()
+{
+	std::string errorDir = "./errors/";
+	int codesArray[] = {
+		400, 401, 403, 404, 405, 408,
+		413, 414, 500, 501, 502, 503, 504
+	};
 
-			if (it->port == -1)
-				it->port = 8080;
 
-			if (it->client_max_body_size == -1)
-				it->client_max_body_size = 1024 * 1024;
+	for (std::vector<ServerConfig>::iterator it = servers.begin(); it != servers.end(); ++it) {
+		if (it->host.empty())
+			it->host = "0.0.0.0";
 
-			if (it->global_root.empty())
-				it->global_root = "/home/relamine/nginx-1.25.3/tt";
+		if (it->port == -1)
+			it->port = 8080;
 
-			for (std::vector<Location>::iterator loc = it->locations.begin(); loc != it->locations.end(); ++loc) {
-				if (loc->root.empty())
-					loc->root = it->global_root;
+		if (it->client_max_body_size == -1)
+			it->client_max_body_size = 1024 * 1024;
 
-				if (loc->index.empty())
-					loc->index = "index.html";
+		if (it->global_root.empty())
+			it->global_root = "/home/relamine/nginx-1.25.3/tt";
 
-				if (loc->methods.empty())
-					loc->methods.push_back("get");
+		for (std::vector<Location>::iterator loc = it->locations.begin(); loc != it->locations.end(); ++loc) {
+			if (loc->root.empty())
+				loc->root = it->global_root;
 
-				if (loc->upload_store.empty())
-					loc->upload_store = "/tmp";
+			if (loc->index.empty())
+				loc->index = "index.html";
+
+			if (loc->methods.empty())
+				loc->methods.push_back("GET");
+
+			if (loc->upload_store.empty())
+				loc->upload_store = "/tmp";
+
+				
+		}
+
+		for (int i = 0 ; i != 13; ++i) 
+		{
+			std::ostringstream errorPage ; errorPage << codesArray[i];
+			std::string filePath = errorDir + errorPage.str() + ".html";
+			std::map<int, std::string>::iterator error = it->error_pages.find(codesArray[i]);
+			if ( error == it->error_pages.end())
+				it->error_pages[codesArray[i]] = filePath;
+			else
+			{
+				if (access(error->second.c_str(), R_OK) != 0)
+					it->error_pages[codesArray[i]] = filePath;
 			}
 		}
+			
+	}
 }
