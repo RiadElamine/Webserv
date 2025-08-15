@@ -1,10 +1,10 @@
 NAME = tests
 
-SOURCE = main.cpp ConfigFile.cpp
-
+SRCS_DIR = ./srcs
+SOURCE =  $(SRCS_DIR)/main.cpp  $(SRCS_DIR)/ConfigFile.cpp
 OBJECT = $(SOURCE:.cpp=.o)
 
-HEARDER = ConfigFile.cpp
+HEADER = ./Includes/ConfigFile.hpp
 
 CFLAGS = -Wall -Wextra -Werror -std=c++98
 
@@ -13,7 +13,7 @@ all : $(NAME)
 $(NAME): $(OBJECT)
 	c++ $(CFLAGS) $(OBJECT) -o $(NAME)
 
-%.o: %.cpp $(HEARDER)
+$(SRCS_DIR)/%.o: $(SRCS_DIR)/%.cpp $(HEADER)
 	c++ $(CFLAGS) -c $<  -o $@
 
 clean:

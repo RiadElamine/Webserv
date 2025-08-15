@@ -8,6 +8,7 @@
 #include <limits>
 #include <algorithm>
 #include <unistd.h>
+#include <netdb.h>
 
 class Location
 {
@@ -60,7 +61,10 @@ class ConfigFile
     int indexOfErrorPages;
     int indexOfRedircat;
     size_t length;
+    std::ifstream ConfigFileStream;
     
+    void Initialize();
+
     // first detect key
     void DispatchParser();
     
@@ -69,7 +73,7 @@ class ConfigFile
     void verifyDelimiter(CharSymbol char_symbol);
     void ParseErrorPages();
     void ParseGlobalRoot();
-    void ParsePort();
+    void ParseListen();
     void ParseDomain();
     void ParseClientMaxBodySize();
 
@@ -97,7 +101,6 @@ class ConfigFile
     std::string get_data_location (int max_data = 1);
     void addMethod(const std::string &method);
     void get_method();
-    bool HasSpecialDelimiter(const std::string &data) const;
     bool L_HasSpecialDelimiter(const std::string &data) const;
 
 
@@ -113,8 +116,11 @@ class ConfigFile
 
 	void fill_server_defaults();
 
+
+    ConfigFile();
+
     public:
     std::vector<ServerConfig> servers;
-    ConfigFile();
-    void parse(const std::string& file_path);
+    ConfigFile(int argc, char **argv);
+    void parse();
 };
