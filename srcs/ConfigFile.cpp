@@ -13,7 +13,7 @@ ConfigFile::ConfigFile(int argc, char **argv)
 	ConfigFileStream.open(configFilePath);
 
     if (!ConfigFileStream.is_open())
-        throw std::runtime_error("*Cannot open config file");
+        throw std::runtime_error("Cannot open config file");
 
 	if (ConfigFileStream.peek() == EOF)
 		throw std::runtime_error("Config file is empty");
@@ -31,6 +31,7 @@ void ConfigFile::Initialize()
 	indexOfRedircat = 0;
 	length = 0;
 
+	servers = new std::vector<ServerConfig>();
 	server.reset();
 	location.reset();
 	reset();
@@ -67,14 +68,12 @@ void Location::reset()
 
 }
 void ServerConfig::reset() {
-	host.clear();
-	port = -1;
+	listens.clear();
 	server_name.clear();
-	client_max_body_size = -1;
+	client_max_body_size = 1024 * 1024; // default 1MB
 	global_root.clear();
 	error_pages.clear();
 	locations.clear();
-
 }
 
 
@@ -112,7 +111,6 @@ long convert_long(const std::string &data)
 	const char *str = data.c_str();
 	while ((*str >= 9 && *str <= 13) || *str == 32)
 		str++;
-
 	while (*str)
 	{
 		if (!isdigit(*str))
@@ -263,6 +261,7 @@ void ConfigFile::ParseGlobalRoot()
 void ConfigFile::ParseListen()
 {
 	std::string data = get_data();
+	std::string host;
 
 	struct addrinfo hints;
 	struct addrinfo *res = NULL;
@@ -275,23 +274,33 @@ void ConfigFile::ParseListen()
 	size_t pos = data.find(":");
 	if (pos != std::string::npos)
 	{
-		server.host = data.substr(0, pos);
+		host = data.substr(0, pos);
 		data = data.substr(pos + 1);
-		if (getaddrinfo(server.host.c_str(), NULL, &hints, &res) != 0)
-			throw std::invalid_argument("Invalid host address: " + server.host);
+		if (data.empty())
+			throw std::invalid_argument("Port number is missing after host address");
+		if (getaddrinfo(host.c_str(), NULL, &hints, &res) != 0)
+			throw std::invalid_argument("Invalid host address: " + host);
+	}
+	else 
+	{
+		host = "0.0.0.0";
 	}
 
 	try
 	{
-		server.port = convert_long(data);
+		long port = convert_long(data);
+		if ( port < 1 || port > 65535)
+			throw std::runtime_error("Port must be between 1 and 65535");
+		typedef std::set<std::pair<std::string, uint16_t> >::iterator it;
+		std::pair<it, bool> existing = server.listens.insert(std::make_pair(host, static_cast<uint16_t>(port)));
+		if (!existing.second)
+			throw std::invalid_argument("Duplicate listen definition for " + host + ":" + data);
 	}
 	catch(const std::exception& e)
 	{
 		std::cout << "Error converting port: ";
 		throw;
 	}
-	if (server.port < 1 || server.port > 65535)
-		throw std::runtime_error("Port must be between 1 and 65535");	
 	
 	freeaddrinfo(res);
 }
@@ -328,7 +337,7 @@ void ConfigFile::DispatchParser()
 
 	if (directiveFlags.find(key) != directiveFlags.end())
 	{
-		if (directiveFlags[key] == true && key.compare("location") && key.compare("error_page"))
+		if (directiveFlags[key] == true && key.compare("location") && key.compare("error_page") && key.compare("listen"))
 			throw std::invalid_argument("Duplicate definition for " + key);
 		call = funcs[key];
 		i += key.length();
@@ -409,7 +418,7 @@ void ConfigFile::verifyDelimiter(CharSymbol char_symbol)
 	if (char_symbol == CLOSE_BRACKET)
 	{
 		index_of_t = 0;
-		servers.push_back(server);
+		servers->push_back(server);
 		server.reset();
 		reset();
 	}
@@ -534,16 +543,10 @@ void ConfigFile::fill_server_defaults()
 		413, 414, 500, 501, 502, 503, 504
 	};
 
-	for (std::vector<ServerConfig>::iterator it = servers.begin(); it != servers.end(); ++it)
+	for (std::vector<ServerConfig>::iterator it = servers->begin(); it != servers->end(); ++it)
 	{
-		if (it->host.empty())
-			it->host = "0.0.0.0";
-
-		if (it->port == -1)
-			it->port = 8080;
-
-		if (it->client_max_body_size == -1)
-			it->client_max_body_size = 1024 * 1024;
+		if (it->listens.empty())
+			it->listens.insert(std::make_pair("0.0.0.0", 8080));
 
 		if (it->global_root.empty())
 			it->global_root = "/home/relamine/nginx-1.25.3/tt";

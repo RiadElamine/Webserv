@@ -9,6 +9,8 @@
 #include <algorithm>
 #include <unistd.h>
 #include <netdb.h>
+#include <utility>
+#include <set>
 
 class Location
 {
@@ -29,10 +31,9 @@ class Location
 class ServerConfig
 {
         public:
-            std::string host;
-            int port;
+            std::set<std::pair<std::string, uint16_t> >  listens;
             std::string server_name;
-            long client_max_body_size;
+            size_t client_max_body_size;
             std::string global_root;
             std::map<int, std::string> error_pages;
             std::vector<Location> locations;
@@ -101,7 +102,6 @@ class ConfigFile
     std::string get_data_location (int max_data = 1);
     void addMethod(const std::string &method);
     void get_method();
-    bool L_HasSpecialDelimiter(const std::string &data) const;
 
 
     std::map<std::string, bool> directiveFlags;
@@ -120,7 +120,7 @@ class ConfigFile
     ConfigFile();
 
     public:
-    std::vector<ServerConfig> servers;
+    std::vector<ServerConfig> *servers;
     ConfigFile(int argc, char **argv);
     void parse();
 };
