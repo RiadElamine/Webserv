@@ -54,7 +54,7 @@ int main(int argc, char **argv)
     {
         WebServer webserver(*servers);
         std::cout << "server: waiting for connections..." << std::endl;
-        webserver.sartServer();
+        webserver.startServer();
     }
     catch(const std::exception& e)
     {

@@ -17,11 +17,17 @@ struct Listener {
     ServerConfig *hosts;
 };
 
+enum ConnectionState {
+    CONNECTED,
+    DISCONNECTED,
+    ERROR
+};
+
 class WebServer {
     public:
         WebServer(std::vector<ServerConfig>  &servers);
         ~WebServer();
-        void sartServer();
+        void startServer();
 
     private:
         WebServer(const WebServer&);
@@ -30,15 +36,18 @@ class WebServer {
         void registerEvents();
 
         int kq;
-        std::vector<struct kevent> events;
+        std::vector<struct kevent> listenerEvents;
 
-        void    _handleAccept(int listen_fd);
-        void    _handleReadable(int client_fd);
-        void    _handleWritable(int client_fd);
-        void    _closeConnection(int fd);
+        // void    _handleAccept(int listen_fd, std::vector<struct kevent> &ClientEvents);
+        // int     _handleReadable(int client_fd, std::vector<struct kevent> &ClientEvents);
+        // int     _handleWritable(int client_fd, std::vector<struct kevent> &ClientEvents);
+        // void    _closeConnection(int fd, std::vector<struct kevent> &ClientEvents);
+        void _handleAccept(int listen_fd);
+        int _handleReadable(int client_fd);
+        int _handleWritable(int client_fd);
+        void _closeConnection(int fd);
 
-
-        void _addEvent(uintptr_t ident, int16_t filter, uint16_t flags,
+        void _addEvent(std::vector<struct kevent> &events, uintptr_t ident, int16_t filter, uint16_t flags,
                           uint32_t fflags, intptr_t data, void* udata);
 };
 

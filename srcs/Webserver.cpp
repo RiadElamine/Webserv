@@ -54,132 +54,104 @@ WebServer::~WebServer() {
     }
     listeners.clear();
 }
-
-void WebServer::_addEvent(uintptr_t ident, int16_t filter, uint16_t flags,
-                           uint32_t fflags, intptr_t data, void* udata) {
+void WebServer::_addEvent(std::vector<struct kevent> &events,
+                          uintptr_t ident, int16_t filter, uint16_t flags,
+                          uint32_t fflags, intptr_t data, void* udata) {
     struct kevent ev;
     EV_SET(&ev, ident, filter, flags, fflags, data, udata);
     events.push_back(ev);
 }
 
 void WebServer::registerEvents() {
-    events.reserve(listeners.size() * 3);
+    listenerEvents.clear();
+    listenerEvents.reserve(listeners.size());
+
     for (size_t i = 0; i < listeners.size(); i++) {
         int fd = listeners[i].fd;
-        _addEvent(fd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, (void*)1);
+        _addEvent(listenerEvents, fd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, (void*)1);
     }
 
-    if (kevent(kq, events.data(), events.size(), NULL, 0, NULL) == -1) {
-        throw std::runtime_error("Failed to register events");
+    if (kevent(kq, listenerEvents.data(), listenerEvents.size(), NULL, 0, NULL) == -1) {
+        throw std::runtime_error("Failed to register listener events");
     }
 }
 
 void WebServer::_handleAccept(int listen_fd) {
-
     int client_fd = accept(listen_fd, NULL, NULL);
-    if (client_fd == -1) {
+    if (client_fd == -1)
         throw std::runtime_error("Failed to accept connection");
-    }
 
-    _addEvent(client_fd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
-    _addEvent(client_fd, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
-    _addEvent(client_fd, EVFILT_TIMER, EV_ADD | EV_ENABLE, 0, timeout, NULL);
+    int yes = 1;
+    setsockopt(client_fd, SOL_SOCKET, SO_NOSIGPIPE, &yes, sizeof(yes));
 
-   if (kevent(kq, &events[events.size() - 3], 3, NULL, 0, NULL) == -1) {
+    struct kevent ev[3];
+    EV_SET(&ev[0], client_fd, EVFILT_READ,  EV_ADD | EV_ENABLE, 0, 0, NULL);
+    EV_SET(&ev[1], client_fd, EVFILT_WRITE, EV_ADD | EV_DISABLE, 0, 0, NULL);
+    EV_SET(&ev[2], client_fd, EVFILT_TIMER, EV_ADD | EV_ENABLE, 0, timeout, NULL);
+
+    if (kevent(kq, ev, 3, NULL, 0, NULL) == -1) {
         close(client_fd);
-        throw std::runtime_error("Failed to register new client connection");
+        throw std::runtime_error("Failed to register client events");
     }
 
+    std::cout << "Client connected: " << client_fd << std::endl;
 }
 
-void WebServer::_handleReadable(int client_fd) {
+int WebServer::_handleReadable(int client_fd) {
     char buffer[1024];
-    ssize_t bytesRead = recv(client_fd, buffer, sizeof(buffer), 0);
-    if (bytesRead == 0) {
-        perror("recv");
-        _closeConnection(client_fd);
-        return;
-    }
-    write(1, buffer, bytesRead);
-    buffer[bytesRead] = '\0';
+    ssize_t n = recv(client_fd, buffer, sizeof(buffer), 0);
+    if (n <= 0) return DISCONNECTED;
+
+    write(1, buffer, n);
+
+    struct kevent ev[2];
+    EV_SET(&ev[0], client_fd, EVFILT_WRITE, EV_ENABLE, 0, 0, NULL);
+    EV_SET(&ev[1], client_fd, EVFILT_READ,  EV_DISABLE, 0, 0, NULL);
+    kevent(kq, ev, 2, NULL, 0, NULL);
+
+    return CONNECTED;
 }
 
-void WebServer::_handleWritable(int client_fd) {
+int WebServer::_handleWritable(int client_fd) {
     const char* msg = "HTTP/1.1 200 OK\r\nContent-Length: 5\r\n\r\nHello";
-    send(client_fd, msg, strlen(msg), 0);
-
-
-    _closeConnection(client_fd);
+    if (send(client_fd, msg, strlen(msg), 0) <= 0) return DISCONNECTED;
+    return CONNECTED;
 }
 
 void WebServer::_closeConnection(int fd) {
-    if (fd < 0) {
-        std::cout << "waiting for close connection: " << fd << std::endl;
-        return;
-    }
+    struct kevent ev[3];
+    EV_SET(&ev[0], fd, EVFILT_READ,  EV_DELETE, 0, 0, NULL);
+    EV_SET(&ev[1], fd, EVFILT_WRITE, EV_DELETE, 0, 0, NULL);
+    EV_SET(&ev[2], fd, EVFILT_TIMER, EV_DELETE, 0, 0, NULL);
+    kevent(kq, ev, 3, NULL, 0, NULL);
+
     close(fd);
-    struct kevent tmp[3];
-    EV_SET(&tmp[0], fd, EVFILT_READ,  EV_DELETE, 0, 0, NULL);
-    EV_SET(&tmp[1], fd, EVFILT_WRITE, EV_DELETE, 0, 0, NULL);
-    EV_SET(&tmp[2], fd, EVFILT_TIMER, EV_DELETE, 0, 0, NULL);
-
-    if (kevent(kq, &tmp[0], 3, NULL, 0, NULL) == -1) {
-        perror("kevent EV_DELETE");
-    }
-
-    for (size_t i = 0; i < events.size();) {
-        if ((int)events[i].ident == fd) {
-            events.erase(events.begin() + i);
-            std::cout << "Connection closed: " << fd << std::endl;
-        }
-        else
-        {
-            i++;
-        }
-    }
+    std::cout << "Connection closed: " << fd << std::endl;
 }
 
-void WebServer::sartServer() {
+void WebServer::startServer() {
     kq = kqueue();
-    if (kq == -1) {
-        throw std::runtime_error("Failed to create kqueue");
-    }
+    if (kq == -1) throw std::runtime_error("Failed to create kqueue");
 
     registerEvents();
 
-    std::vector<struct kevent> evlist;
-    evlist.resize(events.size());
+    struct kevent evlist[1024];
+
     while (true) {
-        int nev = kevent(kq, NULL, 0, evlist.data(), evlist.size(), NULL);
-        if (nev == -1) {
-            throw std::runtime_error("kevent error");
-        }
+        int nev = kevent(kq, NULL, 0, evlist, 1024, NULL);
+        if (nev == -1) continue;
+
         for (int i = 0; i < nev; ++i) {
-            switch (evlist[i].filter)
-            {
-                case EVFILT_READ:
-                {
-                    if (evlist[i].udata == (void*)1)
-                    {
-                        _handleAccept(evlist[i].ident);
-                        break;
-                    }
-                    else
-                    {
-                        _handleReadable(evlist[i].ident);
-                    }
-                }
-                case EVFILT_WRITE:
-                {
-                    _handleWritable(evlist[i].ident);
-                    break;
-                }
-                case EVFILT_TIMER:
-                {
-                    _closeConnection(evlist[i].ident);
-                    i++;
-                    break;
-                }
+            struct kevent &e = evlist[i];
+            if (e.filter == EVFILT_READ) {
+                if (e.udata == (void*)1) _handleAccept(e.ident);
+                else if (_handleReadable(e.ident) == DISCONNECTED)
+                    _closeConnection(e.ident);
+            } else if (e.filter == EVFILT_WRITE) {
+                if (_handleWritable(e.ident) == DISCONNECTED)
+                    _closeConnection(e.ident);
+            } else if (e.filter == EVFILT_TIMER) {
+                _closeConnection(e.ident);
             }
         }
     }
