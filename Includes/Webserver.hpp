@@ -5,10 +5,11 @@
 #include <map>
 #include <string>
 #include <sys/event.h>
+#include <fcntl.h>
 #include "../Includes/ConfigFile.hpp"
 
 
-#define timeout 10000
+#define timeout 1000000000
 
 struct Listener {
     int fd;
@@ -49,6 +50,7 @@ class WebServer {
 
         void _addEvent(std::vector<struct kevent> &events, uintptr_t ident, int16_t filter, uint16_t flags,
                           uint32_t fflags, intptr_t data, void* udata);
+        void setNonBlocking(int fd);
 };
 
 #endif

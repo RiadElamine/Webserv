@@ -76,6 +76,15 @@ void WebServer::registerEvents() {
     }
 }
 
+void WebServer::setNonBlocking(int fd) {
+    int flags = fcntl(fd, F_GETFL, 0);
+    if (flags == -1)
+        throw std::runtime_error("fcntl(F_GETFL) failed");
+
+    if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1)
+        throw std::runtime_error("fcntl(F_SETFL) failed");
+}
+
 void WebServer::_handleAccept(int listen_fd) {
     int client_fd = accept(listen_fd, NULL, NULL);
     if (client_fd == -1)
@@ -83,6 +92,7 @@ void WebServer::_handleAccept(int listen_fd) {
 
     int yes = 1;
     setsockopt(client_fd, SOL_SOCKET, SO_NOSIGPIPE, &yes, sizeof(yes));
+    setNonBlocking(client_fd);
 
     struct kevent ev[3];
     EV_SET(&ev[0], client_fd, EVFILT_READ,  EV_ADD | EV_ENABLE, 0, 0, NULL);
@@ -100,22 +110,35 @@ void WebServer::_handleAccept(int listen_fd) {
 int WebServer::_handleReadable(int client_fd) {
     char buffer[1024];
     ssize_t n = recv(client_fd, buffer, sizeof(buffer), 0);
-    if (n <= 0) return DISCONNECTED;
+    if (n == 0) return DISCONNECTED;
+    if (n == -1) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK)
+            return CONNECTED;
+        return DISCONNECTED;
+    }
+
 
     write(1, buffer, n);
 
-    struct kevent ev[2];
-    EV_SET(&ev[0], client_fd, EVFILT_WRITE, EV_ENABLE, 0, 0, NULL);
-    EV_SET(&ev[1], client_fd, EVFILT_READ,  EV_DISABLE, 0, 0, NULL);
-    kevent(kq, ev, 2, NULL, 0, NULL);
+    // Here we would typically parse the HTTP request
+    // if we want to send a response, we need to enable the write event.
+    // we enable the write event when receiving all the data for the request.
+
+    // struct kevent ev[1];
+    // EV_SET(&ev[0], client_fd, EVFILT_WRITE, EV_ENABLE, 0, 0, NULL);
+    // kevent(kq, ev, 1, NULL, 0, NULL);
 
     return CONNECTED;
 }
 
 int WebServer::_handleWritable(int client_fd) {
     const char* msg = "HTTP/1.1 200 OK\r\nContent-Length: 5\r\n\r\nHello";
-    if (send(client_fd, msg, strlen(msg), 0) <= 0) return DISCONNECTED;
-    return CONNECTED;
+    ssize_t n = send(client_fd, msg, strlen(msg), 0);
+    if ((n == -1) && (errno == EAGAIN || errno == EWOULDBLOCK))
+        return CONNECTED;
+
+    //if data send successfully, we close the connection
+    return DISCONNECTED;
 }
 
 void WebServer::_closeConnection(int fd) {
