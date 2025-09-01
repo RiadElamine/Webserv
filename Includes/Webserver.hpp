@@ -10,7 +10,7 @@
 #include "../Includes/HttpRequest.hpp"
 
 
-#define timeout 1000000000
+#define timeout 10000 // 10 seconds
 
 struct Listener {
     int fd;
@@ -21,8 +21,7 @@ struct Listener {
 
 enum ConnectionState {
     CONNECTED,
-    DISCONNECTED,
-    ERROR
+    DISCONNECTED
 };
 
 class WebServer {
@@ -35,17 +34,14 @@ class WebServer {
         WebServer(const WebServer&);
         WebServer& operator=(const WebServer&);
         std::vector<Listener> listeners;
+        std::map<int, HttpRequest> clientRequests;
         void registerEvents();
 
         int kq;
         std::vector<struct kevent> listenerEvents;
 
-        // void    _handleAccept(int listen_fd, std::vector<struct kevent> &ClientEvents);
-        // int     _handleReadable(int client_fd, std::vector<struct kevent> &ClientEvents);
-        // int     _handleWritable(int client_fd, std::vector<struct kevent> &ClientEvents);
-        // void    _closeConnection(int fd, std::vector<struct kevent> &ClientEvents);
         void _handleAccept(int listen_fd);
-        int _handleReadable(int client_fd, std::string& data, HttpRequest& request);
+        int _handleReadable(int client_fd);
         int _handleWritable(int client_fd);
         void _closeConnection(int fd);
 

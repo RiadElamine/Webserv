@@ -29,7 +29,7 @@ class HttpRequest {
         bool need_boundary;
     public:
         HttpRequest();
-        void parse_request(std::string& data);
+        int  parse_request();
         void method_valid();
         void uri_valid();
         void decode(std::string &value);
@@ -47,6 +47,7 @@ class HttpRequest {
         std::string getMethod() const {
             return method;
         }
+        std::string RequestData;
 };
 
 #endif
