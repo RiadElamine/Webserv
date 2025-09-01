@@ -48,6 +48,7 @@ class HttpRequest {
             return method;
         }
         std::string RequestData;
+        void inchunk_body(std::string& data, std::ofstream& file);
 };
 
 #endif

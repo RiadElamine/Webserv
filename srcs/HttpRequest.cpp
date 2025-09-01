@@ -453,117 +453,194 @@ void HttpRequest::handl_boundary(std::string& data, size_t boundary_pos,  std::o
 //v2
 //----------------------------------------------------------------------------
 
+void HttpRequest::inchunk_body(std::string &data, std::ofstream &file)
+{
+    std::istringstream iss;
+    size_t pos = 0;
+    if (chunk_size == 0) {
+        size_t chunk_size_end = data.find("\r\n", pos);
+        if (chunk_size_end == std::string::npos) {
+            file.close();
+            return;
+        }
+        std::string size_line = data.substr(pos, chunk_size_end - pos);
+        iss.str(size_line);
+        iss.clear(); 
+        iss >> std::hex >> chunk_size;
+        if (chunk_size == 0 && flag_body == 1) {
+            data.erase(0, chunk_size_end + 2);
+            file.close();
+            // body_complete = true;
+            std::cout << "Chunk size is 0, closing file." << std::endl;
+            return;
+        }
+        pos = chunk_size_end + 2;
+        if (pos + chunk_size + 2 > data.size()) {
+            std::cout << "**** Not enough data for chunk." << std::endl;
+            need_boundary = true;
+            chunk_size = 0;
+            return;
+        }
+    }
+    if (boundary.empty())
+    {
+        file.write(data.c_str() + pos, chunk_size);
+    }
+    else
+    {
+        inchunk.append(data.c_str() + pos, chunk_size);
+        size_t boundary_pos = inchunk.find(boundary);
+        size_t boundary_end = inchunk.find(boundary, boundary_pos + boundary.size());
+        size_t inchunkpos = inchunk.find("--\r\n", boundary_pos);
+        if (boundary_end != std::string::npos || (boundary_pos != std::string::npos && inchunkpos != std::string::npos)) {
+            handl_boundary(inchunk, boundary_pos, file);
+        }
+    }
+    pos += chunk_size;
+    if (data.substr(pos, 2) != "\r\n") {
+        
+        throw std::runtime_error("Invalid chunk format - missing CRLF");
+    }
+    pos += 2;
+    chunk_size = 0;
+    if (pos > 0) {
+        data.erase(0, pos);
+    }
+}
+
 void HttpRequest::parse_body(std::string& data) {
     
     std::ofstream file("body.txt", std::ios::binary | std::ios::app);
     if (!file.is_open()) {
         return;
     }
-    if (!boundary.empty() && contentLength > 0) {
-        size_t boundary_pos = data.find(boundary);
-        handl_boundary(data, boundary_pos, file);
-        return;
+    if (!chunked.empty())
+    {
+        inchunk_body(data, file);
     }
-    if (!boundary.empty() && !chunked.empty()) {
-        std::istringstream iss;
-        size_t pos = 0;
-        if (chunk_size == 0) {
-            size_t chunk_size_end = data.find("\r\n", pos);
-            if (chunk_size_end == std::string::npos) {
+    if (contentLength > 0)
+    {
+        if (boundary.empty())
+        {
+            size_t bytesToWrite = std::min(static_cast<size_t>(contentLength), data.size());
+            file.write(data.c_str(), bytesToWrite);
+            contentLength -= bytesToWrite;
+            data.erase(0, bytesToWrite); 
+            if (contentLength <= 0) {
                 file.close();
                 return;
             }
-            std::string size_line = data.substr(pos, chunk_size_end - pos);
-            iss.str(size_line);
-            iss.clear(); 
-            iss >> std::hex >> chunk_size;
-            if (chunk_size == 0 && flag_body == 1) {
-                data.erase(0, chunk_size_end + 2);
-                file.close();
-                // body_complete = true;
-                std::cout << "Chunk size is 0, closing file." << std::endl;
-                return;
-            }
-            pos = chunk_size_end + 2;
-            if (pos + chunk_size + 2 > data.size()) {
-                std::cout << "**** Not enough data for chunk." << std::endl;
-                need_boundary = true;
-                chunk_size = 0;
-                return;
-            }
         }
-        inchunk.append(data.c_str() + pos, chunk_size);
-        size_t boundary_pos = inchunk.find(boundary);
-        size_t boundary_end = inchunk.find(boundary, boundary_pos + boundary.size());
-        std::cout << "Boundary position: " << boundary_pos << std::endl;
-        std::cout << "Boundary end position: " << boundary_end << std::endl;
-        size_t inchunkpos = inchunk.find("--\r\n", boundary_pos);
-        std::cout << "Inchunk position: " << inchunkpos << std::endl;
-        if (boundary_end != std::string::npos || (boundary_pos != std::string::npos && inchunkpos != std::string::npos)) {
-            handl_boundary(inchunk, boundary_pos, file);
+        else{
+            size_t boundary_pos = data.find(boundary);
+            handl_boundary(data, boundary_pos, file);
         }
-        pos += chunk_size;
-        if (data.substr(pos, 2) != "\r\n") {
+    }
+    // if (!boundary.empty() && contentLength > 0) {
+    //     size_t boundary_pos = data.find(boundary);
+    //     handl_boundary(data, boundary_pos, file);
+    //     return;
+    // }
+    // if (!boundary.empty() && !chunked.empty()) {
+    //     std::istringstream iss;
+    //     size_t pos = 0;
+    //     if (chunk_size == 0) {
+    //         size_t chunk_size_end = data.find("\r\n", pos);
+    //         if (chunk_size_end == std::string::npos) {
+    //             file.close();
+    //             return;
+    //         }
+    //         std::string size_line = data.substr(pos, chunk_size_end - pos);
+    //         iss.str(size_line);
+    //         iss.clear(); 
+    //         iss >> std::hex >> chunk_size;
+    //         if (chunk_size == 0 && flag_body == 1) {
+    //             data.erase(0, chunk_size_end + 2);
+    //             file.close();
+    //             // body_complete = true;
+    //             std::cout << "Chunk size is 0, closing file." << std::endl;
+    //             return;
+    //         }
+    //         pos = chunk_size_end + 2;
+    //         if (pos + chunk_size + 2 > data.size()) {
+    //             std::cout << "**** Not enough data for chunk." << std::endl;
+    //             need_boundary = true;
+    //             chunk_size = 0;
+    //             return;
+    //         }
+    //     }
+    //     inchunk.append(data.c_str() + pos, chunk_size);
+    //     size_t boundary_pos = inchunk.find(boundary);
+    //     size_t boundary_end = inchunk.find(boundary, boundary_pos + boundary.size());
+    //     std::cout << "Boundary position: " << boundary_pos << std::endl;
+    //     std::cout << "Boundary end position: " << boundary_end << std::endl;
+    //     size_t inchunkpos = inchunk.find("--\r\n", boundary_pos);
+    //     std::cout << "Inchunk position: " << inchunkpos << std::endl;
+    //     if (boundary_end != std::string::npos || (boundary_pos != std::string::npos && inchunkpos != std::string::npos)) {
+    //         handl_boundary(inchunk, boundary_pos, file);
+    //     }
+    //     pos += chunk_size;
+    //     if (data.substr(pos, 2) != "\r\n") {
             
-            throw std::runtime_error("Invalid chunk format - missing CRLF");
-        }
-        pos += 2;
-        chunk_size = 0;
-        if (pos > 0) {
-            data.erase(0, pos);
-        }
-    }
-    if (contentLength > 0 && boundary.empty()) {
-        size_t bytesToWrite = std::min(static_cast<size_t>(contentLength), data.size());
-        file.write(data.c_str(), bytesToWrite);
-        contentLength -= bytesToWrite;
-        data.erase(0, bytesToWrite); 
-        if (contentLength <= 0) {
-            file.close();
-            return;
-        }
-    }
-    else if (chunked == "chunked" && boundary.empty()) {
-        std::cout << "Chunked transfer encoding detected." << std::endl;
-        std::istringstream iss;
-        size_t pos = 0;
-        bool done = false;
-        if (chunk_size == 0) {
-            size_t chunk_size_end = data.find("\r\n", pos);
-            if (chunk_size_end == std::string::npos) {
-                file.close();
-                return;
-            }
-            std::string size_line = data.substr(pos, chunk_size_end - pos);
-            iss.str(size_line);
-            iss.clear(); 
-            iss >> std::hex >> chunk_size;
-            if (chunk_size == 0) {
-                done = true;
-                data.erase(0, chunk_size_end + 2);
-                file.close();
-                // body_complete = true;
-                return;
-            }
-            pos = chunk_size_end + 2;
-            if (pos + chunk_size + 2 > data.size()) {
-                need_boundary = true;
-                chunk_size = 0;
-                return;
-            }
-        }
-        file.write(data.c_str() + pos, chunk_size);
-        pos += chunk_size;
-        if (data.substr(pos, 2) != "\r\n") {
+    //         throw std::runtime_error("Invalid chunk format - missing CRLF");
+    //     }
+    //     pos += 2;
+    //     chunk_size = 0;
+    //     if (pos > 0) {
+    //         data.erase(0, pos);
+    //     }
+    // }
+    // if (contentLength > 0 && boundary.empty()) {
+    //     size_t bytesToWrite = std::min(static_cast<size_t>(contentLength), data.size());
+    //     file.write(data.c_str(), bytesToWrite);
+    //     contentLength -= bytesToWrite;
+    //     data.erase(0, bytesToWrite); 
+    //     if (contentLength <= 0) {
+    //         file.close();
+    //         return;
+    //     }
+    // }
+    // else if (chunked == "chunked" && boundary.empty()) {
+    //     std::cout << "Chunked transfer encoding detected." << std::endl;
+    //     std::istringstream iss;
+    //     size_t pos = 0;
+    //     bool done = false;
+    //     if (chunk_size == 0) {
+    //         size_t chunk_size_end = data.find("\r\n", pos);
+    //         if (chunk_size_end == std::string::npos) {
+    //             file.close();
+    //             return;
+    //         }
+    //         std::string size_line = data.substr(pos, chunk_size_end - pos);
+    //         iss.str(size_line);
+    //         iss.clear(); 
+    //         iss >> std::hex >> chunk_size;
+    //         if (chunk_size == 0) {
+    //             done = true;
+    //             data.erase(0, chunk_size_end + 2);
+    //             file.close();
+    //             // body_complete = true;
+    //             return;
+    //         }
+    //         pos = chunk_size_end + 2;
+    //         if (pos + chunk_size + 2 > data.size()) {
+    //             need_boundary = true;
+    //             chunk_size = 0;
+    //             return;
+    //         }
+    //     }
+    //     file.write(data.c_str() + pos, chunk_size);
+    //     pos += chunk_size;
+    //     if (data.substr(pos, 2) != "\r\n") {
             
-            throw std::runtime_error("Invalid chunk format - missing CRLF");
-        }
-        pos += 2;
-        chunk_size = 0;
-        if (pos > 0) {
-            data.erase(0, pos);
-        }
-    }
+    //         throw std::runtime_error("Invalid chunk format - missing CRLF");
+    //     }
+    //     pos += 2;
+    //     chunk_size = 0;
+    //     if (pos > 0) {
+    //         data.erase(0, pos);
+    //     }
+    // }
 
 }
 
@@ -571,7 +648,6 @@ void HttpRequest::parse_body(std::string& data) {
 int HttpRequest::parse_request() {
 
     if (RequestData.find("\r\n\r\n") == std::string::npos && !headers_complete()) {
-        std::cout << "Incomplete headers, waiting for more data." << std::endl;
         return (body_complete);
     }
     std::cout <<"------------------" << std::endl;
@@ -599,7 +675,5 @@ int HttpRequest::parse_request() {
         RequestData.clear();
         body_complete = false;
     }
-    std::cout << "Final remaining RequestData size: " << RequestData.size() << " " << need_boundary << std::endl;
-    std::cout << "Final remaining data size: " << RequestData.size() << std::endl;
     return (body_complete);
 }
