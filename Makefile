@@ -2,10 +2,10 @@ NAME = tests
 
 SRCS_DIR = ./srcs
 HEADERS_DIR = ./Includes
-SOURCE =  $(SRCS_DIR)/main.cpp  $(SRCS_DIR)/ConfigFile.cpp $(SRCS_DIR)/Webserver.cpp
+SOURCE =  $(SRCS_DIR)/main.cpp  $(SRCS_DIR)/ConfigFile.cpp $(SRCS_DIR)/Webserver.cpp $(SRCS_DIR)/HttpRequest.cpp
 OBJECT = $(SOURCE:.cpp=.o)
 
-HEADER = $(HEADERS_DIR)/ConfigFile.hpp $(HEADERS_DIR)/Webserver.hpp 
+HEADER = $(HEADERS_DIR)/ConfigFile.hpp $(HEADERS_DIR)/Webserver.hpp  $(HEADERS_DIR)/HttpRequest.hpp
 
 CFLAGS = -Wall -Wextra -Werror -std=c++98
 

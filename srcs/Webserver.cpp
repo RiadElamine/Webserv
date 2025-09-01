@@ -107,7 +107,7 @@ void WebServer::_handleAccept(int listen_fd) {
     std::cout << "Client connected: " << client_fd << std::endl;
 }
 
-int WebServer::_handleReadable(int client_fd) {
+int WebServer::_handleReadable(int client_fd, std::string& data, HttpRequest& request) {
     char buffer[1024];
     ssize_t n = recv(client_fd, buffer, sizeof(buffer), 0);
     if (n == 0) return DISCONNECTED;
@@ -117,8 +117,10 @@ int WebServer::_handleReadable(int client_fd) {
         return DISCONNECTED;
     }
 
+    data.append(buffer, n);
+    request.parse_request(data);
 
-    write(1, buffer, n);
+    // write(1, buffer, n);
 
     // Here we would typically parse the HTTP request
     // if we want to send a response, we need to enable the write event.
@@ -160,6 +162,9 @@ void WebServer::startServer() {
 
     struct kevent evlist[1024];
 
+    HttpRequest request = HttpRequest();
+    std::string requestData;
+
     while (true) {
         int nev = kevent(kq, NULL, 0, evlist, 1024, NULL);
         if (nev == -1) continue;
@@ -168,7 +173,7 @@ void WebServer::startServer() {
             struct kevent &e = evlist[i];
             if (e.filter == EVFILT_READ) {
                 if (e.udata == (void*)1) _handleAccept(e.ident);
-                else if (_handleReadable(e.ident) == DISCONNECTED)
+                else if (_handleReadable(e.ident, requestData, request) == DISCONNECTED)
                     _closeConnection(e.ident);
             } else if (e.filter == EVFILT_WRITE) {
                 if (_handleWritable(e.ident) == DISCONNECTED)

@@ -7,6 +7,7 @@
 #include <sys/event.h>
 #include <fcntl.h>
 #include "../Includes/ConfigFile.hpp"
+#include "../Includes/HttpRequest.hpp"
 
 
 #define timeout 1000000000
@@ -44,7 +45,7 @@ class WebServer {
         // int     _handleWritable(int client_fd, std::vector<struct kevent> &ClientEvents);
         // void    _closeConnection(int fd, std::vector<struct kevent> &ClientEvents);
         void _handleAccept(int listen_fd);
-        int _handleReadable(int client_fd);
+        int _handleReadable(int client_fd, std::string& data, HttpRequest& request);
         int _handleWritable(int client_fd);
         void _closeConnection(int fd);
 
