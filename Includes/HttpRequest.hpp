@@ -6,6 +6,16 @@
 #include <iostream>
 #include <fstream>
 
+#include <sstream>
+#include <string>   
+#include <algorithm>
+#include <cctype>
+#include <iterator>
+#include <stdexcept>
+#include <utility>
+#include <cstring>
+#include <unistd.h>
+
 class HttpRequest {
     private:
         std::string method;

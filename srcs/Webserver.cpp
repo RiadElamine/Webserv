@@ -136,6 +136,7 @@ int WebServer::_handleWritable(int client_fd) {
         return DISCONNECTED;
 
     //if data send successfully, we close the connection
+    std::cout << "Response sent to client: " << client_fd << std::endl;
     return DISCONNECTED;
 }
 
