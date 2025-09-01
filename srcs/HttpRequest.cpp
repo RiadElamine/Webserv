@@ -567,14 +567,14 @@ void HttpRequest::parse_body(std::string& data) {
 }
 
 
-void HttpRequest::parse_request(std::string& data) {
+int HttpRequest::parse_request() {
 
-    if (data.find("\r\n\r\n") == std::string::npos && !headers_complete()) {
+    if (RequestData.find("\r\n\r\n") == std::string::npos && !headers_complete()) {
         std::cout << "Incomplete headers, waiting for more data." << std::endl;
-        return;
+        return (body_complete);
     }
     std::cout <<"------------------" << std::endl;
-    while (!data.empty())
+    while (!RequestData.empty())
     {
         if (need_boundary == true)
         {
@@ -582,13 +582,14 @@ void HttpRequest::parse_request(std::string& data) {
             break;
         }
         if (!headers_complete()) {
-            parse_headers(data);
+            parse_headers(RequestData);
         }
         std::cout << headers_complete() << std::endl;
-        std::cout << "After parsing headers, remaining data size: " << data.size() << std::endl;
+        std::cout << "After parsing headers, remaining data size: " << RequestData.size() << std::endl;
         if (method == "POST" && headers_complete()) {
-            parse_body(data);
+            parse_body(RequestData);
         }
     }
-    std::cout << "Final remaining data size: " << data.size() << std::endl;
+    std::cout << "Final remaining data size: " << RequestData.size() << std::endl;
+    return (body_complete);
 }

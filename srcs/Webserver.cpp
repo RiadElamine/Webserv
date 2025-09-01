@@ -103,32 +103,28 @@ void WebServer::_handleAccept(int listen_fd) {
         close(client_fd);
         throw std::runtime_error("Failed to register client events");
     }
-
+    clientRequests[client_fd] = HttpRequest();
     std::cout << "Client connected: " << client_fd << std::endl;
 }
 
-int WebServer::_handleReadable(int client_fd, std::string& data, HttpRequest& request) {
+int WebServer::_handleReadable(int client_fd) {
     char buffer[1024];
     ssize_t n = recv(client_fd, buffer, sizeof(buffer), 0);
-    if (n == 0) return DISCONNECTED;
-    if (n == -1) {
-        if (errno == EAGAIN || errno == EWOULDBLOCK)
-            return CONNECTED;
-        return DISCONNECTED;
+    if (n == 0 || n == -1) return DISCONNECTED;
+    
+    clientRequests[client_fd].RequestData.append(buffer, n);
+    if (clientRequests[client_fd].parse_request())
+    {
+        struct kevent ev[2];
+        EV_SET(&ev[0], client_fd, EVFILT_READ, EV_DISABLE, 0, 0, NULL);
+        EV_SET(&ev[1], client_fd, EVFILT_WRITE, EV_ENABLE, 0, 0, NULL);
+        kevent(kq, ev, 2, NULL, 0, NULL);
     }
 
-    data.append(buffer, n);
-    request.parse_request(data);
-
-    // write(1, buffer, n);
-
-    // Here we would typically parse the HTTP request
-    // if we want to send a response, we need to enable the write event.
-    // we enable the write event when receiving all the data for the request.
-
-    // struct kevent ev[1];
-    // EV_SET(&ev[0], client_fd, EVFILT_WRITE, EV_ENABLE, 0, 0, NULL);
-    // kevent(kq, ev, 1, NULL, 0, NULL);
+    // Reset the timer
+    struct kevent ev;
+    EV_SET(&ev, client_fd, EVFILT_TIMER, EV_ADD | EV_ENABLE, 0, timeout, NULL);
+    kevent(kq, &ev, 1, NULL, 0, NULL);
 
     return CONNECTED;
 }
@@ -136,8 +132,8 @@ int WebServer::_handleReadable(int client_fd, std::string& data, HttpRequest& re
 int WebServer::_handleWritable(int client_fd) {
     const char* msg = "HTTP/1.1 200 OK\r\nContent-Length: 5\r\n\r\nHello";
     ssize_t n = send(client_fd, msg, strlen(msg), 0);
-    if ((n == -1) && (errno == EAGAIN || errno == EWOULDBLOCK))
-        return CONNECTED;
+    if (n == -1)
+        return DISCONNECTED;
 
     //if data send successfully, we close the connection
     return DISCONNECTED;
@@ -160,26 +156,35 @@ void WebServer::startServer() {
 
     registerEvents();
 
-    struct kevent evlist[1024];
-
-    HttpRequest request = HttpRequest();
-    std::string requestData;
+    std::vector<struct kevent> evlist;
+    evlist.resize(listeners.size());
 
     while (true) {
-        int nev = kevent(kq, NULL, 0, evlist, 1024, NULL);
+        int nev = kevent(kq, NULL, 0, evlist.data(), evlist.size(), NULL);
         if (nev == -1) continue;
 
         for (int i = 0; i < nev; ++i) {
             struct kevent &e = evlist[i];
-            if (e.filter == EVFILT_READ) {
-                if (e.udata == (void*)1) _handleAccept(e.ident);
-                else if (_handleReadable(e.ident, requestData, request) == DISCONNECTED)
-                    _closeConnection(e.ident);
-            } else if (e.filter == EVFILT_WRITE) {
-                if (_handleWritable(e.ident) == DISCONNECTED)
-                    _closeConnection(e.ident);
-            } else if (e.filter == EVFILT_TIMER) {
+            bool disconnect = false;
+
+            if (e.filter == EVFILT_READ)
+            {
+                if (e.udata == (void*)1)
+                {
+                    _handleAccept(e.ident);
+                    evlist.resize(evlist.size() + 3);
+                }
+                else if (_handleReadable(e.ident) == DISCONNECTED)
+                    disconnect = true;
+            } 
+            else if (e.filter == EVFILT_WRITE && _handleWritable(e.ident) == DISCONNECTED)
+                disconnect = true;
+            else if (e.filter == EVFILT_TIMER)
+                disconnect = true;
+            if (disconnect)
+            {
                 _closeConnection(e.ident);
+                evlist.resize(evlist.size() - 3);
             }
         }
     }
