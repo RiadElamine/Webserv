@@ -255,7 +255,6 @@ void HttpRequest::handl_boundary(std::string& data, size_t boundary_pos,  std::o
             std::cout << "** No boundary found, writing remaining data to file." << std::endl;
             std::ofstream oo("uup.txt", std::ios::binary | std::ios::app);
             oo << data << "{visord}";
-            need_boundary = true;
             data.clear();
             return;
         }
@@ -481,6 +480,7 @@ void HttpRequest::parse_body(std::string& data) {
             if (chunk_size == 0 && flag_body == 1) {
                 data.erase(0, chunk_size_end + 2);
                 file.close();
+                // body_complete = true;
                 std::cout << "Chunk size is 0, closing file." << std::endl;
                 return;
             }
@@ -542,6 +542,7 @@ void HttpRequest::parse_body(std::string& data) {
                 done = true;
                 data.erase(0, chunk_size_end + 2);
                 file.close();
+                // body_complete = true;
                 return;
             }
             pos = chunk_size_end + 2;
@@ -578,6 +579,9 @@ void HttpRequest::parse_request(std::string& data) {
     {
         if (need_boundary == true)
         {
+            std::cout << "Need more data to complete body parsing." << std::endl;
+            std::ofstream oo("need_boundary.txt", std::ios::binary | std::ios::app);
+            oo << data << "{visord}";
             need_boundary = false;
             break;
         }
@@ -590,5 +594,10 @@ void HttpRequest::parse_request(std::string& data) {
             parse_body(data);
         }
     }
-    std::cout << "Final remaining data size: " << data.size() << std::endl;
+    if (body_complete)
+    {
+        data.clear();
+        body_complete = false;
+    }
+    std::cout << "Final remaining data size: " << data.size() << " " << need_boundary << std::endl;
 }
