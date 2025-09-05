@@ -43,6 +43,7 @@ void ConfigFile::Initialize()
 	funcs.insert(std::make_pair("server_name", &ConfigFile::ParseDomain));
 	funcs.insert(std::make_pair("client_max_body_size", &ConfigFile::ParseClientMaxBodySize));
 	funcs.insert(std::make_pair("listen", &ConfigFile::ParseListen));
+	funcs.insert(std::make_pair("index", &ConfigFile::ParseIndexGlobal));
 
 	funcs_location.insert(std::make_pair("autoindex", &ConfigFile::ParseAutoindex));
 	funcs_location.insert(std::make_pair("methods", &ConfigFile::ParseMethods));
@@ -85,6 +86,7 @@ void ConfigFile::reset()
 	directiveFlags["server_name"] = false;
 	directiveFlags["client_max_body_size"] = false;
 	directiveFlags["listen"] = false;
+	directiveFlags["index"] = false;
 }
 
 void ConfigFile::resetLocation()
@@ -317,6 +319,13 @@ void ConfigFile::ParseClientMaxBodySize()
 	server.client_max_body_size = convert_long(data);
 }
 
+
+void ConfigFile::ParseIndexGlobal()
+{
+	std::string data = get_data();
+	server.global_index = data;
+}
+
 // parsing inside server
 
 // Checks if the current token represent the start of a "server" block
@@ -523,7 +532,6 @@ void ConfigFile::verifyDelimiterLocation(CharSymbol char_symbol)
 					verifyDelimiter(CLOSE_BRACKET);
 			}
 		}
-		
 		sstring.str("");
 		sstring.clear();
 	}
@@ -547,37 +555,27 @@ void ConfigFile::fill_server_defaults()
 	{
 		if (it->listens.empty())
 			it->listens.insert(std::make_pair("0.0.0.0", 8080));
-
 		if (it->global_root.empty())
 			it->global_root = "/home/relamine/nginx-1.25.3/tt";
-
+		if (it->global_index.empty())
+			it->global_index = "index.html";
 		for (std::vector<Location>::iterator loc = it->locations.begin(); loc != it->locations.end(); ++loc) {
 			if (loc->root.empty())
 				loc->root = it->global_root;
-
 			if (loc->index.empty())
-				loc->index = "index.html";
-
+				loc->index = it->global_index;
 			if (loc->methods.empty())
 				loc->methods.push_back("GET");
-
 			if (loc->upload_store.empty())
 				loc->upload_store = "/tmp";
-
 		}
-	
 		for (int i = 0 ; i != 13; ++i) 
 		{
 			std::ostringstream errorPage ; errorPage << codesArray[i];
 			std::string filePath = errorDir + errorPage.str() + ".html";
-			std::map<int, std::string>::iterator error = it->error_pages.find(codesArray[i]);
-			if ( error == it->error_pages.end())
-				it->error_pages[codesArray[i]] = filePath;
-			else
-			{
-				if (access(error->second.c_str(), R_OK) != 0)
-					it->error_pages[codesArray[i]] = filePath;
-			}
+			std::string &mappedPath = it->error_pages[codesArray[i]];
+			if (mappedPath.empty() || access(mappedPath.c_str(), R_OK) != 0)
+				mappedPath = filePath;
 		}	
 	}
 }

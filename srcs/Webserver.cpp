@@ -28,7 +28,8 @@ WebServer::WebServer(std::vector<ServerConfig>  &servers) {
             }
 
             int yes = 1;
-            if (setsockopt(listener.fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1) {
+  
+            if (setsockopt(listener.fd, SOL_SOCKET, SO_REUSEPORT, &yes, sizeof(yes))) {
                 throw std::runtime_error("Failed to set socket options");
             }
 

@@ -35,6 +35,7 @@ class ServerConfig
             std::string server_name;
             size_t client_max_body_size;
             std::string global_root;
+            std::string global_index;
             std::map<int, std::string> error_pages;
             std::vector<Location> locations;
 
@@ -77,6 +78,7 @@ class ConfigFile
     void ParseListen();
     void ParseDomain();
     void ParseClientMaxBodySize();
+    void ParseIndexGlobal();
 
     //keys: this in location
     void Parselocationblock();
