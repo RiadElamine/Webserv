@@ -30,8 +30,8 @@ void ConfigFile::Initialize()
 	indexOfErrorPages = 0;
 	indexOfRedircat = 0;
 	length = 0;
+	has_other_block = 0;
 
-	servers = new std::vector<ServerConfig>();
 	server.reset();
 	location.reset();
 	reset();
@@ -68,6 +68,7 @@ void Location::reset()
 	cgi_Path_Info.clear();
 
 }
+
 void ServerConfig::reset() {
 	listens.clear();
 	server_name.clear();
@@ -76,7 +77,6 @@ void ServerConfig::reset() {
 	error_pages.clear();
 	locations.clear();
 }
-
 
 void ConfigFile::reset() 
 {
@@ -281,7 +281,10 @@ void ConfigFile::ParseListen()
 		if (data.empty())
 			throw std::invalid_argument("Port number is missing after host address");
 		if (getaddrinfo(host.c_str(), NULL, &hints, &res) != 0)
+		{
 			throw std::invalid_argument("Invalid host address: " + host);
+		}
+		freeaddrinfo(res);
 	}
 	else 
 	{
@@ -292,19 +295,22 @@ void ConfigFile::ParseListen()
 	{
 		long port = convert_long(data);
 		if ( port < 1 || port > 65535)
-			throw std::runtime_error("Port must be between 1 and 65535");
+			throw std::invalid_argument("Port must be between 1 and 65535");
 		typedef std::set<std::pair<std::string, uint16_t> >::iterator it;
 		std::pair<it, bool> existing = server.listens.insert(std::make_pair(host, static_cast<uint16_t>(port)));
 		if (!existing.second)
-			throw std::invalid_argument("Duplicate listen definition for " + host + ":" + data);
+			throw std::runtime_error("Duplicate listen definition for " + host + ":" + data);
+	}
+	catch(const std::runtime_error& e)
+	{
+		throw e;
 	}
 	catch(const std::exception& e)
 	{
-		std::cout << "Error converting port: ";
+		std::cerr << "Error converting port: ";
 		throw;
 	}
 	
-	freeaddrinfo(res);
 }
 
 void ConfigFile::ParseDomain()
@@ -334,10 +340,13 @@ void ConfigFile::verifyServerKeyword()
 	size_t pos;
 
 	pos = word.find("server", i);
+	if (pos != std::string::npos && has_other_block)
+		throw std::invalid_argument("syntax error : multiple server block");
 	if (pos == std::string::npos)
 		throw std::invalid_argument("syntax error : in server keyword");
 	index_of_t++;
 	i+=6;
+	has_other_block++;
 }
 
 void ConfigFile::DispatchParser()
@@ -427,9 +436,6 @@ void ConfigFile::verifyDelimiter(CharSymbol char_symbol)
 	if (char_symbol == CLOSE_BRACKET)
 	{
 		index_of_t = 0;
-		servers->push_back(server);
-		server.reset();
-		reset();
 	}
 	else 
 		index_of_t = 2;
@@ -504,8 +510,8 @@ void ConfigFile::verifyDelimiterLocation(CharSymbol char_symbol)
 		index_of_lm = 5;
 	}
 
-	void ConfigFile::parse()
-	{
+ServerConfig *ConfigFile::parse()
+{
 	std::string			line;
 	std::stringstream	sstring;
 
@@ -540,7 +546,7 @@ void ConfigFile::verifyDelimiterLocation(CharSymbol char_symbol)
 		throw std::invalid_argument("syntax error : in delimiter");
 
 	fill_server_defaults();
-
+	return (new ServerConfig(server));
 }
 
 void ConfigFile::fill_server_defaults()
@@ -551,31 +557,30 @@ void ConfigFile::fill_server_defaults()
 		413, 414, 500, 501, 502, 503, 504
 	};
 
-	for (std::vector<ServerConfig>::iterator it = servers->begin(); it != servers->end(); ++it)
+	ServerConfig *it = &server;
+
+	if (it->listens.empty())
+		it->listens.insert(std::make_pair("0.0.0.0", 8080));
+	if (it->global_root.empty())
+		it->global_root = "/home/relamine/nginx-1.25.3/tt";
+	if (it->global_index.empty())
+		it->global_index = "index.html";
+	for (std::vector<Location>::iterator loc = it->locations.begin(); loc != it->locations.end(); ++loc) {
+		if (loc->root.empty())
+			loc->root = it->global_root;
+		if (loc->index.empty())
+			loc->index = it->global_index;
+		if (loc->methods.empty())
+			loc->methods.push_back("GET");
+		if (loc->upload_store.empty())
+			loc->upload_store = "/tmp";
+	}
+	for (int i = 0 ; i != 13; ++i) 
 	{
-		if (it->listens.empty())
-			it->listens.insert(std::make_pair("0.0.0.0", 8080));
-		if (it->global_root.empty())
-			it->global_root = "/home/relamine/nginx-1.25.3/tt";
-		if (it->global_index.empty())
-			it->global_index = "index.html";
-		for (std::vector<Location>::iterator loc = it->locations.begin(); loc != it->locations.end(); ++loc) {
-			if (loc->root.empty())
-				loc->root = it->global_root;
-			if (loc->index.empty())
-				loc->index = it->global_index;
-			if (loc->methods.empty())
-				loc->methods.push_back("GET");
-			if (loc->upload_store.empty())
-				loc->upload_store = "/tmp";
-		}
-		for (int i = 0 ; i != 13; ++i) 
-		{
-			std::ostringstream errorPage ; errorPage << codesArray[i];
-			std::string filePath = errorDir + errorPage.str() + ".html";
-			std::string &mappedPath = it->error_pages[codesArray[i]];
-			if (mappedPath.empty() || access(mappedPath.c_str(), R_OK) != 0)
-				mappedPath = filePath;
-		}	
+		std::ostringstream errorPage ; errorPage << codesArray[i];
+		std::string filePath = errorDir + errorPage.str() + ".html";
+		std::string &mappedPath = it->error_pages[codesArray[i]];
+		if (mappedPath.empty() || access(mappedPath.c_str(), R_OK) != 0)
+			mappedPath = filePath;
 	}
 }

@@ -341,7 +341,6 @@ void HttpRequest::parse_body(std::string& data) {
     }
 }
 
-
 int HttpRequest::parse_request() {
 
     if (RequestData.find("\r\n\r\n") == std::string::npos && !headers_complete()) {

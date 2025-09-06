@@ -58,12 +58,13 @@ class ConfigFile
     int check_semi;
     std::string	word;
     void (ConfigFile::*call)();
-    ServerConfig server;
     Location location;
     int indexOfErrorPages;
     int indexOfRedircat;
     size_t length;
     std::ifstream ConfigFileStream;
+    ServerConfig server;
+    size_t has_other_block;
     
     void Initialize();
 
@@ -122,7 +123,6 @@ class ConfigFile
     ConfigFile();
 
     public:
-    std::vector<ServerConfig> *servers;
     ConfigFile(int argc, char **argv);
-    void parse();
+    ServerConfig *parse();
 };

@@ -1,48 +1,46 @@
 #include "../Includes/Webserver.hpp"
 
-WebServer::WebServer(std::vector<ServerConfig>  &servers) {
-    for (size_t i = 0; i < servers.size(); ++i) {
-        for (std::set<std::pair<std::string, uint16_t> >::iterator it = servers[i].listens.begin(); it != servers[i].listens.end(); ++it) {
-            Listener listener;
+WebServer::WebServer(ServerConfig  &servers) {
+    for (std::set<std::pair<std::string, uint16_t> >::iterator it = servers.listens.begin(); it != servers.listens.end(); ++it) {
+        Listener listener;
 
-            listener.hosts = &servers[i]; 
+        listener.hosts = &servers; 
 
-            memset(&listener.hints, 0, sizeof(listener.hints));
-            listener.hints.ai_family = AF_INET;
-            listener.hints.ai_socktype = SOCK_STREAM;
+        memset(&listener.hints, 0, sizeof(listener.hints));
+        listener.hints.ai_family = AF_INET;
+        listener.hints.ai_socktype = SOCK_STREAM;
 
-            std::string host = it->first;
-            std::stringstream portStr;
-            portStr << it->second; 
-            int ad = getaddrinfo(host.c_str(), portStr.str().c_str(), &listener.hints, &listener.servinfo);
-            if (ad != 0) {
-                std::cerr << "getaddrinfo: ";
-                throw std::runtime_error(gai_strerror(ad));
-            }
-            
-            struct addrinfo p = *listener.servinfo;
-            
-            listener.fd = socket(p.ai_family, p.ai_socktype, p.ai_protocol);
-            if (listener.fd < 0) {
-                throw std::runtime_error("Failed to create socket");
-            }
-
-            int yes = 1;
-  
-            if (setsockopt(listener.fd, SOL_SOCKET, SO_REUSEPORT, &yes, sizeof(yes))) {
-                throw std::runtime_error("Failed to set socket options");
-            }
-
-            if (bind(listener.fd, p.ai_addr, p.ai_addrlen) == -1) {
-                throw std::runtime_error("Failed to bind socket");
-            }
-
-            if (listen(listener.fd, SOMAXCONN) == -1) {
-                throw std::runtime_error("Failed to listen on socket");
-            }
-
-            listeners.push_back(listener);
+        std::string host = it->first;
+        std::stringstream portStr;
+        portStr << it->second; 
+        int ad = getaddrinfo(host.c_str(), portStr.str().c_str(), &listener.hints, &listener.servinfo);
+        if (ad != 0) {
+            std::cerr << "getaddrinfo: ";
+            throw std::runtime_error(gai_strerror(ad));
         }
+        
+        struct addrinfo p = *listener.servinfo;
+        
+        listener.fd = socket(p.ai_family, p.ai_socktype, p.ai_protocol);
+        if (listener.fd < 0) {
+            throw std::runtime_error("Failed to create socket");
+        }
+
+        int yes = 1;
+
+        if (setsockopt(listener.fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes))) {
+            throw std::runtime_error("Failed to set socket options");
+        }
+
+        if (bind(listener.fd, p.ai_addr, p.ai_addrlen) == -1) {
+            throw std::runtime_error("Failed to bind socket");
+        }
+
+        if (listen(listener.fd, SOMAXCONN) == -1) {
+            throw std::runtime_error("Failed to listen on socket");
+        }
+
+        listeners.push_back(listener);
     }
 }
 

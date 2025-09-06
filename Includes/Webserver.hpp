@@ -26,7 +26,7 @@ enum ConnectionState {
 
 class WebServer {
     public:
-        WebServer(std::vector<ServerConfig>  &servers);
+        WebServer(ServerConfig  &servers);
         ~WebServer();
         void startServer();
 
