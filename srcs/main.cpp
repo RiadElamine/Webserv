@@ -19,7 +19,6 @@ int main(int argc, char **argv)
     }
 
     //display the parsed configuration
-    std::cout << "server_name: " << server->server_name << std::endl;
     for (std::set<std::pair<std::string, uint16_t> >::iterator it = server->listens.begin(); it != server->listens.end(); ++it) {
         std::cout << "Listen: " << it->first << ":" << it->second << std::endl;
     }

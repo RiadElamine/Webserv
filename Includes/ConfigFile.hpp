@@ -32,7 +32,6 @@ class ServerConfig
 {
         public:
             std::set<std::pair<std::string, uint16_t> >  listens;
-            std::string server_name;
             size_t client_max_body_size;
             std::string global_root;
             std::string global_index;
@@ -77,7 +76,6 @@ class ConfigFile
     void ParseErrorPages();
     void ParseGlobalRoot();
     void ParseListen();
-    void ParseDomain();
     void ParseClientMaxBodySize();
     void ParseIndexGlobal();
 

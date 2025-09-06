@@ -40,7 +40,6 @@ void ConfigFile::Initialize()
 	funcs.insert(std::make_pair("location", &ConfigFile::Parselocationblock));
 	funcs.insert(std::make_pair("error_page", &ConfigFile::ParseErrorPages));
 	funcs.insert(std::make_pair("root", &ConfigFile::ParseGlobalRoot));
-	funcs.insert(std::make_pair("server_name", &ConfigFile::ParseDomain));
 	funcs.insert(std::make_pair("client_max_body_size", &ConfigFile::ParseClientMaxBodySize));
 	funcs.insert(std::make_pair("listen", &ConfigFile::ParseListen));
 	funcs.insert(std::make_pair("index", &ConfigFile::ParseIndexGlobal));
@@ -71,7 +70,6 @@ void Location::reset()
 
 void ServerConfig::reset() {
 	listens.clear();
-	server_name.clear();
 	client_max_body_size = 1024 * 1024; // default 1MB
 	global_root.clear();
 	error_pages.clear();
@@ -83,7 +81,6 @@ void ConfigFile::reset()
 	directiveFlags["location"] = false;
 	directiveFlags["error_page"] = false;
 	directiveFlags["root"] = false;
-	directiveFlags["server_name"] = false;
 	directiveFlags["client_max_body_size"] = false;
 	directiveFlags["listen"] = false;
 	directiveFlags["index"] = false;
@@ -311,12 +308,6 @@ void ConfigFile::ParseListen()
 		throw;
 	}
 	
-}
-
-void ConfigFile::ParseDomain()
-{
-	std::string data = get_data();
-	server.server_name = data;
 }
 
 void ConfigFile::ParseClientMaxBodySize()
