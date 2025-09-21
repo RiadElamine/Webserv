@@ -5,3 +5,10 @@ void Response::setHeader(Header copyHeader) {
     responseHeader.status_line.statusCode = copyHeader.status_line.statusCode;
     responseHeader.status_line.reasonPhrase = copyHeader.status_line.reasonPhrase;
 }
+
+int main() {
+    StatusCode code = Created;
+
+    std::cout << code << std::endl;
+    return (0);
+}

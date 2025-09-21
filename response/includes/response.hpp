@@ -6,6 +6,7 @@
 #include <sstream>
 #include <map>
 #include <list>
+#include "status_code.hpp"
 
 /*
 * StatusLineData: Data containing the information used by status line
@@ -64,7 +65,7 @@ class Response {
     std::list<ChunkedBodyData> chunkedBody;
     public:
         Response();
-        void setMethod(std::string );
+        void setMethod(std::string ) { return ; };
         void setHeader(Header );
 };
 
