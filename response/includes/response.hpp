@@ -6,6 +6,7 @@
 #include <sstream>
 #include <map>
 #include <list>
+#include <ctime>
 #include "status_code.hpp"
 
 /*
@@ -49,6 +50,20 @@ struct ChunkedBodyData {
 };
 
 /*
+* HttpRequest: A demo class for the http request, used to silence the program errors
+*              Until the HttpRequest Class API provided.
+*/
+
+class HttpRequest {
+    public:
+        HttpRequest();
+        std::string getMethod() { return ""; };
+        std::string getHttpVersion(){ return ""; };
+        int getStatusCode() { return 0; };
+        std::string getReasonPhrase() { return ""; };
+};
+
+/*
 * Response: Class contain the full response message to be send
 * @transferEncoding: a boolean indicating if the message body should be chunked or not
 * @method: The method requested by the client {GET, POST, DELETE,...}
@@ -67,19 +82,9 @@ class Response {
         Response();
         void setMethod(std::string ) { return ; };
         void setHeader(Header );
+        void execute_method(HttpRequest request_message);
 };
 
-/*
-* HttpRequest: A demo class for the http request, used to silence the program errors
-*              Until the HttpRequest Class API provided.
-*/
-
-class HttpRequest {
-    public:
-        HttpRequest();
-        std::string getMethod() { return ""; };
-        std::string getHttpVersion(){ return ""; };
-        int getStatusCode() { return 0; };
-};
+std::string getTimeOftheDay(void);
 
 #endif
