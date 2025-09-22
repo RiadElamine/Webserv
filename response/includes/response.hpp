@@ -62,7 +62,7 @@ class HttpRequest {
         HttpRequest();
         std::string getMethod() { return ""; };
         std::string getHttpVersion(){ return ""; };
-        int getStatusCode() { return 0; };
+        e_StatusCode getStatusCode() { return OK; };
         std::string get_path() { return ; }
 };
 
@@ -96,6 +96,10 @@ std::string getTimeOftheDay(void);
 bool pathExists(std::string path);
 bool FileR_OK(std::string path);
 std::string getReasonPhrase(e_StatusCode statusCode);
-
-
+std::string makeBodyResponse(std::string reasonPhrase, int statusCode, std::string path);
+void fillFieldLine(std::map<std::string, std::string> field_line, std::string contentType, std::string contentLength);
+std::string getMIME(std::string path);
+bool isCGI(std::string);
+std::string getCGI(std::string);
+std::string readFile(std::string);
 #endif

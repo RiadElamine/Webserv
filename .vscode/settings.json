@@ -83,6 +83,8 @@
         "stack": "cpp",
         "filesystem": "cpp",
         "__functional_03": "cpp",
-        "list": "cpp"
+        "list": "cpp",
+        "__verbose_abort": "cpp",
+        "print": "cpp"
     }
 }

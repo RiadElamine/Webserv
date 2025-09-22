@@ -38,5 +38,38 @@ bool pathExists(std::string path) {
 }
 
 bool FileR_OK(std::string path) {
-    return (access(path.c_str(), R_OK));
+    return (access(path.c_str(), R_OK) == 0);
 }
+
+std::string makeBodyResponse(std::string reasonPhrase, int statusCode, std::string path) {
+    std::string body;
+    if (statusCode != 200) {
+        std::stringstream ss;
+
+        body.append("<!DOCTYPE HTML>\n<title>");
+        ss << statusCode;
+        body.append(ss.str() + reasonPhrase + "</title>");
+        body.append("<h1>" + ss.str() + reasonPhrase + "</h1>");
+    } else {
+        if (!isCGI(path)) {
+            body = readFile(path);
+        } else {
+            body = getCGI(path);
+        }
+    }
+
+    return body;
+}
+
+void fillFieldLine(std::map<std::string, std::string> &field_line, std::string contentType, std::string contentLength) {
+    field_line["Date"] = getTimeOftheDay();
+    field_line["Content-Type"] = contentType;
+    field_line["Content-Length"] = contentLength;
+    field_line["Connection"] = "keep-alive";
+    field_line["Server"] = "WebServer/1.1.0";
+}
+
+std::string getMIME(std::string path) {
+
+}
+

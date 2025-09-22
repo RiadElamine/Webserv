@@ -12,22 +12,17 @@ void Response::setHeader(Header copyHeader) {
     responseHeader.status_line.HttpVersion = copyHeader.status_line.HttpVersion;
     responseHeader.status_line.statusCode = copyHeader.status_line.statusCode;
     responseHeader.status_line.reasonPhrase = copyHeader.status_line.reasonPhrase;
-    responseHeader.field_line["Server"] = "WebServer/1.1.0";
     // check for the status from request parsing
 
     if (responseHeader.status_line.statusCode != OK) {
         std::stringstream ss;
-        responseHeader.field_line["Date"] = getTimeOftheDay();
-        responseHeader.field_line["Content-Type"] = "text/html";
-        responseHeader.field_line["Connection"] = "keep-alive";
-        body.append("<!DOCTYPE HTML>\n<title>");
-        ss << responseHeader.status_line.statusCode;
-        body.append(ss.str() + responseHeader.status_line.reasonPhrase + "</title>");
-        body.append("<h1>" + responseHeader.status_line.reasonPhrase + "</h1>");
-        ss.str("");
-        ss.clear();
+        body = makeBodyResponse(responseHeader.status_line.reasonPhrase, \
+                                responseHeader.status_line.statusCode, NULL);
+
         ss << body.length();
-        responseHeader.field_line["Content-Length"] = ss.str();
+        fillFieldLine(responseHeader.field_line, "text/html", ss.str());
+
+        //send Response
     }
 }
 
@@ -40,16 +35,38 @@ void Response::execute_method() {
 }
 
 void Response::Get() {
+
     if (!pathExists(path)) {
         // respond with 404 code status
+        std::stringstream ss;
+
+        responseHeader.status_line.statusCode = Not_Found;
+        responseHeader.status_line.reasonPhrase = getReasonPhrase(Not_Found);
+        body = makeBodyResponse(responseHeader.status_line.reasonPhrase, Not_Found, NULL);
+        ss << body.length();
+        fillFieldLine(responseHeader.field_line, "text/html", ss.str());
     }
 
-    else if (FileR_OK(path)) {
+    else if (!FileR_OK(path)) {
         // respond with 403 code status
+        std::stringstream ss;
+
+        responseHeader.status_line.statusCode = Forbidden;
+        responseHeader.status_line.reasonPhrase = getReasonPhrase(Forbidden);
+        body = makeBodyResponse(responseHeader.status_line.reasonPhrase, Forbidden, NULL);
+        ss << body.length();
+        fillFieldLine(responseHeader.field_line, "text/html", ss.str());
     }
     else {
         //respond with 200 code status
+        std::stringstream ss;
+
+        responseHeader.status_line.statusCode = OK;
+        responseHeader.status_line.reasonPhrase = getReasonPhrase(OK);
+        body = makeBodyResponse(responseHeader.status_line.reasonPhrase, OK, path);
+        
     }
+    //send response
 }
 
 void Response::Delete() {
