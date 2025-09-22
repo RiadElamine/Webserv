@@ -1,4 +1,4 @@
-NAME=response
+NAME=res
 SRC= $(shell find src -name "*.cpp")
 INCLUDE= $(shell find src -name "*.hpp")
 CXXFLAGS=-Wall -Wextra -Werror -std=c++98

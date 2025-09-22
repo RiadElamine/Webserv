@@ -3,9 +3,13 @@
 
 #include <iostream>
 #include <string>
+#include <unistd.h>
 #include <sstream>
 #include <map>
 #include <list>
+#include <ctime>
+#include <stdexcept>
+#include "status_code.hpp"
 
 /*
 * StatusLineData: Data containing the information used by status line
@@ -16,7 +20,7 @@
 
 struct StatusLineData {
     std::string HttpVersion;
-    int statusCode;
+    e_StatusCode statusCode;
     std::string reasonPhrase;
 };
 
@@ -48,6 +52,20 @@ struct ChunkedBodyData {
 };
 
 /*
+* HttpRequest: A demo class for the http request, used to silence the program errors
+*              Until the HttpRequest Class API provided.
+*/
+
+class HttpRequest {
+    public:
+        HttpRequest();
+        std::string getMethod() { return ""; };
+        std::string getHttpVersion(){ return ""; };
+        int getStatusCode() { return 0; };
+        std::string get_path() { return ; }
+};
+
+/*
 * Response: Class contain the full response message to be send
 * @transferEncoding: a boolean indicating if the message body should be chunked or not
 * @method: The method requested by the client {GET, POST, DELETE,...}
@@ -60,25 +78,21 @@ class Response {
     bool transferEncoding;
     std::string method;
     Header responseHeader;
+    std::string path;
     std::string body;
     std::list<ChunkedBodyData> chunkedBody;
     public:
         Response();
         void setMethod(std::string );
+        void setPath(std::string );
         void setHeader(Header );
+        void execute_method(HttpRequest request_message);
+        void get();
+        void delete();
 };
 
-/*
-* HttpRequest: A demo class for the http request, used to silence the program errors
-*              Until the HttpRequest Class API provided.
-*/
-
-class HttpRequest {
-    public:
-        HttpRequest();
-        std::string getMethod() { return ""; };
-        std::string getHttpVersion(){ return ""; };
-        int getStatusCode() { return 0; };
-};
+std::string getTimeOftheDay(void);
+bool pathExists(std::string path);
+std::string getReasonPhrase(e_StatusCode statusCode);
 
 #endif
