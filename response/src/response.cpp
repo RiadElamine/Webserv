@@ -17,7 +17,6 @@ void Response::setHeader(Header copyHeader) {
 
     if (responseHeader.status_line.statusCode != OK) {
         std::stringstream ss;
-
         responseHeader.field_line["Date"] = getTimeOftheDay();
         responseHeader.field_line["Content-Type"] = "text/html";
         responseHeader.field_line["Connection"] = "keep-alive";
@@ -56,7 +55,6 @@ void Response::Get() {
 void Response::Delete() {
 
 }
-
 
 int main() {
     std::cout << getTimeOftheDay() << std::endl;
