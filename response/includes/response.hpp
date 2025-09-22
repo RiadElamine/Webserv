@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 #include <unistd.h>
+#include <sys/stat.h>
 #include <sstream>
 #include <map>
 #include <list>
@@ -86,13 +87,14 @@ class Response {
         void setMethod(std::string );
         void setPath(std::string );
         void setHeader(Header );
-        void execute_method(HttpRequest request_message);
-        void get();
-        void delete();
+        void execute_method();
+        void Get();
+        void Delete();
 };
 
 std::string getTimeOftheDay(void);
 bool pathExists(std::string path);
+bool FileR_OK(std::string path);
 std::string getReasonPhrase(e_StatusCode statusCode);
 
 #endif

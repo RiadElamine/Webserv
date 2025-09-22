@@ -4,7 +4,7 @@ void Response::setMethod(std::string _method) {
     method = _method;
 }
 
-void Response.setPath(std::string _path) {
+void Response::setPath(std::string _path) {
     path = _path;
 }
 
@@ -34,14 +34,14 @@ void Response::setHeader(Header copyHeader) {
 
 void Response::execute_method() {
     if (method == "GET") {
-        return (get());
+        return (Get());
     } else if (method == "DELETE") {
-        return (delete());
+        return (Delete());
     }
 }
 
-void Response::get() {
-    if (!pathExist(path)) {
+void Response::Get() {
+    if (!pathExists(path)) {
         // respond with 404 code status
     }
 
@@ -53,7 +53,9 @@ void Response::get() {
     }
 }
 
+void Response::Delete() {
 
+}
 
 
 int main() {
