@@ -26,25 +26,20 @@ enum ConnectionState {
 
 class WebServer {
     public:
-        WebServer(ServerConfig  &servers);
+        WebServer(std::vector<ServerConfig>  &servers);
         ~WebServer();
         void startServer();
-
     private:
-        WebServer(const WebServer&);
-        WebServer& operator=(const WebServer&);
-        std::vector<Listener> listeners;
-        std::map<int, HttpRequest> clientRequests;
-        void registerEvents();
-
         int kq;
         std::vector<struct kevent> listenerEvents;
-
+        std::vector<Listener> listeners;
+        std::map<int, HttpRequest> clientRequests;
+        // Methods
+        void registerEvents();
         void _handleAccept(int listen_fd);
         int _handleReadable(int client_fd);
         int _handleWritable(int client_fd);
         void _closeConnection(int fd);
-
         void _addEvent(std::vector<struct kevent> &events, uintptr_t ident, int16_t filter, uint16_t flags,
                           uint32_t fflags, intptr_t data, void* udata);
         void setNonBlocking(int fd);

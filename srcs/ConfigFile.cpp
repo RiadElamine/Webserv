@@ -1,24 +1,36 @@
-
 #include "../Includes/ConfigFile.hpp"
-
-ConfigFile::ConfigFile(){}
 
 ConfigFile::ConfigFile(int argc, char **argv)
 {
-    if (argc > 2)
-        throw std::runtime_error("Too many arguments provided.");
+    try  
+	{
+		checkFile(argc, argv);
+		Initialize();
+	}
+	catch (const std::exception &e)
+	{
+		throw ;
+	}
+}
 
-    std::string configFilePath = (argc == 2) ? argv[1] : "./Config/default.conf";
-
-	ConfigFileStream.open(configFilePath);
-
-    if (!ConfigFileStream.is_open())
-        throw std::runtime_error("Cannot open config file");
-
-	if (ConfigFileStream.peek() == EOF)
+void ConfigFile::checkFile(int argc, char **argv)
+{
+	if (argc > 2)
+		throw std::runtime_error("Too many arguments provided.");
+	std::string configFilePath = (argc == 2) ? argv[1] : "./Config/default.conf";
+	//
+	struct stat	statbuf;
+	if (stat(configFilePath.c_str(), &statbuf) == -1)
+		throw std::runtime_error("Cannot access config file");
+	// check size of file 
+	if (statbuf.st_size == 0)
 		throw std::runtime_error("Config file is empty");
-
-	Initialize();
+	if (statbuf.st_size > max_size_of_file)
+		throw std::runtime_error("Config file is too large");
+	//
+	ConfigFileStream.open(configFilePath);
+	if (!ConfigFileStream.is_open())
+		throw std::runtime_error("Cannot open config file");
 }
 
 void ConfigFile::Initialize()
@@ -30,20 +42,20 @@ void ConfigFile::Initialize()
 	indexOfErrorPages = 0;
 	indexOfRedircat = 0;
 	length = 0;
-	has_other_block = 0;
-
+	servers = new std::vector<ServerConfig>();
+	//
 	server.reset();
 	location.reset();
 	reset();
 	resetLocation();
-
+	//
 	funcs.insert(std::make_pair("location", &ConfigFile::Parselocationblock));
 	funcs.insert(std::make_pair("error_page", &ConfigFile::ParseErrorPages));
 	funcs.insert(std::make_pair("root", &ConfigFile::ParseGlobalRoot));
 	funcs.insert(std::make_pair("client_max_body_size", &ConfigFile::ParseClientMaxBodySize));
 	funcs.insert(std::make_pair("listen", &ConfigFile::ParseListen));
 	funcs.insert(std::make_pair("index", &ConfigFile::ParseIndexGlobal));
-
+	//
 	funcs_location.insert(std::make_pair("autoindex", &ConfigFile::ParseAutoindex));
 	funcs_location.insert(std::make_pair("methods", &ConfigFile::ParseMethods));
 	funcs_location.insert(std::make_pair("cgi_ext", &ConfigFile::ParseCGI));
@@ -142,6 +154,7 @@ void ConfigFile::addMethod(const std::string &method)
 	else 
 		throw std::invalid_argument("Duplicate mothod definition for " + method);
 }
+
 void ConfigFile::get_method()
 {
 	size_t pos;
@@ -227,7 +240,6 @@ void ConfigFile::ParseIndex()
 	location.index = data;
 }
 
-
 //////// inside server /////////
 void ConfigFile::ParseErrorPages()
 {
@@ -256,17 +268,14 @@ void ConfigFile::ParseGlobalRoot()
 	server.global_root = data;
 }
 
-
 void ConfigFile::ParseListen()
 {
 	std::string data = get_data();
 	std::string host;
-
 	struct addrinfo hints;
 	struct addrinfo *res = NULL;
 
 	memset(&hints, 0, sizeof(hints));
-
 	hints.ai_family = AF_INET;
 	hints.ai_flags = AI_NUMERICHOST;
 
@@ -316,7 +325,6 @@ void ConfigFile::ParseClientMaxBodySize()
 	server.client_max_body_size = convert_long(data);
 }
 
-
 void ConfigFile::ParseIndexGlobal()
 {
 	std::string data = get_data();
@@ -328,16 +336,11 @@ void ConfigFile::ParseIndexGlobal()
 // Checks if the current token represent the start of a "server" block
 void ConfigFile::verifyServerKeyword()
 {
-	size_t pos;
-
-	pos = word.find("server", i);
-	if (pos != std::string::npos && has_other_block)
-		throw std::invalid_argument("syntax error : multiple server block");
+	size_t pos = word.find("server", i);
 	if (pos == std::string::npos)
 		throw std::invalid_argument("syntax error : in server keyword");
 	index_of_t++;
 	i+=6;
-	has_other_block++;
 }
 
 void ConfigFile::DispatchParser()
@@ -372,28 +375,21 @@ void ConfigFile::Parselocationblock()
 		verifyDelimiterLocation(CLOSE_BRACKET);
 }
 
-
 std::string ConfigFile::get_data(int max_data)
 {
-	size_t pos;
-	std::string data;
-
-	pos = word.find(";", i);
-	data = word.substr(i, pos);
+	size_t pos = word.find(";", i);
+	std::string data = word.substr(i, pos);
 	if (data.empty() || data.find_first_of("{}") != std::string::npos)
 		throw std::invalid_argument("syntax error : fail to get data");
 	if (pos == std::string::npos)
 		i+= data.length();
 	else
 		i += pos;
-
 	check_semi++;
 	if (check_semi == max_data)
 		index_of_t++;
-
 	return (data);
 }
-
 
 std::string ConfigFile::get_data_location(int max_data)
 {
@@ -418,7 +414,6 @@ std::string ConfigFile::get_data_location(int max_data)
 	return (data);
 }
 
-
 void ConfigFile::verifyDelimiter(CharSymbol char_symbol)
 {
 	if (word[i] != char_symbol)
@@ -427,6 +422,9 @@ void ConfigFile::verifyDelimiter(CharSymbol char_symbol)
 	if (char_symbol == CLOSE_BRACKET)
 	{
 		index_of_t = 0;
+		servers->push_back(server);
+		server.reset();
+		reset();
 	}
 	else 
 		index_of_t = 2;
@@ -501,7 +499,7 @@ void ConfigFile::verifyDelimiterLocation(CharSymbol char_symbol)
 		index_of_lm = 5;
 	}
 
-ServerConfig *ConfigFile::parse()
+std::vector<ServerConfig> *ConfigFile::parse()
 {
 	std::string			line;
 	std::stringstream	sstring;
@@ -514,7 +512,7 @@ ServerConfig *ConfigFile::parse()
 			i = 0;
 			length = word.length();
 			while (i < length)
-			{
+			{	
 				if (index_of_t == 0)
 					verifyServerKeyword();
 				else if (index_of_t == 1)
@@ -533,11 +531,12 @@ ServerConfig *ConfigFile::parse()
 		sstring.clear();
 	}
 
+	if (servers->empty())
+		throw std::invalid_argument("Config file contains only empty lines");
 	if (index_of_t != 0)
 		throw std::invalid_argument("syntax error : in delimiter");
-
 	fill_server_defaults();
-	return (new ServerConfig(server));
+	return (servers);
 }
 
 void ConfigFile::fill_server_defaults()
@@ -548,30 +547,31 @@ void ConfigFile::fill_server_defaults()
 		413, 414, 500, 501, 502, 503, 504
 	};
 
-	ServerConfig *it = &server;
-
-	if (it->listens.empty())
-		it->listens.insert(std::make_pair("0.0.0.0", 8080));
-	if (it->global_root.empty())
-		it->global_root = "/home/relamine/nginx-1.25.3/tt";
-	if (it->global_index.empty())
-		it->global_index = "index.html";
-	for (std::vector<Location>::iterator loc = it->locations.begin(); loc != it->locations.end(); ++loc) {
-		if (loc->root.empty())
-			loc->root = it->global_root;
-		if (loc->index.empty())
-			loc->index = it->global_index;
-		if (loc->methods.empty())
-			loc->methods.push_back("GET");
-		if (loc->upload_store.empty())
-			loc->upload_store = "/tmp";
-	}
-	for (int i = 0 ; i != 13; ++i) 
+	for (std::vector<ServerConfig>::iterator it = servers->begin(); it != servers->end(); ++it)
 	{
-		std::ostringstream errorPage ; errorPage << codesArray[i];
-		std::string filePath = errorDir + errorPage.str() + ".html";
-		std::string &mappedPath = it->error_pages[codesArray[i]];
-		if (mappedPath.empty() || access(mappedPath.c_str(), R_OK) != 0)
-			mappedPath = filePath;
+		if (it->listens.empty())
+			it->listens.insert(std::make_pair("0.0.0.0", 8080));
+		if (it->global_root.empty())
+			it->global_root = "/home/relamine/nginx-1.25.3/tt";
+		if (it->global_index.empty())
+			it->global_index = "index.html";
+		for (std::vector<Location>::iterator loc = it->locations.begin(); loc != it->locations.end(); ++loc) {
+			if (loc->root.empty())
+				loc->root = it->global_root;
+			if (loc->index.empty())
+				loc->index = it->global_index;
+			if (loc->methods.empty())
+				loc->methods.push_back("GET");
+			if (loc->upload_store.empty())
+				loc->upload_store = "/tmp";
+		}
+		for (int i = 0 ; i != 13; ++i) 
+		{
+			std::ostringstream errorPage ; errorPage << codesArray[i];
+			std::string filePath = errorDir + errorPage.str() + ".html";
+			std::string &mappedPath = it->error_pages[codesArray[i]];
+			if (mappedPath.empty() || access(mappedPath.c_str(), R_OK) != 0)
+				mappedPath = filePath;
+		}
 	}
 }
