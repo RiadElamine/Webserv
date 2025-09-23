@@ -1,6 +1,6 @@
 #include "../includes/response.hpp"
 
-void getDataFromRequest(HttpRequest request, Response response){
+void getDataFromRequest(HttpRequest request, Response &response){
     Header copyHeader;
 
     response.setMethod(request.getMethod());

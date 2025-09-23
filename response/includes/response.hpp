@@ -6,6 +6,8 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sstream>
+#include <fstream>
+#include <cctype>
 #include <map>
 #include <list>
 #include <ctime>
@@ -59,11 +61,11 @@ struct ChunkedBodyData {
 
 class HttpRequest {
     public:
-        HttpRequest();
-        std::string getMethod() { return ""; };
-        std::string getHttpVersion(){ return ""; };
+        HttpRequest(){};
+        std::string getMethod() { return "GET"; };
+        std::string getHttpVersion(){ return "http/1.1"; };
         e_StatusCode getStatusCode() { return OK; };
-        std::string get_path() { return ; }
+        std::string get_path() { return "/home/oel-asri/Webserv/response/index.html"; } ///home/oel-asri/Webserv/response/index.html
 };
 
 /*
@@ -90,16 +92,19 @@ class Response {
         void execute_method();
         void Get();
         void Delete();
+        std::string getResponse();
+        std::string getMe() {return method;}
 };
 
+void getDataFromRequest(HttpRequest request, Response &response);
 std::string getTimeOftheDay(void);
 bool pathExists(std::string path);
 bool FileR_OK(std::string path);
 std::string getReasonPhrase(e_StatusCode statusCode);
 std::string makeBodyResponse(std::string reasonPhrase, int statusCode, std::string path);
-void fillFieldLine(std::map<std::string, std::string> field_line, std::string contentType, std::string contentLength);
+void fillFieldLine(std::map<std::string, std::string> &field_line, std::string contentType, std::string contentLength);
 std::string getMIME(std::string path);
 bool isCGI(std::string);
-std::string getCGI(std::string);
+std::string getCGI(std::string);        
 std::string readFile(std::string);
 #endif

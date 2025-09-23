@@ -1,5 +1,11 @@
 #include "../includes/response.hpp"
 
+
+Response::Response() {
+    transferEncoding = false;
+}
+
+
 void Response::setMethod(std::string _method) {
     method = _method;
 }
@@ -28,7 +34,7 @@ void Response::setHeader(Header copyHeader) {
 
 void Response::execute_method() {
     if (method == "GET") {
-        return (Get());
+        return (this->Get());
     } else if (method == "DELETE") {
         return (Delete());
     }
@@ -59,8 +65,10 @@ void Response::Get() {
     }
 
     responseHeader.status_line.statusCode = statusCode;
-    responseHeader.status_line.reasonPhrase = getReasonPhrase(OK);
+    responseHeader.status_line.reasonPhrase = getReasonPhrase(statusCode);
     ss << body.length();
+    ss.str();
+    ss.clear();
     fillFieldLine(responseHeader.field_line, mime, ss.str());
     //send response
 }
@@ -69,6 +77,19 @@ void Response::Delete() {
 
 }
 
-int main() {
-    std::cout << getTimeOftheDay() << std::endl;
+std::string Response::getResponse() {
+    std::string message;
+    std::stringstream ss;
+
+    ss << responseHeader.status_line.statusCode ;
+    message += responseHeader.status_line.HttpVersion + " " + ss.str() + " " + responseHeader.status_line.reasonPhrase + "\n";
+    message += "Date: " + responseHeader.field_line["Date"] + "\n";
+    message += "Content-Type: " + responseHeader.field_line["Content-Type"] + "\n";
+    message += "Content-Length: " + responseHeader.field_line["Content-Length"] + "\n";
+    message += "Connection: " + responseHeader.field_line["Connection"] + "\n";
+    message += "Server: " + responseHeader.field_line["Server"] + "\n";
+    message += "\n" + body;
+    ss.str("");
+    ss.clear();
+    return message;
 }

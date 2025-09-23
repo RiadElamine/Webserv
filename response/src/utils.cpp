@@ -48,8 +48,8 @@ std::string makeBodyResponse(std::string reasonPhrase, int statusCode, std::stri
 
         body.append("<!DOCTYPE HTML>\n<title>");
         ss << statusCode;
-        body.append(ss.str() + reasonPhrase + "</title>");
-        body.append("<h1>" + ss.str() + reasonPhrase + "</h1>");
+        body.append(ss.str() + " " + reasonPhrase + "</title>\n");
+        body.append("<h1>" + ss.str() + " " + reasonPhrase + "</h1>\n");
     } else {
         if (!isCGI(path)) {
             body = readFile(path);
@@ -70,6 +70,51 @@ void fillFieldLine(std::map<std::string, std::string> &field_line, std::string c
 }
 
 std::string getMIME(std::string path) {
+    std::string mime;
+    size_t index = path.rfind(".");
 
+    if (index == std::string::npos || index == path.length() - 1) return "application/octet-stream";
+    mime = path.substr(index + 1);
+
+    for (size_t i = 0; i < mime.length(); i++) {
+        mime[i] = static_cast<char>(std::tolower(static_cast<unsigned char>(mime[i])));
+    }
+
+    if (mime == "html" || mime == "htm") return "text/html";
+    if (mime == "css") return "text/css";
+    if (mime == "js") return "application/javascript";
+    if (mime == "png") return "image/png";
+    if (mime == "jpg" || mime == "jpeg") return "image/jpeg";
+    if (mime == "gif") return "image/gif";
+    if (mime == "txt") return "text/plain";
+    return "application/octet-stream";
 }
 
+std::string readFile(std::string path) {
+    // need optimization
+    std::ifstream file;
+
+    file.open(path.c_str(), std::ifstream::binary);
+
+    if (file) {
+        file.seekg(0, file.end);
+        size_t length = file.tellg();
+        file.seekg(0, file.beg);
+
+        char *buffer = new char[length];
+        file.read(buffer, length);
+        file.close();
+        std::string content(buffer, length);
+        delete[] buffer;
+        return content;
+    } 
+    throw std::runtime_error("Error while opening the file");
+}
+
+std::string getCGI(std::string path __attribute__ ((unused))) {
+    return "";
+}
+
+bool isCGI(std::string) {
+    return false;
+}
