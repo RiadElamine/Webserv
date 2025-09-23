@@ -17,7 +17,7 @@ void Response::setHeader(Header copyHeader) {
     if (responseHeader.status_line.statusCode != OK) {
         std::stringstream ss;
         body = makeBodyResponse(responseHeader.status_line.reasonPhrase, \
-                                responseHeader.status_line.statusCode, NULL);
+                                responseHeader.status_line.statusCode, "");
 
         ss << body.length();
         fillFieldLine(responseHeader.field_line, "text/html", ss.str());
@@ -35,37 +35,33 @@ void Response::execute_method() {
 }
 
 void Response::Get() {
+    e_StatusCode statusCode;
+    std::string mime;
+    std::stringstream ss;
 
     if (!pathExists(path)) {
         // respond with 404 code status
-        std::stringstream ss;
-
-        responseHeader.status_line.statusCode = Not_Found;
-        responseHeader.status_line.reasonPhrase = getReasonPhrase(Not_Found);
-        body = makeBodyResponse(responseHeader.status_line.reasonPhrase, Not_Found, NULL);
-        ss << body.length();
-        fillFieldLine(responseHeader.field_line, "text/html", ss.str());
-    }
-
+        statusCode = Not_Found;
+        mime = "text/html";
+        body = makeBodyResponse(getReasonPhrase(statusCode), statusCode, "");
+    } 
     else if (!FileR_OK(path)) {
         // respond with 403 code status
-        std::stringstream ss;
-
-        responseHeader.status_line.statusCode = Forbidden;
-        responseHeader.status_line.reasonPhrase = getReasonPhrase(Forbidden);
-        body = makeBodyResponse(responseHeader.status_line.reasonPhrase, Forbidden, NULL);
-        ss << body.length();
-        fillFieldLine(responseHeader.field_line, "text/html", ss.str());
+        statusCode = Forbidden;
+        mime = "text/html";
+        body = makeBodyResponse(getReasonPhrase(statusCode), statusCode, "");
     }
     else {
         //respond with 200 code status
-        std::stringstream ss;
-
-        responseHeader.status_line.statusCode = OK;
-        responseHeader.status_line.reasonPhrase = getReasonPhrase(OK);
-        body = makeBodyResponse(responseHeader.status_line.reasonPhrase, OK, path);
-        
+        statusCode = OK;
+        mime = getMIME(path);
+        body = makeBodyResponse(getReasonPhrase(statusCode), statusCode, path);
     }
+
+    responseHeader.status_line.statusCode = statusCode;
+    responseHeader.status_line.reasonPhrase = getReasonPhrase(OK);
+    ss << body.length();
+    fillFieldLine(responseHeader.field_line, mime, ss.str());
     //send response
 }
 

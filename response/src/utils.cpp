@@ -43,7 +43,7 @@ bool FileR_OK(std::string path) {
 
 std::string makeBodyResponse(std::string reasonPhrase, int statusCode, std::string path) {
     std::string body;
-    if (statusCode != 200) {
+    if (path.empty()) {
         std::stringstream ss;
 
         body.append("<!DOCTYPE HTML>\n<title>");
