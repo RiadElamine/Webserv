@@ -12,7 +12,9 @@
 #include <list>
 #include <ctime>
 #include <stdexcept>
+#include <sys/socket.h>
 #include "status_code.hpp"
+#include "HttpRequest.hpp"
 
 /*
 * StatusLineData: Data containing the information used by status line
@@ -59,14 +61,6 @@ struct ChunkedBodyData {
 *              Until the HttpRequest Class API provided.
 */
 
-class HttpRequest {
-    public:
-        HttpRequest(){};
-        std::string getMethod() { return "GET"; };
-        std::string getHttpVersion(){ return "http/1.1"; };
-        e_StatusCode getStatusCode() { return OK; };
-        std::string get_path() { return "/home/oel-asri/Webserv/response/index.html"; } ///home/oel-asri/Webserv/response/index.html
-};
 
 /*
 * Response: Class contain the full response message to be send

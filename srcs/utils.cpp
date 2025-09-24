@@ -1,4 +1,4 @@
-#include "../includes/response.hpp"
+#include "../Includes/response.hpp"
 
 std::string getTimeOftheDay() {
     std::time_t t = std::time(0);        // get current time

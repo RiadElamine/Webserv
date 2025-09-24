@@ -13,7 +13,9 @@ HttpRequest::HttpRequest() {
     flag_body = 0;
     flag_boundary = 0;
     need_boundary = false;
+    code_status = 200;
 }
+
 void HttpRequest::printRequest() const
 {
     std::cout << "Method: " << method << "\n";
@@ -271,7 +273,7 @@ void HttpRequest::inchunk_body(std::string &data, std::ofstream &file)
         iss.str(size_line);
         iss.clear(); 
         iss >> std::hex >> chunk_size;
-        if (chunk_size == 0 && flag_body == 1) {
+        if (chunk_size == 0 /*&& flag_body == 1*/) {
             data.erase(0, chunk_size_end + 2);
             file.close();
             body_complete = true;
@@ -355,6 +357,11 @@ int HttpRequest::parse_request() {
         }
         if (!headers_complete()) {
             parse_headers(RequestData);
+        }
+        if ((method== "GET" || method == "DELETE") && headers_complete())
+        {
+            body_complete = true;
+            break;
         }
         if (method == "POST" && headers_complete()) {
             parse_body(RequestData);

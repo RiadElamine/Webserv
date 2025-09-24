@@ -1,4 +1,4 @@
-#include "../includes/response.hpp"
+#include "../Includes/response.hpp"
 
 
 Response::Response() {
@@ -36,7 +36,7 @@ void Response::execute_method() {
     if (method == "GET") {
         return (this->Get());
     } else if (method == "DELETE") {
-        return (Delete());
+        return (this->Delete());
     }
 }
 
@@ -83,12 +83,12 @@ std::string Response::getResponse() {
 
     ss << responseHeader.status_line.statusCode ;
     message += responseHeader.status_line.HttpVersion + " " + ss.str() + " " + responseHeader.status_line.reasonPhrase + "\n";
-    message += "Date: " + responseHeader.field_line["Date"] + "\n";
-    message += "Content-Type: " + responseHeader.field_line["Content-Type"] + "\n";
-    message += "Content-Length: " + responseHeader.field_line["Content-Length"] + "\n";
+    message += "Date: " + responseHeader.field_line["Date"] + "\r\n";
+    message += "Content-Type: " + responseHeader.field_line["Content-Type"] + "\r\n";
+    message += "Content-Length: " + responseHeader.field_line["Content-Length"] + "\r\n";
     message += "Connection: " + responseHeader.field_line["Connection"] + "\n";
-    message += "Server: " + responseHeader.field_line["Server"] + "\n";
-    message += "\n" + body;
+    message += "Server: " + responseHeader.field_line["Server"] + "\r\n";
+    message += "\r\n" + body;
     ss.str("");
     ss.clear();
     return message;

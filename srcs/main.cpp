@@ -1,5 +1,3 @@
-
-
 #include "../Includes/Webserver.hpp"
 
 
@@ -62,4 +60,3 @@ int main(int argc, char **argv)
     
     free(server);
 }
-

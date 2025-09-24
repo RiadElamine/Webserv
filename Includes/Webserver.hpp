@@ -6,8 +6,9 @@
 #include <string>
 #include <sys/event.h>
 #include <fcntl.h>
-#include "../Includes/ConfigFile.hpp"
-#include "../Includes/HttpRequest.hpp"
+#include "ConfigFile.hpp"
+// #include "../Includes/HttpRequest.hpp"
+#include "response.hpp"
 
 
 #define timeout 10000 // 10 seconds
