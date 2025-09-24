@@ -2,6 +2,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+
 WebServer::WebServer(std::vector<ServerConfig>  &servers) {
     for (size_t i = 0; i < servers.size(); ++i) {
         for (std::set<std::pair<std::string, uint16_t> >::iterator it = servers[i].listens.begin(); it != servers[i].listens.end(); ++it) {
@@ -115,8 +116,9 @@ int WebServer::_handleReadable(int client_fd) {
     if (n == -1) return CONNECTED;
     
     clientRequests[client_fd].RequestData.append(buffer, n);
-    if (clientRequests[client_fd].parse_request())
+clientRequests[client_fd].parse_request();
     {
+
         struct kevent ev[2];
         EV_SET(&ev[0], client_fd, EVFILT_READ, EV_DISABLE, 0, 0, NULL);
         EV_SET(&ev[1], client_fd, EVFILT_WRITE, EV_ENABLE, 0, 0, NULL);
@@ -133,13 +135,17 @@ int WebServer::_handleReadable(int client_fd) {
 }
 
 int WebServer::_handleWritable(int client_fd) {
-    const char* msg = "HTTP/1.1 200 OK\r\nContent-Length: 13\r\n\r\nHello, World!";
-    ssize_t n = send(client_fd, msg, strlen(msg), 0);
+    Response response;
+    getDataFromRequest(clientRequests[client_fd], response);
+    response.execute_method();
+    std::string message = response.getResponse();
+    ssize_t n = send(client_fd, message.c_str(), message.length(), 0);
+
     if (n == -1)
         return DISCONNECTED;
 
     //if data send successfully, we close the connection
-    std::cout << "Response sent to client: " << client_fd << std::endl;
+    // std::cout << "Response sent to client: " << client_fd << std::endl;
     return DISCONNECTED;
 }
 

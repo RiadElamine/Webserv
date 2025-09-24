@@ -40,6 +40,7 @@ class HttpRequest {
         std::string inchunk;
         bool need_boundary;
         ServerConfig *server;
+        int code_status;
     public:
         HttpRequest();
         int  parse_request();
@@ -60,6 +61,8 @@ class HttpRequest {
         std::string getMethod() const {
             return method;
         }
+        int getStatusCode() { return code_status; };
+        std::string get_path() { return path; }
         std::string RequestData;
         void inchunk_body(std::string& data, std::ofstream& file);
         ServerConfig *getServer() const {
