@@ -12,13 +12,6 @@
 
 #define timeout 10000 // 10 seconds
 
-struct Listener {
-    int fd;
-    struct addrinfo hints;
-    struct addrinfo *servinfo;
-    ServerConfig *hosts;
-};
-
 enum ConnectionState {
     CONNECTED,
     DISCONNECTED
@@ -32,8 +25,9 @@ class WebServer {
     private:
         int kq;
         std::vector<struct kevent> listenerEvents;
-        std::vector<Listener> listeners;
         std::map<int, HttpRequest> clientRequests;
+        std::map<int, ServerConfig *> listeners;
+
         // Methods
         void registerEvents();
         void _handleAccept(int listen_fd);

@@ -1,6 +1,8 @@
 #ifndef HTTPREQUEST_HPP
 #define HTTPREQUEST_HPP
 
+#include "../Includes/ConfigFile.hpp"
+
 #include <string>
 #include <map>
 #include <iostream>
@@ -37,6 +39,7 @@ class HttpRequest {
         std::map<std::string, std::string> form_data;
         std::string inchunk;
         bool need_boundary;
+        ServerConfig *server;
     public:
         HttpRequest();
         int  parse_request();
@@ -59,6 +62,12 @@ class HttpRequest {
         }
         std::string RequestData;
         void inchunk_body(std::string& data, std::ofstream& file);
+        ServerConfig *getServer() const {
+            return server;
+        }
+        void setServer(ServerConfig *srv) {
+            server = srv;
+        }
 };
 
 #endif

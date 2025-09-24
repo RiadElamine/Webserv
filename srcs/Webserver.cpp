@@ -6,55 +6,54 @@ WebServer::WebServer(std::vector<ServerConfig>  &servers) {
     for (size_t i = 0; i < servers.size(); ++i) {
         for (std::set<std::pair<std::string, uint16_t> >::iterator it = servers[i].listens.begin(); it != servers[i].listens.end(); ++it) {
             //
-            Listener            listener;
             std::stringstream   portStr;
+            struct              addrinfo hints;
+            struct              addrinfo *servinfo;
 
-            listener.hosts = &servers[i]; 
-            memset(&listener.hints, 0, sizeof(listener.hints));
-            listener.hints.ai_family = AF_INET;
-            listener.hints.ai_socktype = SOCK_STREAM;
+            memset(&hints, 0, sizeof(hints));
+            hints.ai_family = AF_INET;
+            hints.ai_socktype = SOCK_STREAM;
 
             std::string host = it->first;
             portStr << it->second; 
-            int ad = getaddrinfo(host.c_str(), portStr.str().c_str(), &listener.hints, &listener.servinfo);
+            int ad = getaddrinfo(host.c_str(), portStr.str().c_str(), &hints, &servinfo);
             if (ad != 0) {
                 std::cerr << "getaddrinfo: ";
                 throw std::runtime_error(gai_strerror(ad));
             }
             //
-            struct addrinfo p = *listener.servinfo;
-            listener.fd = socket(p.ai_family, p.ai_socktype, p.ai_protocol);
-            if (listener.fd < 0) {
+            struct addrinfo p = *servinfo;
+            int fd = socket(p.ai_family, p.ai_socktype, p.ai_protocol);
+            if (fd < 0) {
                 throw std::runtime_error("Failed to create socket");
             }
             //
             int yes = 1;
-            if (setsockopt(listener.fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes))) {
+            if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes))) {
                 throw std::runtime_error("Failed to set socket options");
             }
             //
-            if (bind(listener.fd, p.ai_addr, p.ai_addrlen) == -1) {
+            if (bind(fd, p.ai_addr, p.ai_addrlen) == -1) {
                 throw std::runtime_error("Failed to bind socket");
             }
             //
-            if (listen(listener.fd, SOMAXCONN) == -1) {
+            if (listen(fd, SOMAXCONN) == -1) {
                 throw std::runtime_error("Failed to listen on socket");
             }
             //
-            listeners.push_back(listener);
+            listeners.insert(std::make_pair(fd, &servers[i]));
+            freeaddrinfo(servinfo);
         }
     }
 }
 
 WebServer::~WebServer() {
-    for (size_t i = 0; i < listeners.size(); ++i) {
-        close(listeners[i].fd);
-    }
-    for (size_t i = 0; i < listeners.size(); ++i) {
-        freeaddrinfo(listeners[i].servinfo);
+    for (std::map<int, ServerConfig *>::iterator it = listeners.begin(); it != listeners.end(); ++it) {
+        close(it->first);
     }
     listeners.clear();
 }
+
 void WebServer::_addEvent(std::vector<struct kevent> &events,
                           uintptr_t ident, int16_t filter, uint16_t flags,
                           uint32_t fflags, intptr_t data, void* udata) {
@@ -67,8 +66,8 @@ void WebServer::registerEvents() {
     listenerEvents.clear();
     listenerEvents.reserve(listeners.size());
 
-    for (size_t i = 0; i < listeners.size(); i++) {
-        int fd = listeners[i].fd;
+    for (std::map<int, ServerConfig*>::iterator it = listeners.begin(); it != listeners.end(); ++it) {
+        int fd = it->first;
         _addEvent(listenerEvents, fd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, (void*)1);
     }
 
@@ -105,13 +104,15 @@ void WebServer::_handleAccept(int listen_fd) {
         throw std::runtime_error("Failed to register client events");
     }
     clientRequests[client_fd] = HttpRequest();
+    clientRequests[client_fd].setServer(listeners[listen_fd]);
     std::cout << "Client connected: " << client_fd << std::endl;
 }
 
 int WebServer::_handleReadable(int client_fd) {
     char buffer[1024];
     ssize_t n = recv(client_fd, buffer, sizeof(buffer), 0);
-    if (n == 0 || n == -1) return DISCONNECTED;
+    if (n == 0) return DISCONNECTED;
+    if (n == -1) return CONNECTED;
     
     clientRequests[client_fd].RequestData.append(buffer, n);
     if (clientRequests[client_fd].parse_request())
@@ -127,11 +128,12 @@ int WebServer::_handleReadable(int client_fd) {
     EV_SET(&ev, client_fd, EVFILT_TIMER, EV_ADD | EV_ENABLE, 0, timeout, NULL);
     kevent(kq, &ev, 1, NULL, 0, NULL);
 
+
     return CONNECTED;
 }
 
 int WebServer::_handleWritable(int client_fd) {
-    const char* msg = "HTTP/1.1 200 OK\r\nContent-Length: 5\r\n\r\nHello";
+    const char* msg = "HTTP/1.1 200 OK\r\nContent-Length: 13\r\n\r\nHello, World!";
     ssize_t n = send(client_fd, msg, strlen(msg), 0);
     if (n == -1)
         return DISCONNECTED;
