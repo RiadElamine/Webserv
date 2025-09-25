@@ -115,8 +115,7 @@ int WebServer::_handleReadable(int client_fd) {
     if (n == 0) return DISCONNECTED;
     if (n == -1) return CONNECTED;
     
-    clientRequests[client_fd].RequestData.append(buffer, n);
-clientRequests[client_fd].parse_request();
+    if (clientRequests[client_fd].parse_request(buffer, n))
     {
 
         struct kevent ev[2];

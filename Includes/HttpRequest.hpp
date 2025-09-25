@@ -41,16 +41,18 @@ class HttpRequest {
         bool need_boundary;
         ServerConfig *server;
         int code_status;
+        std::string RequestData;
+        void check(std::string& data, size_t pos);
     public:
         HttpRequest();
-        int  parse_request();
+        int  parse_request(char* buffer, ssize_t n);
         void method_valid();
         void uri_valid();
         void decode(std::string &value);
         void parse_headers(std::string& data);
         void parse_body(std::string& data);
         void printRequest() const;
-        void handl_boundary(std::string& data, size_t boundary_pos,  std::ofstream& file);
+        void handl_boundary(std::string& data, size_t boundary_pos);
         bool headers_complete() const {
             return flag_headers;
         }
@@ -63,7 +65,6 @@ class HttpRequest {
         }
         int getStatusCode() { return code_status; };
         std::string get_path() { return path; }
-        std::string RequestData;
         void inchunk_body(std::string& data, std::ofstream& file);
         ServerConfig *getServer() const {
             return server;
