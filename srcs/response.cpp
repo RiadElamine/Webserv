@@ -50,7 +50,7 @@ void Response::Get() {
         statusCode = Not_Found;
         mime = "text/html";
         body = makeBodyResponse(getReasonPhrase(statusCode), statusCode, "");
-    } 
+    }
     else if (!FileR_OK(path)) {
         // respond with 403 code status
         statusCode = Forbidden;
