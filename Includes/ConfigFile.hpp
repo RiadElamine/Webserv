@@ -13,7 +13,6 @@
 #include <set>
 #include <sys/stat.h>
 
-
 // #define max_size_of_file 1048576 // 1MB
 #define max_size_of_file 141800 // 1.4KB
 
