@@ -117,7 +117,7 @@ int WebServer::_handleReadable(int client_fd) {
     
     if (clientRequests[client_fd].parse_request(buffer, n))
     {
-
+        std::cout << "Request received from client: " << client_fd << std::endl;
         struct kevent ev[2];
         EV_SET(&ev[0], client_fd, EVFILT_READ, EV_DISABLE, 0, 0, NULL);
         EV_SET(&ev[1], client_fd, EVFILT_WRITE, EV_ENABLE, 0, 0, NULL);
@@ -134,12 +134,13 @@ int WebServer::_handleReadable(int client_fd) {
 }
 
 int WebServer::_handleWritable(int client_fd) {
+    // if (clientRequests[client_fd].getMethod() == "POST")
+    //     return DISCONNECTED;
     Response response;
     getDataFromRequest(clientRequests[client_fd], response);
     response.execute_method();
     std::string message = response.getResponse();
     ssize_t n = send(client_fd, message.c_str(), message.length(), 0);
-
     if (n == -1)
         return DISCONNECTED;
 
@@ -155,6 +156,7 @@ void WebServer::_closeConnection(int fd) {
     EV_SET(&ev[2], fd, EVFILT_TIMER, EV_DELETE, 0, 0, NULL);
     kevent(kq, ev, 3, NULL, 0, NULL);
 
+    shutdown(fd, SHUT_WR);
     close(fd);
     std::cout << "Connection closed: " << fd << std::endl;
 }
@@ -187,7 +189,9 @@ void WebServer::startServer() {
                     disconnect = true;
             } 
             else if (e.filter == EVFILT_WRITE && _handleWritable(e.ident) == DISCONNECTED)
+            {
                 disconnect = true;
+            }
             else if (e.filter == EVFILT_TIMER)
                 disconnect = true;
             if (disconnect)

@@ -14,6 +14,7 @@ HttpRequest::HttpRequest() {
     flag_boundary = 0;
     need_boundary = false;
     code_status = 200;
+    filename = "";
 }
 void HttpRequest::printRequest() const
 {
@@ -151,6 +152,17 @@ void HttpRequest::parse_headers(std::string& data) {
     flag_headers = 1;
     if (headers.find("Content-Length") != headers.end()) {
         contentLength = std::atol(headers["Content-Length"].c_str());
+        if (contentLength < 0) {
+            code_status = 400;
+            body_complete = true;
+            return;
+        }
+        if (contentLength > server->client_max_body_size) {
+            std::cout << "Invalid Content-Length value: " << headers["Content-Length"] << std::endl;
+            code_status = 413;
+            body_complete = true;
+            return;
+        }
     } else {
         contentLength = 0;
     }
@@ -264,8 +276,9 @@ void HttpRequest::handl_boundary(std::string& data, size_t boundary_pos) {
         file.close();
         if (data.find("--\r\n" , boundary.size()) != std::string::npos && data.find("--\r\n" , boundary.size()) < data.find("\r\n")) {
             data.clear();
-            flag_body = 1;
+            // flag_body = 1;
             body_complete = true;
+            code_status = 201;
         }
     }
 }
@@ -285,9 +298,11 @@ void HttpRequest::inchunk_body(std::string &data, std::ofstream &file)
         iss.str(size_line);
         iss.clear(); 
         iss >> std::hex >> chunk_size;
-        if (chunk_size == 0 ) {
+        if (chunk_size == 0) {
             data.erase(0, chunk_size_end + 2);
             file.close();
+            if (!boundary.empty())
+                code_status = 201;
             return;
         }
         pos = chunk_size_end + 2;
@@ -312,6 +327,14 @@ void HttpRequest::inchunk_body(std::string &data, std::ofstream &file)
         }
     }
     pos += chunk_size;
+    contentLength += chunk_size;
+    if (contentLength > server->client_max_body_size) {
+        std::cout << "File size exceeded: " << contentLength << " bytes" << std::endl;
+        remove(filename.c_str());
+        code_status = 413;
+        body_complete = true;
+        return;
+    }
     if (data.substr(pos, 2) != "\r\n") {
         file.close();
         code_status = 400;
@@ -325,12 +348,75 @@ void HttpRequest::inchunk_body(std::string &data, std::ofstream &file)
     }
 }
 
-void HttpRequest::parse_body(std::string& data) {
-    
-    std::ofstream file("body.txt", std::ios::binary | std::ios::app);
-    if (!file.is_open()) {
-        return;
+std::string generate_random_string(size_t length) {
+    const char charset[] =
+        "0123456789"
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "abcdefghijklmnopqrstuvwxyz";
+    const size_t max_index = sizeof(charset) - 1;
+    std::string random_string;
+    random_string.reserve(length);
+    for (size_t i = 0; i < length; ++i) {
+        random_string += charset[rand() % max_index];
     }
+    return random_string + ".txt";
+}
+
+void HttpRequest::create_file()
+{
+    struct  stat buffer;
+
+    for (std::vector<Location>::iterator it = server->locations.begin(); it != server->locations.end(); ++it)
+    {
+        if (path == it->URI || (it->URI == path + "/"))
+        {
+            if (it->methods.end() == std::find(it->methods.begin(), it->methods.end(), method))
+            {
+                code_status = 405;
+                body_complete = true;
+                return;
+            }
+
+            std::cout << "Upload directory specified: " << it->upload_store << std::endl;
+            if (stat(it->upload_store.c_str(), &buffer) != 0)
+            {
+                std::cout << "Upload directory does not exist: " << it->upload_store << std::endl;
+                code_status = 500;
+                body_complete = true;
+                return;
+            }
+            else
+            {
+                filename = it->upload_store + "/upload_" + generate_random_string(10);
+            }
+
+        }
+    }
+
+    // srand(time(0));
+    // if (stat(server->upload_store.c_str(), &buffer) != 0)
+    // {
+    //     if (stat(upload.c_str(), &buffer) != 0)
+    //     {
+    //         code_status = 500;
+    //         body_complete = true;
+    //         return;
+    //     }
+    //     else
+    //         filename = upload + &"uplaod"[rand()];
+    // }
+    // else
+    // {
+    //     if (filename.empty())
+    //         filename = server->upload_store + &"uplaod"[rand()];
+    // }
+    
+}
+
+void HttpRequest::parse_body(std::string& data) {
+    if (filename == "")
+        create_file();
+    std::ofstream file(filename, std::ios::binary | std::ios::app);
     if (!chunked.empty())
     {
         inchunk_body(data, file);
@@ -347,6 +433,7 @@ void HttpRequest::parse_body(std::string& data) {
             if (contentLength <= 0) {
                 file.close();
                 body_complete = true;
+                code_status = 201;
                 return;
             }
         }
@@ -374,16 +461,17 @@ int HttpRequest::parse_request(char* buffer, ssize_t n) {
         if (!headers_complete()) {
             parse_headers(RequestData);
         }
-        if ((method== "GET" || method == "DELETE") && headers_complete())
+        if (((method== "GET" || method == "DELETE") && headers_complete()) || body_complete)
         {
             body_complete = true;
+            RequestData.clear();
+            filename = "";
             break;
         }
         if (method == "POST" && headers_complete()) {
             parse_body(RequestData);
         }
+
     }
-    if (body_complete)
-        RequestData.clear();
     return (body_complete);
 }

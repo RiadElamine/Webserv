@@ -23,7 +23,7 @@ class HttpRequest {
         std::string method;
         std::string uri;
         std::map<std::string, std::string> headers;
-        int contentLength;
+        size_t contentLength;
         std::string chunked;
         std::string path;
         std::string query;
@@ -43,6 +43,7 @@ class HttpRequest {
         int code_status;
         std::string RequestData;
         void check(std::string& data, size_t pos);
+        std::string filename;
     public:
         HttpRequest();
         int  parse_request(char* buffer, ssize_t n);
@@ -63,15 +64,19 @@ class HttpRequest {
         std::string getMethod() const {
             return method;
         }
+        std::map<std::string, std::string> getHeaders() const {
+            return headers;
+        }
         int getStatusCode() { return code_status; };
         std::string get_path() { return path; }
-        void inchunk_body(std::string& data, std::ofstream& file);
+        void inchunk_body(std::string& data, std::ofstream &file);
         ServerConfig *getServer() const {
             return server;
         }
         void setServer(ServerConfig *srv) {
             server = srv;
         }
+        void create_file();
 };
 
 #endif
