@@ -10,8 +10,8 @@ void Response::setMethod(std::string _method) {
     method = _method;
 }
 
-void Response::setPath(std::string _path) {
-    path = _path;
+void Response::setServer(ServerConfig *server) {
+    currentServer = server;
 }
 
 void Response::setHeader(Header copyHeader) {
@@ -27,8 +27,6 @@ void Response::setHeader(Header copyHeader) {
 
         ss << body.length();
         fillFieldLine(responseHeader.field_line, "text/html", ss.str());
-
-        //send Response
     }
 }
 
@@ -40,11 +38,15 @@ void Response::execute_method() {
     }
 }
 
+//modify path
+
 void Response::Get() {
     e_StatusCode statusCode;
     std::string mime;
     std::stringstream ss;
-
+    Location *currentLocation = getCurrentLocation(path, currentServer);
+    path = currentLocation->root + path;
+    std::cout << "path: " << path << std::endl;
     if (!pathExists(path)) {
         // respond with 404 code status
         statusCode = Not_Found;
@@ -70,7 +72,6 @@ void Response::Get() {
     ss.str();
     ss.clear();
     fillFieldLine(responseHeader.field_line, mime, ss.str());
-    //send response
 }
 
 void Response::Delete() {

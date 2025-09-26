@@ -62,7 +62,7 @@ class HttpRequest {
             return method;
         }
         int getStatusCode() { return code_status; };
-        std::string get_path() { return path; }
+        std::string getPath() { return path; }
         std::string RequestData;
         void inchunk_body(std::string& data, std::ofstream& file);
         ServerConfig *getServer() const {

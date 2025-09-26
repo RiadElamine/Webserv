@@ -118,3 +118,40 @@ std::string getCGI(std::string path __attribute__ ((unused))) {
 bool isCGI(std::string) {
     return false;
 }
+
+bool isPrefix(const std::string& prefix, const std::string& str) {
+    if (prefix.size() > str.size())
+        return false;
+    return str.compare(0, prefix.size(), prefix) == 0;
+}
+
+Location* getCurrentLocation(std::string oldPath, ServerConfig *currentServer) {
+    Location *currentLocation = nullptr;
+    Location *fallBack = nullptr;
+    size_t longestMatch = 0;
+
+    for (size_t i = 0; i < currentServer->locations.size(); i++) {
+        const Location &loc = currentServer->locations[i];
+
+        if (loc.URI == "/") {
+            fallBack = &currentServer->locations[i];
+        }
+
+        if (isPrefix(loc.URI, oldPath)) {
+            if (loc.URI.size() > longestMatch) {
+                longestMatch = loc.URI.size();
+                currentLocation = &currentServer->locations[i];
+            }
+        }
+    }
+
+    if (!currentLocation)
+        currentLocation = fallBack;
+
+    if (currentLocation->root.empty())
+        currentLocation->root = currentServer->global_root;
+    if (currentLocation->index.empty())
+        currentLocation->index = currentServer->global_index;
+
+    return currentLocation;
+}

@@ -57,12 +57,6 @@ struct ChunkedBodyData {
 };
 
 /*
-* HttpRequest: A demo class for the http request, used to silence the program errors
-*              Until the HttpRequest Class API provided.
-*/
-
-
-/*
 * Response: Class contain the full response message to be send
 * @transferEncoding: a boolean indicating if the message body should be chunked or not
 * @method: The method requested by the client {GET, POST, DELETE,...}
@@ -75,19 +69,20 @@ class Response {
     bool transferEncoding;
     std::string method;
     Header responseHeader;
-    std::string path;
     std::string body;
+    std::string path;
     std::list<ChunkedBodyData> chunkedBody;
+    ServerConfig *currentServer;
     public:
         Response();
         void setMethod(std::string );
-        void setPath(std::string );
+        void setServer(ServerConfig *);
         void setHeader(Header );
         void execute_method();
         void Get();
         void Delete();
         std::string getResponse();
-        std::string getMe() {return method;}
+        void setPath(std::string _path) { path = _path; }
 };
 
 void getDataFromRequest(HttpRequest request, Response &response);
@@ -101,4 +96,5 @@ std::string getMIME(std::string path);
 bool isCGI(std::string);
 std::string getCGI(std::string);        
 std::string readFile(std::string);
+Location* getCurrentLocation(std::string oldPath, ServerConfig *currentServer);
 #endif
