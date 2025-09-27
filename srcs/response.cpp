@@ -47,12 +47,14 @@ void Response::Get() {
     Location *currentLocation = getCurrentLocation(path, currentServer);
     path = currentLocation->root + path;
     std::cout << "path: " << path << std::endl;
+    std::cout << path << std::endl;
     if (!pathExists(path)) {
         // respond with 404 code status
         statusCode = Not_Found;
         mime = "text/html";
         body = makeBodyResponse(getReasonPhrase(statusCode), statusCode, "");
     }
+    //need to check if the file has GET method
     else if (!FileR_OK(path)) {
         // respond with 403 code status
         statusCode = Forbidden;
