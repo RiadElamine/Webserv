@@ -119,10 +119,51 @@ bool isCGI(std::string) {
     return false;
 }
 
-bool isPrefix(const std::string& prefix, const std::string& str) {
-    if (prefix.size() > str.size())
-        return false;
-    return str.compare(0, prefix.size(), prefix) == 0;
+std::vector<std::string> split(const std::string &s, char delimiter) {
+    std::vector<std::string> tokens;
+    std::string::size_type start = 0;
+    std::string::size_type pos;
+
+    while ((pos = s.find(delimiter, start)) != std::string::npos) {
+        std::string S token = s.substr(start, pos - start);
+        if (!token.empty())
+            tokens.push_back(token);
+        start = pos + 1;
+    }
+    tokens.push_back(s.substr(start)); // last token
+    return tokens;
+}
+
+std::string normalizePath(std::string str) {
+    std::string result;
+    size_t i = 0;
+
+    while (i < str.length()) {
+        if (str[i] == '/') {
+            result += '/';
+            while (i < str.length() && str[i] == '/')
+                ++i; // skip all consecutive '/'
+        } else {
+            result += str[i];
+            ++i;
+        }
+    }
+
+    return result;
+}
+
+size_t matchNB(const std::string& URI, const std::string& path) {
+   std::vector<std::string> splURI = split(URI, '/');
+   std::vector<std::string> splPath = split(normalizePath(path), '/');
+
+    size_t end = std::min(splURI.size(), splPath.size());
+    size_t count = 0;
+    for (size_t start = 0; start < end; start++) {
+        if (splURI[start] != splPath[start])
+            break ;
+        count++;
+    }
+    return count;
 }
 
 Location* getCurrentLocation(std::string oldPath, ServerConfig *currentServer) {
@@ -137,17 +178,17 @@ Location* getCurrentLocation(std::string oldPath, ServerConfig *currentServer) {
             fallBack = &currentServer->locations[i];
         }
 
-        if (isPrefix(loc.URI, oldPath)) {
-            if (loc.URI.size() > longestMatch) {
-                longestMatch = loc.URI.size();
-                currentLocation = &currentServer->locations[i];
-            }
+        size_t ret = matchNB(loc.URI, oldPath);
+        if (ret > longestMatch) {
+            longestMatch = ret;
+            currentLocation = &currentServer->locations[i];
         }
     }
 
     if (!currentLocation)
         currentLocation = fallBack;
-
+    if (!currentLocation)
+        currentLocation = new Location(); //need to free it later
     if (currentLocation->root.empty())
         currentLocation->root = currentServer->global_root;
     if (currentLocation->index.empty())

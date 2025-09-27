@@ -46,8 +46,8 @@ void Response::Get() {
     std::stringstream ss;
     Location *currentLocation = getCurrentLocation(path, currentServer);
     path = currentLocation->root + path;
-    std::cout << "path: " << path << std::endl;
-    std::cout << path << std::endl;
+    std::cout << "root: " << currentLocation->root  << std::endl;
+
     if (!pathExists(path)) {
         // respond with 404 code status
         statusCode = Not_Found;

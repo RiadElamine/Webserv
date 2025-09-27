@@ -13,6 +13,7 @@
 #include <ctime>
 #include <stdexcept>
 #include <sys/socket.h>
+#include <algorithm>
 #include "status_code.hpp"
 #include "HttpRequest.hpp"
 
@@ -97,4 +98,5 @@ bool isCGI(std::string);
 std::string getCGI(std::string);        
 std::string readFile(std::string);
 Location* getCurrentLocation(std::string oldPath, ServerConfig *currentServer);
+std::vector<std::string> split(const std::string &s, char delimiter);
 #endif
