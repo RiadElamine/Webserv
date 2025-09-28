@@ -45,8 +45,9 @@ void Response::Get() {
     std::string mime;
     std::stringstream ss;
     Location *currentLocation = getCurrentLocation(path, currentServer);
-    path = currentLocation->root + path;
-    std::cout << "root: " << currentLocation->root  << std::endl;
+    path = buildPath(currentLocation->root, path);
+
+    std::cout << "path: " << path << std::endl;
 
     if (!pathExists(path)) {
         // respond with 404 code status

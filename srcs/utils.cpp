@@ -87,6 +87,7 @@ std::string getMIME(std::string path) {
     if (mime == "jpg" || mime == "jpeg") return "image/jpeg";
     if (mime == "gif") return "image/gif";
     if (mime == "txt") return "text/plain";
+    if (mime == "pdf") return "application/pdf";
     return "application/octet-stream";
 }
 
@@ -119,56 +120,19 @@ bool isCGI(std::string) {
     return false;
 }
 
-std::vector<std::string> split(const std::string &s, char delimiter) {
-    std::vector<std::string> tokens;
-    std::string::size_type start = 0;
-    std::string::size_type pos;
-
-    while ((pos = s.find(delimiter, start)) != std::string::npos) {
-        std::string S token = s.substr(start, pos - start);
-        if (!token.empty())
-            tokens.push_back(token);
-        start = pos + 1;
-    }
-    tokens.push_back(s.substr(start)); // last token
-    return tokens;
-}
-
-std::string normalizePath(std::string str) {
-    std::string result;
-    size_t i = 0;
-
-    while (i < str.length()) {
-        if (str[i] == '/') {
-            result += '/';
-            while (i < str.length() && str[i] == '/')
-                ++i; // skip all consecutive '/'
-        } else {
-            result += str[i];
-            ++i;
-        }
-    }
-
-    return result;
-}
-
 size_t matchNB(const std::string& URI, const std::string& path) {
-   std::vector<std::string> splURI = split(URI, '/');
-   std::vector<std::string> splPath = split(normalizePath(path), '/');
+    if (URI.size() > path.size())
+        return 0;
+    size_t index = path.find(URI);
+    if (index == std::string::npos || index != 0)
+        return 0;
 
-    size_t end = std::min(splURI.size(), splPath.size());
-    size_t count = 0;
-    for (size_t start = 0; start < end; start++) {
-        if (splURI[start] != splPath[start])
-            break ;
-        count++;
-    }
-    return count;
+    return URI.size();
 }
 
 Location* getCurrentLocation(std::string oldPath, ServerConfig *currentServer) {
-    Location *currentLocation = nullptr;
-    Location *fallBack = nullptr;
+    Location *currentLocation = NULL;
+    Location *fallBack = NULL;
     size_t longestMatch = 0;
 
     for (size_t i = 0; i < currentServer->locations.size(); i++) {
@@ -188,11 +152,22 @@ Location* getCurrentLocation(std::string oldPath, ServerConfig *currentServer) {
     if (!currentLocation)
         currentLocation = fallBack;
     if (!currentLocation)
-        currentLocation = new Location(); //need to free it later
+    {
+        currentServer->locations.push_back(Location());
+        currentLocation = &currentServer->locations.back(); //need to free it later
+    }
     if (currentLocation->root.empty())
         currentLocation->root = currentServer->global_root;
     if (currentLocation->index.empty())
         currentLocation->index = currentServer->global_index;
-
+    
     return currentLocation;
+}
+
+std::string buildPath(std::string URI, std::string path) {
+    size_t index = path.find(URI);
+    if (index == std::string::npos || index != 0) {
+        return std::string(URI + path);
+    }
+    return path;
 }

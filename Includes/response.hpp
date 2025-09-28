@@ -99,4 +99,5 @@ std::string getCGI(std::string);
 std::string readFile(std::string);
 Location* getCurrentLocation(std::string oldPath, ServerConfig *currentServer);
 std::vector<std::string> split(const std::string &s, char delimiter);
+std::string buildPath(std::string URI, std::string path);
 #endif
