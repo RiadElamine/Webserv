@@ -10,7 +10,7 @@ void getDataFromRequest(HttpRequest request, Response &response){
     copyHeader.status_line.statusCode = (e_StatusCode) request.getStatusCode();
     response.setPath(request.getPath());
     copyHeader.status_line.reasonPhrase = getReasonPhrase(copyHeader.status_line.statusCode);
-    response.setServer(request.getServer());
+    response.set_Server(request.getServer());
     response.setHeader(copyHeader);
 
 }

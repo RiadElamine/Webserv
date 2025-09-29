@@ -79,13 +79,13 @@ class Response {
     public:
         Response();
         void setMethod(std::string );
-        void setServer(ServerConfig *);
+        void set_Server(ServerConfig *);
         void setHeader(Header );
         void execute_method();
         void Get();
         void Delete();
         std::string getResponse();
-        void setPath(std::string _path) { path = _path; }
+        void setPath(std::string _path);
 };
 
 void getDataFromRequest(HttpRequest request, Response &response);

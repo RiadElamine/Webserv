@@ -14,6 +14,10 @@ void Response::setPath(std::string _path) {
     path = _path;
 }
 
+void Response::set_Server(ServerConfig *_currentServer) {
+    currentServer = _currentServer;
+}
+
 void Response::setHeader(Header copyHeader) {
     responseHeader.status_line.HttpVersion = copyHeader.status_line.HttpVersion;
     responseHeader.status_line.statusCode = copyHeader.status_line.statusCode;
