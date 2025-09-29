@@ -283,8 +283,9 @@ void HttpRequest::handl_boundary(std::string& data, size_t boundary_pos) {
     }
 }
 
-void HttpRequest::inchunk_body(std::string &data, std::ofstream &file)
+void HttpRequest::inchunk_body(std::string &data)
 {
+    std::ofstream file(filename.c_str(), std::ios::binary | std::ios::app);
     std::istringstream iss;
     size_t pos = 0;
     if (chunk_size == 0) {
@@ -312,11 +313,13 @@ void HttpRequest::inchunk_body(std::string &data, std::ofstream &file)
             return;
         }
     }
-    if (boundary.empty())
+    if (boundary.empty() || cgi())
     {
+        if (!file.is_open())
+            file.open(filename.c_str(), std::ios::binary | std::ios::app);
         file.write(data.c_str() + pos, chunk_size);
     }
-    else
+    else if (!boundary.empty())
     {
         inchunk.append(data.c_str() + pos, chunk_size);
         size_t boundary_pos = inchunk.find(boundary);
@@ -359,7 +362,28 @@ std::string generate_random_string(size_t length) {
     for (size_t i = 0; i < length; ++i) {
         random_string += charset[rand() % max_index];
     }
-    return random_string + ".txt";
+    return random_string;
+}
+
+std::string HttpRequest::get_mime_type() const{
+    static std::map<std::string, std::string> mime_types;
+    mime_types["text/html"] = ".html";
+    mime_types["text/css"] = ".css";
+    mime_types["application/javascript"] = ".js";
+    mime_types["application/json"] = ".json";
+    mime_types["image/png"] = ".png";
+    mime_types["image/jpeg"] = ".jpg";
+    mime_types["image/gif"] = ".gif";
+    mime_types["image/svg+xml"] = ".svg";
+    mime_types["text/plain"] = ".txt";
+    mime_types["application/xml"] = ".xml";
+    mime_types["application/pdf"] = ".pdf";
+    mime_types["application/zip"] = ".zip";
+    mime_types["application/octet-stream"] = ".bin";
+
+
+    std::string ext = headers.find("Content-Type") != headers.end() ? headers.at("Content-Type") : "";
+    return mime_types.find(ext) != mime_types.end() ? mime_types.at(ext) : ".bin";
 }
 
 void HttpRequest::create_file()
@@ -370,62 +394,56 @@ void HttpRequest::create_file()
     {
         if (path == it->URI || (it->URI == path + "/"))
         {
+            //---------------------------------------
             if (it->methods.end() == std::find(it->methods.begin(), it->methods.end(), method))
             {
                 code_status = 405;
                 body_complete = true;
                 return;
             }
-
-            std::cout << "Upload directory specified: " << it->upload_store << std::endl;
             if (stat(it->upload_store.c_str(), &buffer) != 0)
             {
-                std::cout << "Upload directory does not exist: " << it->upload_store << std::endl;
                 code_status = 500;
                 body_complete = true;
                 return;
             }
             else
             {
-                filename = it->upload_store + "/upload_" + generate_random_string(10);
+                std::cout << "Upload store directory exists: " << it->upload_store << std::endl;
+                int i = 1;
+                while (true)
+                {
+                    filename = it->upload_store + "/upload_" + generate_random_string(i) + get_mime_type();
+                    if (stat(filename.c_str(), &buffer) != 0)
+                        break;
+                    i++;
+                }
+                
             }
-
+            //---------------------------------------
         }
-    }
-
-    // srand(time(0));
-    // if (stat(server->upload_store.c_str(), &buffer) != 0)
-    // {
-    //     if (stat(upload.c_str(), &buffer) != 0)
-    //     {
-    //         code_status = 500;
-    //         body_complete = true;
-    //         return;
-    //     }
-    //     else
-    //         filename = upload + &"uplaod"[rand()];
-    // }
-    // else
-    // {
-    //     if (filename.empty())
-    //         filename = server->upload_store + &"uplaod"[rand()];
-    // }
-    
+    }    
 }
+
+bool HttpRequest::cgi()
+{
+    return true;
+}
+
+
 
 void HttpRequest::parse_body(std::string& data) {
     if (filename == "")
         create_file();
-    std::ofstream file(filename, std::ios::binary | std::ios::app);
     if (!chunked.empty())
     {
-        inchunk_body(data, file);
+        inchunk_body(data);
     }
     if (contentLength > 0)
     {
-        // check body size
-        if (boundary.empty())
+        if (boundary.empty() || cgi())
         {
+            std::ofstream file(filename.c_str(), std::ios::binary | std::ios::app);        
             size_t bytesToWrite = std::min(static_cast<size_t>(contentLength), data.size());
             file.write(data.c_str(), bytesToWrite);
             contentLength -= bytesToWrite;
@@ -465,7 +483,6 @@ int HttpRequest::parse_request(char* buffer, ssize_t n) {
         {
             body_complete = true;
             RequestData.clear();
-            filename = "";
             break;
         }
         if (method == "POST" && headers_complete()) {

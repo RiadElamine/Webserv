@@ -26,7 +26,6 @@ class HttpRequest {
         size_t contentLength;
         std::string chunked;
         std::string path;
-        std::string query;
         std::map<std::string, std::string> query_params;
         std::string version;
         bool flag_headers;
@@ -67,9 +66,15 @@ class HttpRequest {
         std::map<std::string, std::string> getHeaders() const {
             return headers;
         }
+        std::string getVersion() const {
+            return version;
+        }
+        std::map<std::string, std::string> getQueryParams() const {
+            return query_params;
+        }
         int getStatusCode() { return code_status; };
         std::string get_path() { return path; }
-        void inchunk_body(std::string& data, std::ofstream &file);
+        void inchunk_body(std::string& data);
         ServerConfig *getServer() const {
             return server;
         }
@@ -77,6 +82,11 @@ class HttpRequest {
             server = srv;
         }
         void create_file();
+        std::string get_filename() const {
+            return filename;
+        }
+        std::string get_mime_type()const;
+        bool cgi();
 };
 
 #endif
