@@ -85,6 +85,8 @@
         "__functional_03": "cpp",
         "list": "cpp",
         "__verbose_abort": "cpp",
-        "print": "cpp"
-    }
+        "print": "cpp",
+        "queue": "cpp"
+    },
+    "C_Cpp.errorSquiggles": "disabled"
 }

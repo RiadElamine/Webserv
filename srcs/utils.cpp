@@ -87,6 +87,7 @@ std::string getMIME(std::string path) {
     if (mime == "jpg" || mime == "jpeg") return "image/jpeg";
     if (mime == "gif") return "image/gif";
     if (mime == "txt") return "text/plain";
+    if (mime == "pdf") return "application/pdf";
     return "application/octet-stream";
 }
 
@@ -117,4 +118,56 @@ std::string getCGI(std::string path __attribute__ ((unused))) {
 
 bool isCGI(std::string) {
     return false;
+}
+
+size_t matchNB(const std::string& URI, const std::string& path) {
+    if (URI.size() > path.size())
+        return 0;
+    size_t index = path.find(URI);
+    if (index == std::string::npos || index != 0)
+        return 0;
+
+    return URI.size();
+}
+
+Location* getCurrentLocation(std::string oldPath, ServerConfig *currentServer) {
+    Location *currentLocation = NULL;
+    Location *fallBack = NULL;
+    size_t longestMatch = 0;
+
+    for (size_t i = 0; i < currentServer->locations.size(); i++) {
+        const Location &loc = currentServer->locations[i];
+
+        if (loc.URI == "/") {
+            fallBack = &currentServer->locations[i];
+        }
+
+        size_t ret = matchNB(loc.URI, oldPath);
+        if (ret > longestMatch) {
+            longestMatch = ret;
+            currentLocation = &currentServer->locations[i];
+        }
+    }
+
+    if (!currentLocation)
+        currentLocation = fallBack;
+    if (!currentLocation)
+    {
+        currentServer->locations.push_back(Location());
+        currentLocation = &currentServer->locations.back(); //need to free it later
+    }
+    if (currentLocation->root.empty())
+        currentLocation->root = currentServer->global_root;
+    if (currentLocation->index.empty())
+        currentLocation->index = currentServer->global_index;
+    
+    return currentLocation;
+}
+
+std::string buildPath(std::string URI, std::string path) {
+    size_t index = path.find(URI);
+    if (index == std::string::npos || index != 0) {
+        return std::string(URI + path);
+    }
+    return path;
 }

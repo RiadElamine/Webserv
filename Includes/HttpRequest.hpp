@@ -1,7 +1,8 @@
 #ifndef HTTPREQUEST_HPP
 #define HTTPREQUEST_HPP
 
-#include "../Includes/ConfigFile.hpp"
+#include "ConfigFile.hpp"
+#include "response.hpp"
 
 #include <string>
 #include <map>
@@ -17,6 +18,7 @@
 #include <utility>
 #include <cstring>
 #include <unistd.h>
+
 
 class HttpRequest {
     private:
@@ -73,8 +75,8 @@ class HttpRequest {
             return query_params;
         }
         int getStatusCode() { return code_status; };
-        std::string get_path() { return path; }
         void inchunk_body(std::string& data);
+        std::string getPath() { return path; }
         ServerConfig *getServer() const {
             return server;
         }

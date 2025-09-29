@@ -389,40 +389,35 @@ std::string HttpRequest::get_mime_type() const{
 void HttpRequest::create_file()
 {
     struct  stat buffer;
-
-    for (std::vector<Location>::iterator it = server->locations.begin(); it != server->locations.end(); ++it)
+    Location *it = getCurrentLocation(path, server);
+    std::string build_pat = buildPath(it->root, path);
+    std::cout << "Build path: " << build_pat << std::endl;
+    if (it->methods.end() == std::find(it->methods.begin(), it->methods.end(), method))
     {
-        if (path == it->URI || (it->URI == path + "/"))
+        code_status = 405;
+        body_complete = true;
+        return;
+    }
+    std::cout << "Build path: " << build_pat << std::endl;
+    if (stat(build_pat.c_str(), &buffer) != 0)
+    {
+        code_status = 500;
+        body_complete = true;
+        return;
+    }
+    else
+    {
+        int i = 1;
+        while (true)
         {
-            //---------------------------------------
-            if (it->methods.end() == std::find(it->methods.begin(), it->methods.end(), method))
-            {
-                code_status = 405;
-                body_complete = true;
-                return;
-            }
-            if (stat(it->upload_store.c_str(), &buffer) != 0)
-            {
-                code_status = 500;
-                body_complete = true;
-                return;
-            }
-            else
-            {
-                std::cout << "Upload store directory exists: " << it->upload_store << std::endl;
-                int i = 1;
-                while (true)
-                {
-                    filename = it->upload_store + "/upload_" + generate_random_string(i) + get_mime_type();
-                    if (stat(filename.c_str(), &buffer) != 0)
-                        break;
-                    i++;
-                }
-                
-            }
-            //---------------------------------------
+            filename = build_pat + "/upload_" + generate_random_string(i) + get_mime_type();
+            std::cout << "Generated filename: " << filename << std::endl;
+            if (stat(filename.c_str(), &buffer) != 0)
+                break;
+            i++;
         }
-    }    
+    }
+    
 }
 
 bool HttpRequest::cgi()

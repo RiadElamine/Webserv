@@ -157,7 +157,8 @@ void WebServer::_closeConnection(int fd) {
     kevent(kq, ev, 3, NULL, 0, NULL);
 
     shutdown(fd, SHUT_WR);
-    close(fd);
+    std::cout << "Shutting down connection: " << fd << std::endl;
+    // close(fd);
     std::cout << "Connection closed: " << fd << std::endl;
 }
 

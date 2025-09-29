@@ -7,7 +7,7 @@ OBJECT = $(SOURCE:.cpp=.o)
 
 HEADER = $(shell find Includes -name "*.hpp")
 
-CFLAGS = -Wall -Wextra -Werror -std=c++98
+CFLAGS = -Wall -Wextra -Werror -std=c++98 -g
 
 all : $(NAME)
 
