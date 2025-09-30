@@ -10,7 +10,11 @@ void Response::setMethod(std::string _method) {
     method = _method;
 }
 
-void Response::setServer(ServerConfig *server) {
+void Response::setPath(std::string _path) {
+    path = _path;
+}
+
+void Response::set_Server(ServerConfig *server) {
     currentServer = server;
 }
 
