@@ -15,6 +15,7 @@ std::string getReasonPhrase(e_StatusCode statusCode) {
         case OK: return "OK";
         case Created: return "Created";
         case No_Content: return "No Content";
+        case Moved_Permanently: return "Moved Permanently";
         case Bad_Request: return "Bad Request";
         case Unauthorized: return "Unauthorized";
         case Forbidden: return "Forbidden";
@@ -32,9 +33,8 @@ std::string getReasonPhrase(e_StatusCode statusCode) {
     }
 }
 
-bool pathExists(std::string path) {
-    struct stat buffer;
-    return (stat(path.c_str(), &buffer) == 0);
+bool pathExists(std::string path, struct stat *info) {
+    return (stat(path.c_str(), info) == 0);
 }
 
 bool FileR_OK(std::string path) {
@@ -160,7 +160,6 @@ Location* getCurrentLocation(std::string oldPath, ServerConfig *currentServer) {
         currentLocation->root = currentServer->global_root;
     if (currentLocation->index.empty())
         currentLocation->index = currentServer->global_index;
-    
     return currentLocation;
 }
 
@@ -170,4 +169,44 @@ std::string buildPath(std::string URI, std::string path) {
         return std::string(URI + path);
     }
     return path;
+}
+
+/**
+ * Check whether an HTTP method is allowed in a given location.
+ *
+ * @param location Pointer to the matched Location object from the config.
+ * @param method   HTTP method name (e.g., "GET", "POST").
+ * @return true if the method is allowed (or no methods are specified → all allowed),
+ *         false otherwise.
+ */
+
+bool methodAllowed(const Location* location, const std::string& method) {
+    const std::vector<std::string>& methods = location->methods;
+
+    // If no methods are configured → allow all
+    if (methods.empty())
+        return true;
+
+    // Check if method is in the list
+    return std::find(methods.begin(), methods.end(), method) != methods.end();
+}
+
+// Get list of files/directories in a given path
+void listDirectory(const std::string& path, std::vector<std::string>& entries) {
+    DIR* dir = opendir(path.c_str());
+    if (!dir) {
+        std::cerr << "Cannot open directory: " << path << std::endl;
+    }
+
+    struct dirent* entry;
+    while ((entry = readdir(dir)) != NULL) {
+        std::string name(entry->d_name);
+
+        // Skip "." and ".."
+        if (name == "." || name == "..")
+            continue;
+
+        entries.push_back(name);
+    }
+    closedir(dir);
 }

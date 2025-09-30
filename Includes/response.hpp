@@ -14,6 +14,7 @@
 #include <stdexcept>
 #include <sys/socket.h>
 #include <algorithm>
+#include <dirent.h> 
 #include "status_code.hpp"
 #include "HttpRequest.hpp"
 
@@ -84,13 +85,14 @@ class Response {
         void execute_method();
         void Get();
         void Delete();
+        void handle_directorys(e_StatusCode&, std::string&, Location*);
         std::string getResponse();
         void setPath(std::string _path);
 };
 
 void getDataFromRequest(HttpRequest request, Response &response);
 std::string getTimeOftheDay(void);
-bool pathExists(std::string path);
+bool pathExists(std::string path, struct stat *);
 bool FileR_OK(std::string path);
 std::string getReasonPhrase(e_StatusCode statusCode);
 std::string makeBodyResponse(std::string reasonPhrase, int statusCode, std::string path);
@@ -102,4 +104,6 @@ std::string readFile(std::string);
 Location* getCurrentLocation(std::string oldPath, ServerConfig *currentServer);
 std::vector<std::string> split(const std::string &s, char delimiter);
 std::string buildPath(std::string URI, std::string path);
+bool methodAllowed(const Location* location, const std::string& method);
+void listDirectory(const std::string& path, std::vector<std::string>&);
 #endif

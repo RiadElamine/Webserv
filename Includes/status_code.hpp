@@ -2,10 +2,12 @@
 #define __STATUS_CODE_H_
 
 enum e_StatusCode {
+    UNITILAZE = 0,
     Continue = 100,
     OK = 200,
     Created = 201,
     No_Content = 204,
+    Moved_Permanently = 301,
     Bad_Request = 400,
     Unauthorized = 401,
     Forbidden = 403,

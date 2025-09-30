@@ -40,37 +40,46 @@ void Response::execute_method() {
     } else if (method == "DELETE") {
         return (this->Delete());
     }
+    // respond with 501 not implemented
+
 }
 
 //modify path
 
 void Response::Get() {
     e_StatusCode statusCode;
-    std::string mime;
+    std::string mime("");
     std::stringstream ss;
+    struct stat info;
+
     Location *currentLocation = getCurrentLocation(path, currentServer);
     path = buildPath(currentLocation->root, path);
 
-    std::cout << "path: " << path << std::endl;
-
-    if (!pathExists(path)) {
+    if (!pathExists(path, &info)) {
         // respond with 404 code status
         statusCode = Not_Found;
         mime = "text/html";
         body = makeBodyResponse(getReasonPhrase(statusCode), statusCode, "");
     }
-    //need to check if the file has GET method
-    else if (!FileR_OK(path)) {
-        // respond with 403 code status
-        statusCode = Forbidden;
+    else if (!methodAllowed(currentLocation, "GET")) {
+        statusCode = Method_Not_Allowed;
         mime = "text/html";
         body = makeBodyResponse(getReasonPhrase(statusCode), statusCode, "");
     }
-    else {
-        //respond with 200 code status
+    else if (info.st_mode & S_IFDIR) {
+        // handle direcotry
+        statusCode = UNITILAZE;
+        handle_directorys(statusCode, mime, currentLocation);
+    }
+    else if (info.st_mode & S_IFREG) {
+        // handle reqular file
         statusCode = OK;
         mime = getMIME(path);
         body = makeBodyResponse(getReasonPhrase(statusCode), statusCode, path);
+    } else {
+        mime = "text/html";
+        statusCode = Internal_Server_Error;
+        body = makeBodyResponse(getReasonPhrase(statusCode), statusCode, "");
     }
 
     responseHeader.status_line.statusCode = statusCode;
@@ -100,4 +109,57 @@ std::string Response::getResponse() {
     ss.str("");
     ss.clear();
     return message;
+}
+
+void Response::handle_directorys(e_StatusCode& statusCode, std::string& mime, Location *currentLocation) {
+    if (path[path.length() - 1] != '/') {
+        statusCode = Moved_Permanently;
+        mime = "text/html";
+        body = makeBodyResponse(getReasonPhrase(statusCode), statusCode, "");
+        return ;
+    }
+    std::string rePath = path + currentLocation->index;
+    if (!currentLocation->index.empty() && FileR_OK(rePath)) {
+        statusCode = OK;
+        body = makeBodyResponse(getReasonPhrase(statusCode), statusCode, rePath);
+    } else {
+        if (!currentLocation->autoindex) {
+            statusCode = Forbidden;
+            mime = "text/html";
+            body = makeBodyResponse(getReasonPhrase(statusCode), statusCode, "");
+        } else {
+            statusCode = OK;
+            mime = "text/html";
+            std::vector<std::string> entries;
+            listDirectory(path, entries);
+
+            body  = "<!DOCTYPE html>\n<html>\n<head>\n";
+            body += "<meta charset='UTF-8'>\n";
+            body += "<title>Index of " + path + "</title>\n";
+            body += "<style>"
+                    "body { font-family: monospace; padding: 20px; }"
+                    "table { border-collapse: collapse; width: 100%; }"
+                    "th, td { padding: 8px 12px; border-bottom: 1px solid #ddd; }"
+                    "th { text-align: left; background: #f2f2f2; }"
+                    "a { text-decoration: none; color: #0066cc; }"
+                    "a:hover { text-decoration: underline; }"
+                    "</style>\n";
+            body += "</head>\n<body>\n";
+
+            body += "<h2>Index of " + path + "</h2>\n";
+            body += "<table>\n";
+            body += "<tr><th>Name</th><th>Type</th></tr>\n";
+
+            for (size_t i = 0; i < entries.size(); i++) {
+                std::string name = entries[i];
+                std::string link = "<a href='" + name + "'>" + name + "</a>";
+                std::string type = (name[name.size() - 1] == '/') ? "Directory" : "File";
+
+                body += "<tr><td>" + link + "</td><td>" + type + "</td></tr>\n";
+            }
+
+            body += "</table>\n";
+            body += "</body>\n</html>\n";
+        }
+    }
 }

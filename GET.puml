@@ -1,0 +1,52 @@
+@startuml
+
+start
+:Receive Request;
+
+if (Path exists?) then (no)
+  :Respond 404;
+  stop
+else (yes)
+  if (Method allowed?) then (no)
+    :Respond 405;
+    stop
+  else (yes)
+    if (Path is directory?) then (yes)
+      if (Trailing slash missing?) then (yes)
+        :301 Redirect (add /);
+        stop
+      else (no)
+        if (Index file exists?) then (yes)
+          if (Readable?) then (yes)
+            :Respond 200 (send index file);
+            stop
+          else (no)
+            :Respond 403;
+            stop
+          endif
+        else (no)
+          if (Autoindex on?) then (yes)
+            :List directory;
+            stop
+          else (no)
+            :Respond 403;
+            stop
+          endif
+        endif
+      endif
+    else (no)
+      if (Readable file?) then (yes)
+        :Respond 200 (send file);
+        stop
+      else (no)
+        :Respond 403;
+        stop
+      endif
+    endif
+  endif
+endif
+
+:If unexpected internal error → Respond 500;
+stop
+
+@enduml
