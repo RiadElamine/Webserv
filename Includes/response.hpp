@@ -104,6 +104,7 @@ std::string readFile(std::string);
 Location* getCurrentLocation(std::string oldPath, ServerConfig *currentServer);
 std::vector<std::string> split(const std::string &s, char delimiter);
 std::string buildPath(std::string URI, std::string path);
+std::string buildPath(std::string URI, std::string path, std::string);
 bool methodAllowed(const Location* location, const std::string& method);
 void listDirectory(const std::string& path, std::vector<std::string>&);
 #endif

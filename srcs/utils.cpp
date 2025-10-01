@@ -163,6 +163,10 @@ Location* getCurrentLocation(std::string oldPath, ServerConfig *currentServer) {
     return currentLocation;
 }
 
+/**
+ * need to be well tested
+*/
+
 std::string buildPath(std::string URI, std::string path) {
     size_t index = path.find(URI);
     if (index == std::string::npos || index != 0) {
@@ -170,6 +174,17 @@ std::string buildPath(std::string URI, std::string path) {
     }
     return path;
 }
+
+std::string buildPath(std::string URI, std::string path, std::string root) {
+    size_t index = path.find(URI);
+    std::cout << "URI: " << URI << std::endl;
+    std::cout << "index: " << index << std::endl;
+    if (index == std::string::npos || index != 0) {
+        return std::string(root + path);
+    }
+    return path;
+}
+
 
 /**
  * Check whether an HTTP method is allowed in a given location.

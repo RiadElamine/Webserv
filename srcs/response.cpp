@@ -53,8 +53,8 @@ void Response::Get() {
     struct stat info;
 
     Location *currentLocation = getCurrentLocation(path, currentServer);
-    path = buildPath(currentLocation->root, path);
-
+    path = buildPath(currentLocation->URI, path, currentLocation->root);
+    std::cout << "path: " << path << std::endl;
     if (!pathExists(path, &info)) {
         // respond with 404 code status
         statusCode = Not_Found;
