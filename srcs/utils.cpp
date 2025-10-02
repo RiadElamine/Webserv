@@ -126,7 +126,10 @@ size_t matchNB(const std::string& URI, const std::string& path) {
     size_t index = path.find(URI);
     if (index == std::string::npos || index != 0)
         return 0;
-
+    if (path.size() == URI.size())
+        return URI.size();
+    if (path[URI.size()] != '/')
+        return 0;
     return URI.size();
 }
 
@@ -167,22 +170,18 @@ Location* getCurrentLocation(std::string oldPath, ServerConfig *currentServer) {
  * need to be well tested
 */
 
-std::string buildPath(std::string URI, std::string path) {
-    size_t index = path.find(URI);
-    if (index == std::string::npos || index != 0) {
-        return std::string(URI + path);
-    }
-    return path;
-}
+// std::string buildPath(std::string URI, std::string path) {
+//     size_t index = path.find(URI);
+//     if (index == std::string::npos || index != 0) {
+//         return std::string(URI + path);
+//     }
+//     return path;
+// }
 
 std::string buildPath(std::string URI, std::string path, std::string root) {
-    size_t index = path.find(URI);
-    std::cout << "URI: " << URI << std::endl;
-    std::cout << "index: " << index << std::endl;
-    if (index == std::string::npos || index != 0) {
-        return std::string(root + path);
-    }
-    return path;
+    std::string reminder = path.substr(URI.size());
+
+    return root + reminder;
 }
 
 

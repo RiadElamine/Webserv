@@ -390,7 +390,7 @@ void HttpRequest::create_file()
 {
     struct  stat buffer;
     Location *it = getCurrentLocation(path, server);
-    std::string build_pat = buildPath(it->root, path);
+    std::string build_pat = buildPath(it->URI, path, it->root);
     std::cout << "Build path: " << build_pat << std::endl;
     if (it->methods.end() == std::find(it->methods.begin(), it->methods.end(), method))
     {
