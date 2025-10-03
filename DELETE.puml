@@ -1,0 +1,53 @@
+@startuml
+start
+
+:DELETE method receives path;
+
+if (Path exists?) then (no)
+  :Respond with 404 Not Found;
+  stop
+else (yes)
+endif
+
+if (DELETE allowed in\nlocation config?) then (no)
+  :Respond with 403 Forbidden;
+  stop
+else (yes)
+endif
+
+if (Is it a directory?) then (no - regular file)
+  if (Server has permission\nto delete file?) then (no)
+    :Respond with 403 Forbidden;
+    stop
+  else (yes)
+    :Delete file;
+    :Respond with 204 No Content;
+    stop
+  endif
+else (yes - directory)
+  if (Has trailing "/" in request?) then (no)
+    :Respond with 301 Redirect\n(add trailing /);
+    stop
+  else (yes)
+  endif
+  
+  if (Is directory empty?) then (no)
+    :Respond with 409 Conflict;
+    note right
+      Non-empty directory
+      cannot be deleted
+    end note
+    stop
+  else (yes)
+    if (Server has permission\nto delete directory?) then (no)
+      :Respond with 403 Forbidden;
+      stop
+    else (yes)
+      :Delete directory;
+      :Respond with 204 No Content;
+      stop
+    endif
+  endif
+endif
+
+@enduml

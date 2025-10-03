@@ -56,7 +56,7 @@ void Response::Get() {
     if (currentLocation->root[currentLocation->root.length() - 1] != '/')
         currentLocation->root += '/';
     path = buildPath(currentLocation->URI, path, currentLocation->root);
-    std::cout << "path: " << path << std::endl;
+
     if (!pathExists(path, &info)) {
         // respond with 404 code status
         statusCode = Not_Found;
@@ -93,7 +93,49 @@ void Response::Get() {
 }
 
 void Response::Delete() {
+    e_StatusCode statusCode;
+    std::string mime("");
+    std::stringstream ss;
+    struct stat info;
 
+    Location *currentLocation = getCurrentLocation(path, currentServer);
+    if (currentLocation->root[currentLocation->root.length() - 1] != '/')
+        currentLocation->root += '/';
+    path = buildPath(currentLocation->URI, path, currentLocation->root);
+
+    if (!pathExists(path, &info)) {
+        // respond with 404 code status
+        statusCode = Not_Found;
+        mime = "text/html";
+        body = makeBodyResponse(getReasonPhrase(statusCode), statusCode, "");
+    }
+    else if (!methodAllowed(currentLocation, "DELETE")) {
+        statusCode = Method_Not_Allowed;
+        // mime = "text/html";
+        body = makeBodyResponse(getReasonPhrase(statusCode), statusCode, "");
+    }
+    else if (info.st_mode & S_IFDIR) {
+        // handle direcotry
+        statusCode = UNITILAZE;
+        delete_directorys(statusCode, mime, currentLocation);
+    }
+    else if (info.st_mode & S_IFREG) {
+        // handle reqular file
+        statusCode = No_Content;
+        // mime = getMIME(path);
+        delete_File();
+    } else {
+        mime = "text/html";
+        statusCode = Internal_Server_Error;
+        body = makeBodyResponse(getReasonPhrase(statusCode), statusCode, "");
+    }
+
+    responseHeader.status_line.statusCode = statusCode;
+    responseHeader.status_line.reasonPhrase = getReasonPhrase(statusCode);
+    ss << body.length();
+    ss.str();
+    ss.clear();
+    fillFieldLine(responseHeader.field_line, mime, ss.str());
 }
 
 std::string Response::getResponse() {
@@ -123,6 +165,7 @@ void Response::handle_directorys(e_StatusCode& statusCode, std::string& mime, Lo
     std::string rePath = path + currentLocation->index;
     if (!currentLocation->index.empty() && FileR_OK(rePath)) {
         statusCode = OK;
+        mime = getMIME(rePath);
         body = makeBodyResponse(getReasonPhrase(statusCode), statusCode, rePath);
     } else {
         if (!currentLocation->autoindex) {
