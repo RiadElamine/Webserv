@@ -128,7 +128,7 @@ size_t matchNB(const std::string& URI, const std::string& path) {
         return 0;
     if (path.size() == URI.size())
         return URI.size();
-    if (path[URI.size()] != '/')
+    if (URI[URI.size() - 1] != '/' && path[URI.size()] != '/')
         return 0;
     return URI.size();
 }
@@ -223,4 +223,20 @@ void listDirectory(const std::string& path, std::vector<std::string>& entries) {
         entries.push_back(name);
     }
     closedir(dir);
+}
+
+bool isDirectoryEmpty(const std::string& path) {
+    DIR* dir = opendir(path.c_str());
+    if (!dir) return false; // Could not open directory
+
+    struct dirent* entry;
+    while ((entry = readdir(dir)) != nullptr) {
+        std::string name = entry->d_name;
+        if (name != "." && name != "..") {
+            closedir(dir);
+            return false; // Found a file/subdirectory
+        }
+    }
+    closedir(dir);
+    return true; // No files found
 }

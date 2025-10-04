@@ -10,7 +10,7 @@ else (yes)
 endif
 
 if (DELETE allowed in\nlocation config?) then (no)
-  :Respond with 403 Forbidden;
+  :Respond with 405 Method Not Allowed;
   stop
 else (yes)
 endif

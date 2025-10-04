@@ -2,6 +2,7 @@
 #define __RESPONSE_H_
 
 #include <iostream>
+#include <cstdio>
 #include <string>
 #include <unistd.h>
 #include <sys/stat.h>
@@ -86,6 +87,7 @@ class Response {
         void Get();
         void Delete();
         void handle_directorys(e_StatusCode&, std::string&, Location*);
+        void delete_directory(e_StatusCode&, std::string&, Location*);
         std::string getResponse();
         void setPath(std::string _path);
 };
@@ -106,4 +108,5 @@ std::vector<std::string> split(const std::string &s, char delimiter);
 std::string buildPath(std::string URI, std::string path, std::string);
 bool methodAllowed(const Location* location, const std::string& method);
 void listDirectory(const std::string& path, std::vector<std::string>&);
+bool isDirectoryEmpty(const std::string& path);
 #endif

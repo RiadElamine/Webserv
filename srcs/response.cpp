@@ -116,14 +116,20 @@ void Response::Delete() {
     }
     else if (info.st_mode & S_IFDIR) {
         // handle direcotry
+
         statusCode = UNITILAZE;
-        delete_directorys(statusCode, mime, currentLocation);
+        delete_directory(statusCode, mime, currentLocation);
     }
     else if (info.st_mode & S_IFREG) {
         // handle reqular file
-        statusCode = No_Content;
-        // mime = getMIME(path);
-        delete_File();
+        size_t ret = std::remove(path.c_str());
+        if (ret) {
+            statusCode = Forbidden;
+            mime = "text/html";
+            body =  makeBodyResponse(getReasonPhrase(statusCode), statusCode, "");
+        }
+        else 
+            statusCode = No_Content;
     } else {
         mime = "text/html";
         statusCode = Internal_Server_Error;
@@ -137,6 +143,31 @@ void Response::Delete() {
     ss.clear();
     fillFieldLine(responseHeader.field_line, mime, ss.str());
 }
+
+void Response::delete_directory(e_StatusCode& statusCode, std::string& mime, Location* currentLocation __attribute__ ((unused))) {
+    if (path[path.length() - 1] != '/') {
+        statusCode = Moved_Permanently;
+        mime = "text/html";
+        body = makeBodyResponse(getReasonPhrase(statusCode), statusCode, "");
+        return ;
+    }
+    if (!isDirectoryEmpty(path)) {
+        statusCode = Conflict;
+        mime = "text/html";
+        body = makeBodyResponse(getReasonPhrase(statusCode), statusCode, "");
+    }
+    else {
+        size_t ret = rmdir(path.c_str());
+        if (ret != 0) {
+            statusCode = Forbidden;
+            mime = "text/html";
+            body = makeBodyResponse(getReasonPhrase(statusCode), statusCode, "");
+        }
+        else
+            statusCode = No_Content;
+    }
+}
+
 
 std::string Response::getResponse() {
     std::string message;
