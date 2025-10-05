@@ -559,8 +559,6 @@ void ConfigFile::fill_server_defaults()
 				loc->root = it->global_root;
 			if (loc->index.empty())
 				loc->index = it->global_index;
-			if (loc->methods.empty())
-				loc->methods.push_back("GET");
 			if (loc->upload_store.empty())
 				loc->upload_store = "/tmp";
 		}

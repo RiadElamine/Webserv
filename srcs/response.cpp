@@ -56,7 +56,7 @@ void Response::Get() {
     if (currentLocation->root[currentLocation->root.length() - 1] != '/')
         currentLocation->root += '/';
     path = buildPath(currentLocation->URI, path, currentLocation->root);
-
+    std::cout << "path: " << path << std::endl;
     if (!pathExists(path, &info)) {
         // respond with 404 code status
         statusCode = Not_Found;
