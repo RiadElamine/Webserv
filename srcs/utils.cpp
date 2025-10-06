@@ -179,18 +179,6 @@ Location* getCurrentLocation(std::string oldPath, ServerConfig *currentServer) {
     return currentLocation;
 }
 
-/**
- * need to be well tested
-*/
-
-// std::string buildPath(std::string URI, std::string path) {
-//     size_t index = path.find(URI);
-//     if (index == std::string::npos || index != 0) {
-//         return std::string(URI + path);
-//     }
-//     return path;
-// }
-
 std::string buildPath(std::string URI, std::string path, std::string root) {
     std::string reminder = path.substr(URI.size());
 
