@@ -18,6 +18,7 @@
 #include <dirent.h> 
 #include "status_code.hpp"
 #include "HttpRequest.hpp"
+#define  DEFAULT_PAGE_ERRORS "/Users/oel-asri/Kingsave/Webserv/default_error_page"
 
 /*
 * StatusLineData: Data containing the information used by status line
@@ -97,7 +98,7 @@ std::string getTimeOftheDay(void);
 bool pathExists(std::string path, struct stat *);
 bool FileR_OK(std::string path);
 std::string getReasonPhrase(e_StatusCode statusCode);
-std::string makeBodyResponse(std::string reasonPhrase, int statusCode, std::string path);
+std::string makeBodyResponse(std::string reasonPhrase, int statusCode, std::map<int, std::string>&,std::string path);
 void fillFieldLine(std::map<std::string, std::string> &field_line, std::string contentType, std::string contentLength);
 std::string getMIME(std::string path);
 bool isCGI(std::string);

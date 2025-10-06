@@ -41,15 +41,28 @@ bool FileR_OK(std::string path) {
     return (access(path.c_str(), R_OK) == 0);
 }
 
-std::string makeBodyResponse(std::string reasonPhrase, int statusCode, std::string path) {
+bool file_Exist(std::string path) {
+     std::ifstream file;
+
+    file.open(path.c_str(), std::ifstream::binary);
+    if (file) {
+        file.close();
+        return (1);
+    }
+    return (0);
+}
+
+
+std::string makeBodyResponse(std::string reasonPhrase __attribute__((unused)), int statusCode, std::map<int, std::string>& error_pages,std::string path) {
     std::string body;
     if (path.empty()) {
         std::stringstream ss;
-
-        body.append("<!DOCTYPE HTML>\n<title>");
         ss << statusCode;
-        body.append(ss.str() + " " + reasonPhrase + "</title>\n");
-        body.append("<h1>" + ss.str() + " " + reasonPhrase + "</h1>\n");
+        std::string defaut_error_page = std::string(DEFAULT_PAGE_ERRORS) + "/" + ss.str() + ".html";
+
+        if (error_pages[statusCode].empty() || !file_Exist(error_pages[statusCode]))
+            error_pages[statusCode] = defaut_error_page;
+        body = readFile(error_pages[statusCode]);
     } else {
         if (!isCGI(path)) {
             body = readFile(path);
