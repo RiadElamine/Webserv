@@ -1,6 +1,8 @@
 #include "../Includes/response.hpp"
 
 
+//handle redirection in the config file 
+
 Response::Response() {
     transferEncoding = false;
 }
