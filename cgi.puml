@@ -1,0 +1,94 @@
+@startuml
+title CGI Request Handling with KQueue
+
+participant Client
+participant WebServer
+participant KQueue
+participant "CGI Process" as CGI_Process
+
+note over WebServer, KQueue
+Initial State - Waiting for Request
+end note
+
+KQueue ->> WebServer : Read Event (client_fd)
+WebServer ->> WebServer : recv() from client
+WebServer ->> WebServer : parse_request()
+
+alt Request requires CGI
+    note over WebServer
+    Handle Chunked Request Body
+    end note
+
+    alt Request is chunked
+        WebServer ->> WebServer : un-chunk request body
+        WebServer ->> WebServer : buffer complete body
+    end
+
+    WebServer ->> WebServer : create Cgi instance
+    WebServer ->> CGI_Process : fork()
+    CGI_Process ->> CGI_Process : execve(script)
+
+    note over WebServer
+    Send complete body to CGI
+    end note
+    WebServer ->> CGI_Process : write complete body + EOF to stdin
+
+    WebServer ->> KQueue : EV_DISABLE READ (client_fd)
+    WebServer ->> KQueue : EV_ADD READ (cgi_pipe)
+    WebServer ->> KQueue : EV_ADD PROC (cgi_pid, NOTE_EXIT)
+
+    note over WebServer
+    Buffer CGI output until EOF
+    end note
+    loop Until CGI stdout closes
+        KQueue ->> WebServer : Read Event (cgi_pipe)
+        WebServer ->> WebServer : read(cgi_pipe)
+        CGI_Process ->> WebServer : CGI output chunk
+        WebServer ->> WebServer : buffer_cgi_output()
+    end
+
+    note over WebServer
+    CGI stdout closed (EOF received)
+    end note
+    WebServer ->> WebServer : markStdoutDone()
+
+    KQueue ->> WebServer : Proc Event (cgi_pid EXIT)
+    WebServer ->> WebServer : markProcessDone()
+    WebServer ->> WebServer : checkCompletion()
+
+    note over WebServer
+    Both stdout and process done
+    end note
+    WebServer ->> WebServer : prepareFinalResponse()
+    WebServer ->> WebServer : parse CGI headers from buffer
+    WebServer ->> WebServer : determine response method
+
+    alt CGI provided Content-Length
+        WebServer ->> WebServer : send headers with Content-Length
+        WebServer ->> Client : send(complete CGI response)
+    else No Content-Length from CGI
+        alt HTTP/1.1 Client
+            WebServer ->> WebServer : send headers with Transfer-Encoding: chunked
+            WebServer ->> Client : send(chunked CGI response)
+        else HTTP/1.0 or Connection: close
+            WebServer ->> WebServer : send headers without Content-Length
+            WebServer ->> Client : send(complete CGI response)
+            WebServer ->> Client : close connection
+        end
+    end
+
+    WebServer ->> KQueue : EV_ENABLE READ, EV_DISABLE WRITE (client_fd)
+
+else Normal request (non-CGI)
+    WebServer ->> WebServer : generate normal response
+    WebServer ->> KQueue : EV_DISABLE READ, EV_ENABLE WRITE (client_fd)
+    KQueue ->> WebServer : Write Event (client_fd)
+    WebServer ->> Client : send(normal response)
+    WebServer ->> KQueue : EV_ENABLE READ, EV_DISABLE WRITE (client_fd)
+end
+
+note over WebServer, KQueue
+Back to waiting for next request
+end note
+
+@enduml
