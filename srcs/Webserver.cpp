@@ -146,6 +146,7 @@ int WebServer::_handleWritable(int client_fd) {
 
     //if data send successfully, we close the connection
     // std::cout << "Response sent to client: " << client_fd << std::endl;
+
     return DISCONNECTED;
 }
 
@@ -191,6 +192,7 @@ void WebServer::startServer() {
             } 
             else if (e.filter == EVFILT_WRITE && _handleWritable(e.ident) == DISCONNECTED)
             {
+
                 disconnect = true;
             }
             else if (e.filter == EVFILT_TIMER)

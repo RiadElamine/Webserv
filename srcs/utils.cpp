@@ -53,7 +53,7 @@ bool file_Exist(std::string path) {
 }
 
 
-std::string makeBodyResponse(std::string reasonPhrase __attribute__((unused)), int statusCode, std::map<int, std::string>& error_pages,std::string path) {
+std::string makeBodyResponse(Location *currentLocation, int statusCode, std::map<int, std::string>& error_pages, std::string path) {
     std::string body;
     if (path.empty()) {
         std::stringstream ss;
@@ -64,10 +64,11 @@ std::string makeBodyResponse(std::string reasonPhrase __attribute__((unused)), i
             error_pages[statusCode] = defaut_error_page;
         body = readFile(error_pages[statusCode]);
     } else {
-        if (!isCGI(path)) {
+        if (!isCGI(path, currentLocation)) {
             body = readFile(path);
         } else {
-            body = getCGI(path);
+            // body = getCGI(path);
+            std::cout << "The path is a CGI" << std::endl;
         }
     }
 
@@ -78,7 +79,7 @@ void fillFieldLine(std::map<std::string, std::string> &field_line, std::string c
     field_line["Date"] = getTimeOftheDay();
     field_line["Content-Type"] = contentType;
     field_line["Content-Length"] = contentLength;
-    field_line["Connection"] = "keep-alive";
+    field_line["Connection"] = "close";
     field_line["Server"] = "WebServer/1.1.0";
 }
 
@@ -129,8 +130,21 @@ std::string getCGI(std::string path __attribute__ ((unused))) {
     return "";
 }
 
-bool isCGI(std::string) {
+bool isCGI(std::string path, Location *currentLocation) {
+    if (currentLocation->cgi_ext.empty())
+        return false;
+
+    std::string::size_type dot = path.find_last_of('.');
+    if (dot == std::string::npos)
+        return false;
+
+    std::string ext = path.substr(dot);
+
+    if (ext == currentLocation->cgi_ext)
+        return true;
+
     return false;
+    
 }
 
 size_t matchNB(const std::string& URI, const std::string& path) {
@@ -179,10 +193,10 @@ Location* getCurrentLocation(std::string oldPath, ServerConfig *currentServer) {
     return currentLocation;
 }
 
-std::string buildPath(std::string URI, std::string path, std::string root) {
-    std::string reminder = path.substr(URI.size());
+std::string buildPath(std::string URI __attribute__ ((unused)), std::string path, std::string root) {
+    // std::string reminder = path.substr(URI.size());
 
-    return root + reminder;
+    return root + path;
 }
 
 
