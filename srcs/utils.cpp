@@ -131,6 +131,8 @@ std::string getCGI(std::string path __attribute__ ((unused))) {
 }
 
 bool isCGI(std::string path, Location *currentLocation) {
+    if (!currentLocation)
+        return false;
     if (currentLocation->cgi_ext.empty())
         return false;
 

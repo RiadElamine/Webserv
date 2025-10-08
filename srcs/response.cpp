@@ -188,7 +188,6 @@ std::string Response::getResponse() {
     message += "\r\n" + body;
     ss.str("");
     ss.clear();
-    std::cout << message << std::endl;
     return message;
 }
 
