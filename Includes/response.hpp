@@ -1,22 +1,9 @@
 #ifndef __RESPONSE_H_
 #define __RESPONSE_H_
 
-#include <iostream>
-#include <string>
-#include <unistd.h>
-#include <sys/stat.h>
-#include <sstream>
-#include <fstream>
-#include <cctype>
-#include <map>
-#include <list>
-#include <ctime>
-#include <stdexcept>
-#include <sys/socket.h>
-#include <algorithm>
-#include <dirent.h> 
-#include "status_code.hpp"
+
 #include "HttpRequest.hpp"
+#define  DEFAULT_PAGE_ERRORS "/Users/oel-asri/Kingsave/Webserv/default_error_page"
 
 /*
 * StatusLineData: Data containing the information used by status line
@@ -86,6 +73,7 @@ class Response {
         void Get();
         void Delete();
         void handle_directorys(e_StatusCode&, std::string&, Location*);
+        void delete_directory(e_StatusCode&, std::string&, Location*);
         std::string getResponse();
         void setPath(std::string _path);
 };
@@ -95,7 +83,7 @@ std::string getTimeOftheDay(void);
 bool pathExists(std::string path, struct stat *);
 bool FileR_OK(std::string path);
 std::string getReasonPhrase(e_StatusCode statusCode);
-std::string makeBodyResponse(std::string reasonPhrase, int statusCode, std::string path);
+std::string makeBodyResponse(std::string reasonPhrase, int statusCode, std::map<int, std::string>&,std::string path);
 void fillFieldLine(std::map<std::string, std::string> &field_line, std::string contentType, std::string contentLength);
 std::string getMIME(std::string path);
 bool isCGI(std::string);
@@ -103,8 +91,8 @@ std::string getCGI(std::string);
 std::string readFile(std::string);
 Location* getCurrentLocation(std::string oldPath, ServerConfig *currentServer);
 std::vector<std::string> split(const std::string &s, char delimiter);
-// std::string buildPath(std::string URI, std::string path);
 std::string buildPath(std::string URI, std::string path, std::string);
 bool methodAllowed(const Location* location, const std::string& method);
 void listDirectory(const std::string& path, std::vector<std::string>&);
+bool isDirectoryEmpty(const std::string& path);
 #endif

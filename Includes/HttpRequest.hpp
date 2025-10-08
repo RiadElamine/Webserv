@@ -4,21 +4,6 @@
 #include "ConfigFile.hpp"
 #include "response.hpp"
 
-#include <string>
-#include <map>
-#include <iostream>
-#include <fstream>
-
-#include <sstream>
-#include <string>   
-#include <algorithm>
-#include <cctype>
-#include <iterator>
-#include <stdexcept>
-#include <utility>
-#include <cstring>
-#include <unistd.h>
-
 
 class HttpRequest {
     private:

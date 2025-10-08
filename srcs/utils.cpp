@@ -41,15 +41,28 @@ bool FileR_OK(std::string path) {
     return (access(path.c_str(), R_OK) == 0);
 }
 
-std::string makeBodyResponse(std::string reasonPhrase, int statusCode, std::string path) {
+bool file_Exist(std::string path) {
+     std::ifstream file;
+
+    file.open(path.c_str(), std::ifstream::binary);
+    if (file) {
+        file.close();
+        return (1);
+    }
+    return (0);
+}
+
+
+std::string makeBodyResponse(std::string reasonPhrase __attribute__((unused)), int statusCode, std::map<int, std::string>& error_pages,std::string path) {
     std::string body;
     if (path.empty()) {
         std::stringstream ss;
-
-        body.append("<!DOCTYPE HTML>\n<title>");
         ss << statusCode;
-        body.append(ss.str() + " " + reasonPhrase + "</title>\n");
-        body.append("<h1>" + ss.str() + " " + reasonPhrase + "</h1>\n");
+        std::string defaut_error_page = std::string(DEFAULT_PAGE_ERRORS) + "/" + ss.str() + ".html";
+
+        if (error_pages[statusCode].empty() || !file_Exist(error_pages[statusCode]))
+            error_pages[statusCode] = defaut_error_page;
+        body = readFile(error_pages[statusCode]);
     } else {
         if (!isCGI(path)) {
             body = readFile(path);
@@ -126,7 +139,10 @@ size_t matchNB(const std::string& URI, const std::string& path) {
     size_t index = path.find(URI);
     if (index == std::string::npos || index != 0)
         return 0;
-
+    if (path.size() == URI.size())
+        return URI.size();
+    if (URI[URI.size() - 1] != '/' && path[URI.size()] != '/')
+        return 0;
     return URI.size();
 }
 
@@ -163,29 +179,10 @@ Location* getCurrentLocation(std::string oldPath, ServerConfig *currentServer) {
     return currentLocation;
 }
 
-/**
- * need to be well tested
-*/
-
-std::string buildPath(std::string URI, std::string path) {
-    size_t index = path.find(URI);
-    if (index == std::string::npos || index != 0) {
-        return std::string(URI + path);
-    }
-    return path;
-}
-
 std::string buildPath(std::string URI, std::string path, std::string root) {
-    size_t index = path.find(URI);
-    if (index == std::string::npos || index != 0) {
-        return std::string(root + path);
-    }
-    if (index == 0 && URI.length < ) {
-        for (index +=;index < path.lenght(); i++) {
-            root[index] +=  
-        }
-    }
-    return path;
+    std::string reminder = path.substr(URI.size());
+
+    return root + reminder;
 }
 
 
@@ -227,4 +224,20 @@ void listDirectory(const std::string& path, std::vector<std::string>& entries) {
         entries.push_back(name);
     }
     closedir(dir);
+}
+
+bool isDirectoryEmpty(const std::string& path) {
+    DIR* dir = opendir(path.c_str());
+    if (!dir) return false; // Could not open directory
+
+    struct dirent* entry;
+    while ((entry = readdir(dir)) != nullptr) {
+        std::string name = entry->d_name;
+        if (name != "." && name != "..") {
+            closedir(dir);
+            return false; // Found a file/subdirectory
+        }
+    }
+    closedir(dir);
+    return true; // No files found
 }

@@ -1,12 +1,6 @@
 #ifndef WEBSERVER_HPP
 #define WEBSERVER_HPP
 
-#include <vector>
-#include <map>
-#include <string>
-#include <sys/event.h>
-#include <fcntl.h>
-#include "ConfigFile.hpp"
 // #include "../Includes/HttpRequest.hpp"
 #include "response.hpp"
 
