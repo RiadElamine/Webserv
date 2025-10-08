@@ -1,22 +1,7 @@
 #ifndef __RESPONSE_H_
 #define __RESPONSE_H_
 
-#include <iostream>
-#include <cstdio>
-#include <string>
-#include <unistd.h>
-#include <sys/stat.h>
-#include <sstream>
-#include <fstream>
-#include <cctype>
-#include <map>
-#include <list>
-#include <ctime>
-#include <stdexcept>
-#include <sys/socket.h>
-#include <algorithm>
-#include <dirent.h> 
-#include "status_code.hpp"
+
 #include "HttpRequest.hpp"
 #define  DEFAULT_PAGE_ERRORS "/Users/oel-asri/Kingsave/Webserv/default_error_page"
 

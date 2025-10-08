@@ -224,7 +224,10 @@ void ConfigFile::ParseLocationRoot()
 void ConfigFile::ParseCGI()
 {
 	std::string data = get_data_location();
+	std::transform(data.begin(), data.end(), data.begin(), tolower);
 	location.cgi_ext = data;
+	if (location.cgi_ext.compare(".php") != 0 && location.cgi_ext.compare(".py") != 0)
+		throw std::invalid_argument("Invalid CGI extension: " + location.cgi_ext);
 }	
 
 void ConfigFile::ParseCGIPath()
@@ -561,6 +564,9 @@ void ConfigFile::fill_server_defaults()
 				loc->index = it->global_index;
 			if (loc->upload_store.empty())
 				loc->upload_store = "/tmp";
+			if ((loc->cgi_ext.empty() && !loc->cgi_Path_Info.empty())
+				|| ((!loc->cgi_ext.empty() && loc->cgi_Path_Info.empty())))
+				throw std::runtime_error("Both cgi_ext and cgi_Path_Info must be set together in location " + loc->URI);
 		}
 		for (int i = 0 ; i != 13; ++i) 
 		{
