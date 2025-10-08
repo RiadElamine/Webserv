@@ -5,7 +5,6 @@ Response::Response() {
     transferEncoding = false;
 }
 
-
 void Response::setMethod(std::string _method) {
     method = _method;
 }
