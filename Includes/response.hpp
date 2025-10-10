@@ -5,6 +5,7 @@
 #include "HttpRequest.hpp"
 #define  DEFAULT_PAGE_ERRORS "/Users/oel-asri/Kingsave/Webserv/default_error_page"
 
+
 /*
 * StatusLineData: Data containing the information used by status line
 * @HttpVersion: Http protocol version used to communicate with
@@ -95,4 +96,5 @@ std::string buildPath(std::string URI, std::string path, std::string);
 bool methodAllowed(const Location* location, const std::string& method);
 void listDirectory(const std::string& path, std::vector<std::string>&);
 bool isDirectoryEmpty(const std::string& path);
+void executeCGI(std::string outFile, char* args[]);
 #endif

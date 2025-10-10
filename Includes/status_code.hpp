@@ -8,6 +8,7 @@ enum e_StatusCode {
     Created = 201,
     No_Content = 204,
     Moved_Permanently = 301,
+    Found = 302,
     Bad_Request = 400,
     Unauthorized = 401,
     Forbidden = 403,
