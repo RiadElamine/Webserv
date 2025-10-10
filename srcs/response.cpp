@@ -26,6 +26,7 @@ void Response::setHeader(Header copyHeader) {
     responseHeader.status_line.reasonPhrase = copyHeader.status_line.reasonPhrase;
     // check for the status from request parsing
 
+    std::cout << responseHeader.status_line.statusCode << std::endl;
     if (responseHeader.status_line.statusCode != OK) {
         std::stringstream ss;
         body = makeBodyResponse(NULL, \
