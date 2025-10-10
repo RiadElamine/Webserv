@@ -3,7 +3,7 @@
 
 // #include "../Includes/HttpRequest.hpp"
 #include "response.hpp"
-#include "Cgi.hpp"
+#include "Cgi_handler.hpp"
 
 class WebServer {
     public:
