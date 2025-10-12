@@ -100,15 +100,15 @@ void executeCGI(std::string outFile, char* args[]) {
     close(saved_stdout);
 }
 
-int main() {
-     char *args[] = {
-            (char*) "/usr/local/bin/python3",
-            (char *) "/Users/oel-asri/Kingsave/Webserv/cgi-bin/cgi/index.py",
-            NULL
-        };
-        executeCGI("/Users/oel-asri/Kingsave/Webserv/CGI", args);
-        readCGI("/Users/oel-asri/Kingsave/Webserv/CGI");
-    return (0);
-}
+//int main() {
+//     char *args[] = {
+//            (char*) "/usr/local/bin/python3",
+//            (char *) "/Users/oel-asri/Kingsave/Webserv/cgi-bin/cgi/index.py",
+//            NULL
+//        };
+//        executeCGI("/Users/oel-asri/Kingsave/Webserv/CGI", args);
+//        readCGI("/Users/oel-asri/Kingsave/Webserv/CGI");
+//    return (0);
+//}
 
 
