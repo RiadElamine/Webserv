@@ -26,6 +26,29 @@
 #include <fcntl.h>
 #include <netdb.h>
 #include <dirent.h>
+#include <signal.h>
 
 // Project-specific headers
 #include "status_code.hpp"
+
+// Connection state
+enum ConnectionState {
+    CONNECTED,
+    DISCONNECTED
+};
+
+// Timeout duration
+#define timeout 10000 // 10 seconds
+
+
+// type of event
+enum type_event {
+    server_event,
+    client_event,
+};
+
+
+// Helper function to add events to a vector
+void _addEvent(std::vector<struct kevent> &events,
+                          uintptr_t ident, int16_t filter, uint16_t flags,
+                          uint32_t fflags, intptr_t data, void* udata);
