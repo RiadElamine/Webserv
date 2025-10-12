@@ -76,6 +76,7 @@ class Response {
         void handle_directorys(e_StatusCode&, std::string&, Location*);
         void delete_directory(e_StatusCode&, std::string&, Location*);
         std::string getResponse();
+        void setField_line(std::map<std::string, std::string>&);
         void setPath(std::string _path);
 };
 

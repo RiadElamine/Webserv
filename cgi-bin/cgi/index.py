@@ -6,7 +6,6 @@ Connection
 Server
 Location ?*
 """
-from datetime import datetime
 import sys
 
 def getIndexBody():
@@ -90,14 +89,14 @@ def getIndexBody():
 	return body
 
 def getHeader(bodyLength):
-	now = datetime.utcnow()
 
-	return f"""HTTP/1.1 200 OK
-Date: {now.strftime('%a, %d %b %Y %H:%M:%S')} GMT
-Content-Type: text/html
-Content-Length: {bodyLength}
-Connection: close
-Server: WebServer/1.1.0\r\n"""
+	return (
+		f"Status: 200 OK\r\n"
+		f"Content-Type: text/html\r\n"
+		f"Content-Length: {bodyLength}\r\n"
+		f"Connection: close\r\n"
+		f"Server: WebServer/1.1.0\r\n\r\n"
+	)
 	
 
 def main():
