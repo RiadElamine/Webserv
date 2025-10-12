@@ -3,14 +3,7 @@
 
 // #include "../Includes/HttpRequest.hpp"
 #include "response.hpp"
-
-
-#define timeout 10000 // 10 seconds
-
-enum ConnectionState {
-    CONNECTED,
-    DISCONNECTED
-};
+#include "Cgi_handler.hpp"
 
 class WebServer {
     public:
@@ -18,20 +11,22 @@ class WebServer {
         ~WebServer();
         void startServer();
     private:
-        int kq;
-        std::vector<struct kevent> listenerEvents;
-        std::map<int, HttpRequest> clientRequests;
+        KqueueContext              Context;
         std::map<int, ServerConfig *> listeners;
 
         // Methods
-        void registerEvents();
-        void _handleAccept(int listen_fd);
-        int _handleReadable(int client_fd);
-        int _handleWritable(int client_fd);
-        void _closeConnection(int fd);
-        void _addEvent(std::vector<struct kevent> &events, uintptr_t ident, int16_t filter, uint16_t flags,
-                          uint32_t fflags, intptr_t data, void* udata);
-        void setNonBlocking(int fd);
+        void    registerEvents();
+        void    _handleAccept();
+        void    _handleReadable();
+        int     _handleWritable();
+        void    _closeConnection();
+        void    setNonBlocking(int fd);
+
+
+        void handleReceiveEvent();
+        void handleTimeoutEvent();
+        // void handleCgiFailure(int statusCode, bool closeConnection, bool deleteCgiEvents);
+        void handleCgiCompletion();
 };
 
 #endif

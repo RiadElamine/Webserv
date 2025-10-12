@@ -5,6 +5,7 @@
 #include "HttpRequest.hpp"
 #define  DEFAULT_PAGE_ERRORS "/Users/oel-asri/Kingsave/Webserv/default_error_page"
 
+
 /*
 * StatusLineData: Data containing the information used by status line
 * @HttpVersion: Http protocol version used to communicate with
@@ -75,6 +76,7 @@ class Response {
         void handle_directorys(e_StatusCode&, std::string&, Location*);
         void delete_directory(e_StatusCode&, std::string&, Location*);
         std::string getResponse();
+        void setField_line(std::map<std::string, std::string>&);
         void setPath(std::string _path);
 };
 
@@ -83,10 +85,10 @@ std::string getTimeOftheDay(void);
 bool pathExists(std::string path, struct stat *);
 bool FileR_OK(std::string path);
 std::string getReasonPhrase(e_StatusCode statusCode);
-std::string makeBodyResponse(std::string reasonPhrase, int statusCode, std::map<int, std::string>&,std::string path);
+std::string makeBodyResponse(Location *currentLocation, int statusCode, std::map<int, std::string>&,std::string path);
 void fillFieldLine(std::map<std::string, std::string> &field_line, std::string contentType, std::string contentLength);
 std::string getMIME(std::string path);
-bool isCGI(std::string);
+bool isCGI(std::string, Location *);
 std::string getCGI(std::string);        
 std::string readFile(std::string);
 Location* getCurrentLocation(std::string oldPath, ServerConfig *currentServer);
@@ -95,4 +97,5 @@ std::string buildPath(std::string URI, std::string path, std::string);
 bool methodAllowed(const Location* location, const std::string& method);
 void listDirectory(const std::string& path, std::vector<std::string>&);
 bool isDirectoryEmpty(const std::string& path);
+void executeCGI(std::string outFile, char* args[]);
 #endif

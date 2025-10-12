@@ -278,6 +278,7 @@ void HttpRequest::handl_boundary(std::string& data, size_t boundary_pos) {
             data.clear();
             // flag_body = 1;
             body_complete = true;
+            std::cout << "oooo\n";
             code_status = 201;
         }
     }
@@ -302,8 +303,10 @@ void HttpRequest::inchunk_body(std::string &data)
         if (chunk_size == 0) {
             data.erase(0, chunk_size_end + 2);
             file.close();
-            if (!boundary.empty())
+            if (!boundary.empty() && body_complete)
+            {
                 code_status = 201;
+            }
             return;
         }
         pos = chunk_size_end + 2;
@@ -407,6 +410,8 @@ void HttpRequest::create_file()
     }
     else
     {
+        if (!boundary.empty())
+            return;
         int i = 1;
         while (true)
         {
@@ -422,7 +427,7 @@ void HttpRequest::create_file()
 
 bool HttpRequest::cgi()
 {
-    return true;
+    return false;
 }
 
 
@@ -434,7 +439,7 @@ void HttpRequest::parse_body(std::string& data) {
     {
         inchunk_body(data);
     }
-    if (contentLength > 0)
+    if (contentLength > 0 && chunked.empty())
     {
         if (boundary.empty() || cgi())
         {
@@ -446,6 +451,7 @@ void HttpRequest::parse_body(std::string& data) {
             if (contentLength <= 0) {
                 file.close();
                 body_complete = true;
+                std::cout << "pppp\n";
                 code_status = 201;
                 return;
             }

@@ -74,6 +74,7 @@ class HttpRequest {
         }
         std::string get_mime_type()const;
         bool cgi();
+        void setStatusCode(int code_status) { this->code_status = code_status; }
 };
 
 #endif
