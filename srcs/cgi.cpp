@@ -11,15 +11,16 @@ static std::string trim(const std::string &s) {
     return s.substr(start, end - start + 1);
 }
 
-void parseCGIheader(std::ifstream& buffer) {
+void parseCGIheader(std::ifstream& buffer, Response& response) {
     // std::istringstream iss(cgiOutput);
-    Response response;
     Header responseHeader;
     std::string line;
     bool headerDone = false;
     std::string body;
 
-    while (std::getline(buffer, line) && line != "\r\n") {
+    responseHeader.status_line.statusCode = UNITILAZE;
+    responseHeader.status_line.HttpVersion = "HTTP/1.1";
+    while (std::getline(buffer, line) && line != "\r") {
         // Remove possible '\r' at line end
         if (!line.empty() && line[line.size() - 1] == '\r')
             line.erase(line.size() - 1);
@@ -30,12 +31,6 @@ void parseCGIheader(std::ifstream& buffer) {
                 headerDone = true;
                 continue;
             }
-
-            // Full HTTP response line
-            // if (line.find("HTTP/") == 0) {
-            //     res.headers["__FULL_HTTP__"] = line; // mark full HTTP
-            //     continue;
-            // }
 
             // Split key:value
             size_t pos = line.find(':');
@@ -48,33 +43,34 @@ void parseCGIheader(std::ifstream& buffer) {
                     int val ;
                     ss >> val;
                     responseHeader.status_line.statusCode = (e_StatusCode) val;
-                    responseHeader.status_line.HttpVersion = "HTTP/1.1";
                     responseHeader.status_line.reasonPhrase = getReasonPhrase((e_StatusCode) val);
                 } else
                     responseHeader.field_line[key] = value;
             }
         }
     }
+    if (responseHeader.status_line.statusCode == UNITILAZE) {
+        responseHeader.status_line.statusCode = OK;
+        responseHeader.status_line.reasonPhrase = "OK";
+    }
     response.setHeader(responseHeader);
     response.setField_line(responseHeader.field_line);
-    std::cout << response.getResponse();   
 }
 
 
-void makeCGIbody(std::ifstream& buffer __attribute__ ((unused))) {
-    
+void makeCGIbody(std::ifstream& buffer, Response& response) {
+    char store[BUFFER_SIZE];
+    while (!buffer.eof()) {
+        buffer.read(store, BUFFER_SIZE);
+        response.addToBody(store, buffer.gcount());
+    }
 }
 
-std::string readCGI(std::string filename) {
-	// Response response;
-	std::ifstream buffer(filename, std::ifstream::in);
+void readCGI(std::string filename, Response& response) {
+	std::ifstream buffer(filename, std::ios::in | std::ifstream::binary);
 
-	parseCGIheader(buffer);
-	makeCGIbody(buffer);
-
-	// return response.getResponse()
-    return "";
-
+	parseCGIheader(buffer, response);
+	makeCGIbody(buffer, response);
 }
 
 
@@ -102,8 +98,8 @@ void executeCGI(std::string outFile, char* args[]) {
 
 //int main() {
 //     char *args[] = {
-//            (char*) "/usr/local/bin/python3",
-//            (char *) "/Users/oel-asri/Kingsave/Webserv/cgi-bin/cgi/index.py",
+//            (char*) "/Volumes/KINGSAVE/Webserv/cgi-bin/cgi/env/bin/python3",
+//            (char *) "/Users/oel-asri/Kingsave/Webserv/cgi-bin/cgi/displayAscii.py",
 //            NULL
 //        };
 //        executeCGI("/Users/oel-asri/Kingsave/Webserv/CGI", args);

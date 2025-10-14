@@ -68,12 +68,7 @@ std::string makeBodyResponse(Location *currentLocation, int statusCode, std::map
             std::cout << "not cGI" << std::endl;
             body = readFile(path);
         } else {
-        char *args[] = {
-            (char*) "/usr/local/bin/python3",
-            (char *) "/Users/oel-asri/Kingsave/Webserv/cgi-bin/cgi/index.py",
-            NULL
-        };
-        executeCGI("/Users/oel-asri/Kingsave/Webserv/CGI", args);
+        
         }
     }
 

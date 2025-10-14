@@ -70,6 +70,7 @@ class Response {
         void setMethod(std::string );
         void set_Server(ServerConfig *);
         void setHeader(Header );
+        void addToBody(const char*, size_t size);
         void execute_method();
         void Get();
         void Delete();
@@ -98,4 +99,5 @@ bool methodAllowed(const Location* location, const std::string& method);
 void listDirectory(const std::string& path, std::vector<std::string>&);
 bool isDirectoryEmpty(const std::string& path);
 void executeCGI(std::string outFile, char* args[]);
+void readCGI(std::string filename, Response& response);
 #endif

@@ -142,8 +142,8 @@ void WebServer::_handleReadable() {
         {
             // NO CGI, so we prepare to send response
             std::vector<struct kevent> ev;
-            _addEvent(ev, client_fd, EVFILT_READ,  EV_DISABLE, 0, 0, NULL);
-            _addEvent(ev, client_fd, EVFILT_WRITE, EV_ENABLE, 0, 0, NULL);
+            _addEvent(ev, client_fd, EVFILT_READ,  EV_DISABLE, 0, 0, (void*)client_event);
+            _addEvent(ev, client_fd, EVFILT_WRITE, EV_ENABLE, 0, 0, (void*)client_event);
             if (kevent(Context.kq, ev.data(), ev.size(), NULL, 0, NULL) == -1) {
                 // remember to close the connection and clean up
                 throw std::runtime_error("Failed to modify client events");
@@ -153,7 +153,7 @@ void WebServer::_handleReadable() {
     }
     // Reset the timer
     struct kevent ev;
-    EV_SET(&ev, client_fd, EVFILT_TIMER, EV_ADD | EV_ENABLE, 0, timeout, NULL);
+    EV_SET(&ev, client_fd, EVFILT_TIMER, EV_ADD | EV_ENABLE, 0, timeout, (void*)client_event);
     if (kevent(Context.kq, &ev, 1, NULL, 0, NULL) == -1) {
         // remember to close the connection and clean up
         throw std::runtime_error("Failed to reset timer");
@@ -173,7 +173,7 @@ int WebServer::_handleWritable() {
 
     //if data send successfully, we close the connection
     // std::cout << "Response sent to client: " << client_fd << std::endl;
-
+    Context.state_of_connection = DISCONNECTED;
     return DISCONNECTED;
 }
 
@@ -189,33 +189,33 @@ void WebServer::handleReceiveEvent()
         // client read event
         _handleReadable();
     }
-    else
-    {
-        // cgi read event
-        Cgi &cgiClient = Context.clientCgiProcesses.at(Context.event.ident);
-        cgiClient._readCgiOutput();
-        if (Context.state_of_connection == DISCONNECTED)
-        {
-            // if cgi return DISCONNECTED that means error happened
-            cgiClient.handleCgiFailure(-1, true, DISCONNECTED);
-        }
-    }
+//    else
+//    {
+//        // cgi read event
+//        Cgi &cgiClient = Context.clientCgiProcesses.at(Context.event.ident);
+//        cgiClient._readCgiOutput();
+//        if (Context.state_of_connection == DISCONNECTED)
+//        {
+//            // if cgi return DISCONNECTED that means error happened
+//            cgiClient.handleCgiFailure(-1, true, DISCONNECTED);
+//        }
+//    }
 }
 
 void WebServer::handleTimeoutEvent()
 {
-    if (Context.event.udata == (void*)client_event)
-    {
-        std::cout << "Connection timed out: " << Context.event.ident << std::endl;
-        Context.state_of_connection = DISCONNECTED;
-    }
-    else
-    {
-        // CGI timeout event
-        Cgi *e = static_cast<Cgi*>(Context.event.udata);
-        e->handleCgiFailure(Gateway_Timeout, true, CONNECTED);
-        std::cout << "CGI process timed out for client: " << e->getClientFd() << std::endl;
-    }
+//    if (Context.event.udata == (void*)client_event)
+//    {
+//        std::cout << "Connection timed out: " << Context.event.ident << std::endl;
+//        Context.state_of_connection = DISCONNECTED;
+//    }
+//    else
+//    {
+//        // CGI timeout event
+//        Cgi *e = static_cast<Cgi*>(Context.event.udata);
+//        e->handleCgiFailure(Gateway_Timeout, true, CONNECTED);
+//        std::cout << "CGI process timed out for client: " << e->getClientFd() << std::endl;
+//    }
 }
 
 void WebServer::handleCgiCompletion()

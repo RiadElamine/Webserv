@@ -206,6 +206,34 @@
             font-size: 0.9em;
             margin-top: 5px;
         }
+    iframe[name="output"] {
+        width: 100%;
+        height: 400px;
+        background: rgba(0, 0, 0, 0.9);
+        border: 2px solid rgba(0, 255, 136, 0.2);
+        border-radius: 10px;
+        color: #00ff88;
+        font-family: 'Courier New', monospace;
+        font-size: 14px;
+        line-height: 1.3;
+        box-shadow: inset 0 0 20px rgba(0, 255, 136, 0.1);
+        overflow: auto;
+        padding: 20px;
+        scrollbar-width: thin;
+        scrollbar-color: #00ff88 rgba(0, 255, 136, 0.05);
+    }
+
+    /* Optional: scrollbar styling for WebKit browsers */
+    iframe[name="output"]::-webkit-scrollbar {
+        width: 8px;
+    }
+    iframe[name="output"]::-webkit-scrollbar-thumb {
+        background-color: #00ff88;
+        border-radius: 4px;
+    }
+    iframe[name="output"]::-webkit-scrollbar-track {
+        background: rgba(0, 255, 136, 0.05);
+    }
     </style>
 </head>
 <body>
@@ -219,7 +247,7 @@
 
         <div class="panel">
             <div class="panel-title">Input Terminal</div>
-            <form action="http://localhost:8080/" method="GET">
+            <form action="http://localhost:8080/cgi/displayAscii.py" method="GET" target="output">
                 <div class="form-group">
                     <label for="text">TEXT TO CONVERT:</label>
                     <input type="text" id="text" name="text" placeholder="Enter text here..." required maxlength="50">
@@ -266,9 +294,9 @@
         <div class="output-panel">
             <div class="panel-title">Display Output</div>
             <div class="output-container">
-                <pre class="ascii-output">Awaiting generation...
-
-Submit the form above to create ASCII art</pre>
+                   <iframe name="output" title="ASCII Output">
+                       Your browser does not support iframes — the ASCII output will open in a new tab.
+                   </iframe>
             </div>
             <div class="info-box">
                 The CGI script will return HTML with your generated ASCII art.
@@ -277,4 +305,5 @@ Submit the form above to create ASCII art</pre>
     </div>
 </body>
 </html>
+
 

@@ -38,7 +38,7 @@ enum ConnectionState {
 };
 
 // Timeout duration
-#define timeout 10000 // 10 seconds
+#define timeout 10 // 10 seconds
 
 
 // type of event

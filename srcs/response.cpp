@@ -20,13 +20,21 @@ void Response::set_Server(ServerConfig *server) {
     currentServer = server;
 }
 
+void Response::addToBody(const char* chunk, size_t size) {
+    body.append(chunk, size);
+}
+
+void Response::setField_line(std::map<std::string, std::string>& filed_line) {
+    for(std::map<std::string, std::string>::iterator it = filed_line.begin(); it != filed_line.end(); ++it){
+        responseHeader.field_line[it->first] = it->second;
+    }
+}
 void Response::setHeader(Header copyHeader) {
     responseHeader.status_line.HttpVersion = copyHeader.status_line.HttpVersion;
     responseHeader.status_line.statusCode = copyHeader.status_line.statusCode;
     responseHeader.status_line.reasonPhrase = copyHeader.status_line.reasonPhrase;
     // check for the status from request parsing
 
-    std::cout << responseHeader.status_line.statusCode << std::endl;
     if (responseHeader.status_line.statusCode != OK) {
         std::stringstream ss;
         body = makeBodyResponse(NULL, \
@@ -57,9 +65,8 @@ void Response::Get() {
     std::string oldPath = path;
 
     Location *currentLocation = getCurrentLocation(path, currentServer);
-    if (currentLocation->root[currentLocation->root.length() - 1] != '/')
-        currentLocation->root += '/';
     path = buildPath(currentLocation->URI, path, currentLocation->root);
+    std::cout << "path: " << path << std::endl;
     if (!pathExists(path, &info)) {
         // respond with 404 code status
         statusCode = Not_Found;
@@ -70,6 +77,26 @@ void Response::Get() {
         statusCode = Method_Not_Allowed;
         mime = "text/html";
         body = makeBodyResponse(currentLocation, statusCode, currentServer->error_pages, "");
+    }
+    else if (isCGI(path, currentLocation)) {
+        Response response;
+
+        char *args[] = {
+            (char*) "/Volumes/KINGSAVE/Webserv/cgi-bin/cgi/env/bin/python3",
+            (char *) "/Users/oel-asri/Kingsave/Webserv/cgi-bin/cgi/displayAscii.py",
+            NULL
+        };
+        executeCGI("/Users/oel-asri/Kingsave/Webserv/CGI", args);
+        readCGI("/Users/oel-asri/Kingsave/Webserv/CGI", response);
+        responseHeader.status_line.statusCode = response.responseHeader.status_line.statusCode;
+        responseHeader.status_line.reasonPhrase = response.responseHeader.status_line.reasonPhrase;
+        responseHeader.status_line.HttpVersion = response.responseHeader.status_line.HttpVersion;
+        setField_line(response.responseHeader.field_line);
+        body = response.body;
+        std::ostringstream ss;
+        ss << body.size();
+        responseHeader.field_line["Content-Length"] = ss.str();
+        return ;
     }
     else if (info.st_mode & S_IFDIR) {
         // handle direcotry
@@ -178,14 +205,10 @@ std::string Response::getResponse() {
     std::stringstream ss;
 
     ss << responseHeader.status_line.statusCode ;
-    message += responseHeader.status_line.HttpVersion + " " + ss.str() + " " + responseHeader.status_line.reasonPhrase + "\n";
-    message += "Date: " + responseHeader.field_line["Date"] + "\r\n";
-    message += "Content-Type: " + responseHeader.field_line["Content-Type"] + "\r\n";
-    message += "Content-Length: " + responseHeader.field_line["Content-Length"] + "\r\n";
-    if (responseHeader.status_line.statusCode == Moved_Permanently)
-        message += "Location: " + responseHeader.field_line["Location"] + "\r\n";
-    message += "Connection: " + responseHeader.field_line["Connection"] + "\n";
-    message += "Server: " + responseHeader.field_line["Server"] + "\r\n";
+    message += responseHeader.status_line.HttpVersion + " " + ss.str() + " " + responseHeader.status_line.reasonPhrase + "\r\n";
+    for(std::map<std::string, std::string>::iterator it = responseHeader.field_line.begin(); it != responseHeader.field_line.end(); ++it) {
+        message += it->first + ": " + it->second + "\r\n";
+    }
     message += "\r\n" + body;
     ss.str("");
     ss.clear();

@@ -1,76 +1,42 @@
+#! /Volumes/KINGSAVE/Webserv/cgi-bin/cgi/env/bin/python3
+
+import sys
 import requests
 from pyfiglet import Figlet
 
-def create_ascii(name):
-    fig = Figlet(font='doom')
-    ascii_art = fig.renderText(name)
-    return f"<pre>\n{ascii_art}</pre>"
+def create_ascii(name, font, color=None):
+    fig = Figlet(font=font)
+#    fig = Figlet(font='doom')
+    return fig.renderText(name).encode('utf-8')
+#    return fig.renderText(name).encode('ascii', errors='replace')
+#    return f"<pre>\n{ascii_art}</pre>"
     
     
-def create_html_page(name_to_render):
-    return '''<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ASCII Generator</title>
-<style>
-  body {
-    background-color: #0a0a0f;
-    color: #00ffe0;
-    font-family: 'Courier New', monospace;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    margin: 0;
-    padding: 0;
-    text-shadow: 0 0 6px #00ffe0, 0 0 20px #007a70;
-  }
+#def makeBody(name, font, color):
+#    with open("ascii.html") as file:
+#        ascii_text = create_ascii(name, font)
+#        html = file.read()
+#        print(html)
+#
+#makeBody("oussama", 'doom', "white")
 
-  h1 {
-    font-size: 2em;
-    letter-spacing: 3px;
-    margin-bottom: 20px;
-    border-bottom: 2px solid #00ffe0;
-    padding-bottom: 5px;
-  }
+ascii_bytes = create_ascii('oussama', 'doom')
 
-  .ascii-container {
-    background: rgba(0, 255, 224, 0.05);
-    border: 1px solid #00ffe0;
-    border-radius: 12px;
-    padding: 30px;
-    max-width: 90%;
-    overflow-x: auto;
-    box-shadow: 0 0 25px #00ffe0a0, inset 0 0 20px #00ffe020;
-  }
+# Headers as bytes
+headers = (
+    b"HTTP/1.1 200 OK\r\n"
+    b"Connection: close\r\n"
+    b"Content-Type: text/plain; charset=utf-8\r\n"
+    b"Content-Length: " + str(len(ascii_bytes)).encode('ascii') + b"\r\n"
+    b"Server: Webserver/1.1.0\r\n"
+    b"\r\n"
+)
 
-  pre {
-    font-size: 1rem;
-    line-height: 1.2;
-    margin: 0;
-    white-space: pre;
-  }
+# still need to read input file to determine font and name
 
-  footer {
-    position: fixed;
-    bottom: 10px;
-    font-size: 0.9rem;
-    color: #009987;
-  }
-</style>
-</head>
-<body>
+# Write headers
+sys.stdout.buffer.write(headers)
 
-  <h1>Futuristic ASCII Generator</h1>
-  <div class="ascii-container">\n''' + create_ascii(name_to_render) + '''</div>
-
-  <footer>Type a name → Generate ASCII → Paste it here 🚀</footer>
-
-</body>
-</html>'''
-
-
-print(create_html_page("oussama"))
+# Write body
+sys.stdout.buffer.write(ascii_bytes)
+sys.stdout.buffer.flush()
