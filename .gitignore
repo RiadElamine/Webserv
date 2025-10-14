@@ -2,5 +2,5 @@
 bonus/*
 response_unit_testing/env
 programArchitect/*.png
-workspace/*
+cgi-bin/cgi/env
 workspace
