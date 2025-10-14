@@ -7,6 +7,7 @@ Response::Response() {
     transferEncoding = false;
 }
 
+
 void Response::setMethod(std::string _method) {
     method = _method;
 }
@@ -19,19 +20,13 @@ void Response::set_Server(ServerConfig *server) {
     currentServer = server;
 }
 
-void Response::setField_line(std::map<std::string, std::string>& field_line) {
-    for (std::map<std::string, std::string>::iterator it = field_line.begin(); it != field_line.end(); ++it) {
-        responseHeader.field_line[it->first] = it->second;
-    }
-}
-
 void Response::setHeader(Header copyHeader) {
     responseHeader.status_line.HttpVersion = copyHeader.status_line.HttpVersion;
     responseHeader.status_line.statusCode = copyHeader.status_line.statusCode;
     responseHeader.status_line.reasonPhrase = copyHeader.status_line.reasonPhrase;
     // check for the status from request parsing
 
-    // std::cout << responseHeader.status_line.statusCode << std::endl;
+    std::cout << responseHeader.status_line.statusCode << std::endl;
     if (responseHeader.status_line.statusCode != OK) {
         std::stringstream ss;
         body = makeBodyResponse(NULL, \
@@ -64,7 +59,7 @@ void Response::Get() {
     Location *currentLocation = getCurrentLocation(path, currentServer);
     if (currentLocation->root[currentLocation->root.length() - 1] != '/')
         currentLocation->root += '/';
-    std::cout << "path: " << path << std::endl;
+    path = buildPath(currentLocation->URI, path, currentLocation->root);
     if (!pathExists(path, &info)) {
         // respond with 404 code status
         statusCode = Not_Found;
@@ -184,11 +179,13 @@ std::string Response::getResponse() {
 
     ss << responseHeader.status_line.statusCode ;
     message += responseHeader.status_line.HttpVersion + " " + ss.str() + " " + responseHeader.status_line.reasonPhrase + "\n";
-    
-    std::map<std::string, std::string> &field_line = responseHeader.field_line;
-    for (std::map<std::string, std::string>::iterator it = field_line.begin(); it != field_line.end(); ++it) {
-        message += it->first + ": " + it->second + "\r\n";
-    }
+    message += "Date: " + responseHeader.field_line["Date"] + "\r\n";
+    message += "Content-Type: " + responseHeader.field_line["Content-Type"] + "\r\n";
+    message += "Content-Length: " + responseHeader.field_line["Content-Length"] + "\r\n";
+    if (responseHeader.status_line.statusCode == Moved_Permanently)
+        message += "Location: " + responseHeader.field_line["Location"] + "\r\n";
+    message += "Connection: " + responseHeader.field_line["Connection"] + "\n";
+    message += "Server: " + responseHeader.field_line["Server"] + "\r\n";
     message += "\r\n" + body;
     ss.str("");
     ss.clear();
@@ -207,7 +204,7 @@ void Response::handle_directorys(e_StatusCode& statusCode, std::string& mime, Lo
     if (!currentLocation->index.empty() && FileR_OK(rePath)) {
         statusCode = OK;
         mime = getMIME(rePath);
-        body = makeBodyResponse(currentLocation, statusCode, currentServer->error_pages, rePath);
+        body = makeBodyResponse(NULL, statusCode, currentServer->error_pages, rePath);
     } else {
         if (!currentLocation->autoindex) {
             statusCode = Forbidden;
