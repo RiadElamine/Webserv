@@ -1,7 +1,7 @@
 import requests
 import html
 from bs4 import BeautifulSoup
-
+import re
 
 class ScrapeFinance:
     def __init__(self, headers):
@@ -10,6 +10,7 @@ class ScrapeFinance:
         self.response = None
         self.content = None
         self.headers = headers
+        self.unused_content = r'\s*By\s+[A-Z][\w.\s,&-]+?\d+\s*min read'
 
     def make_response(self):
         self.response = requests.get(self.url, headers=self.headers)
@@ -19,18 +20,61 @@ class ScrapeFinance:
 
     def scrape_web(self):
         main = self.content.find("main")
-        # div = main.find("div", class_="css-dw4wbv")
         main_event = main.find("div", {"data-testid": "finance-front-lead-article"})
-        print(main_event.text, end="\n\n")
-        front_articles = main.find_all("div", {"data-testid": "finance-front-article"})
-        for article in front_articles:
-            p = article.find("p", {"data-testid": "flexcard-text"})
-            print(article.text)
-            print(p)
-            print()
+        src_image = main_event.img['src']
+        header_a = main_event.find("a", {"data-testid": "flexcard-headline"})
+        link = header_a["href"]
+        description = main_event.text
+        header = header_a.text
+        clean_description = re.sub( self.unused_content, '', description).strip()
+        
+
+        # front_articles = main.find_all("div", {"data-testid": "finance-front-article"})
+        # for article in front_articles:
+        #     p = article.find("p", {"data-testid": "flexcard-text"})
+        #     print(article.text)
+        #     print(p)
+        #     print()
+        return (src_image, link, header, clean_description)
 
     def fill_content(self):
-        pass
+        template = """<article class="news-card">
+                    <div class="news-image-wrapper">
+                        <img src="{src}" alt="{category} news" class="news-image">
+                        <span class="news-badge">{category}</span>
+                    </div>
+                    <div class="news-content">
+                        <h3 class="news-title">
+                            <a href="{a_href}">{header}</a>
+                        </h3>
+                        <p class="news-description">
+                            {description}
+                        </p>
+                        <div class="news-meta">
+                            <span class="news-source">Financial Times</span>
+                            <span class="news-date">{time}</span>
+                        </div>
+                    </div>
+                </article>"""
+        with open("News.html", "r", encoding='utf-8') as read_cont:
+            soup = BeautifulSoup(read_cont.read(), 'lxml')
+            # finance_section = soup.find("section", class_="finance")
+            news_row = soup.select_one("section.finance .news-row")
+            content = self.scrape_web()
+            new_article = BeautifulSoup(template.format(
+                    src=content[0],
+                    category="Finance",
+                    a_href=content[1],
+                    header=content[2],
+                    description=content[3],
+                    time="2 hours ago"
+                ), "lxml")
+            news_row.append(new_article)
+            with open("test.html", "w", encoding='utf-8') as f:
+                f.write(soup.decode())
+
+            
+
     def print_content(self):
         print(self.content)
 
@@ -56,4 +100,4 @@ if __name__ == "__main__":
         }
     scrape = ScrapeFinance(headers)
     scrape.make_response()
-    scrape.scrape_web()
+    scrape.fill_content()
