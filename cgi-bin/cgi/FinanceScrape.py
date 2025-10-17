@@ -24,20 +24,23 @@ class ScrapeFinance:
         src_image = main_event.img['src']
         header_a = main_event.find("a", {"data-testid": "flexcard-headline"})
         link = header_a["href"]
-        description = main_event.text
         header = header_a.text
-        clean_description = re.sub( self.unused_content, '', description).strip()
+        description = main_event.find('p', {"data-testid": "flexcard-text"})
+        read_time = main_event.find('p', {"data-testid": "flexcard-readtime"})
         
+        content = [(src_image, link, header, description.text, read_time.text)]
+        front_articles = main.find_all("div", {"data-testid": "finance-front-article"})
+        for article in front_articles:
+            a = article.find("a", {"slotname": "media"})
+            header = article.find('a', {"data-testid": "flexcard-headline"})
+            description = article.find('p', {"data-testid": "flexcard-text"})
+            read_time = article.find('p', {"data-testid": "flexcard-readtime"})
+            content.append((a.img['src'], a["href"], header.text, description.text, read_time))
 
-        # front_articles = main.find_all("div", {"data-testid": "finance-front-article"})
-        # for article in front_articles:
-        #     p = article.find("p", {"data-testid": "flexcard-text"})
-        #     print(article.text)
-        #     print(p)
-        #     print()
-        return (src_image, link, header, clean_description)
+        return content
 
     def fill_content(self):
+
         template = """<article class="news-card">
                     <div class="news-image-wrapper">
                         <img src="{src}" alt="{category} news" class="news-image">
@@ -52,24 +55,25 @@ class ScrapeFinance:
                         </p>
                         <div class="news-meta">
                             <span class="news-source">Financial Times</span>
-                            <span class="news-date">{time}</span>
+                            <span class="news-date">{read_time}</span>
                         </div>
                     </div>
                 </article>"""
+
         with open("News.html", "r", encoding='utf-8') as read_cont:
             soup = BeautifulSoup(read_cont.read(), 'lxml')
-            # finance_section = soup.find("section", class_="finance")
             news_row = soup.select_one("section.finance .news-row")
-            content = self.scrape_web()
-            new_article = BeautifulSoup(template.format(
-                    src=content[0],
-                    category="Finance",
-                    a_href=content[1],
-                    header=content[2],
-                    description=content[3],
-                    time="2 hours ago"
-                ), "lxml")
-            news_row.append(new_article)
+            contents = self.scrape_web()
+            for content in contents:
+                new_article = BeautifulSoup(template.format(
+                        src=content[0],
+                        category="Finance",
+                        a_href=content[1],
+                        header=content[2],
+                        description=content[3],
+                        read_time=content[4]
+                    ), "lxml")
+                news_row.append(new_article)
             with open("test.html", "w", encoding='utf-8') as f:
                 f.write(soup.decode())
 
