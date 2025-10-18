@@ -141,7 +141,6 @@ bool isCGI(std::string path, Location *currentLocation) {
         return false;
 
     std::string ext = path.substr(dot);
-
     if (ext == currentLocation->cgi_ext)
         return true;
 

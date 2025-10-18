@@ -81,11 +81,14 @@ void Response::Get() {
     else if (isCGI(path, currentLocation)) {
         Response response;
 
-        char *args[] = {
+        char *args[3] = {
             (char*) "/Volumes/KINGSAVE/Webserv/cgi-bin/cgi/env/bin/python3",
-            (char *) "/Users/oel-asri/Kingsave/Webserv/cgi-bin/cgi/displayAscii.py",
+            (char *) "/Users/oel-asri/Kingsave/Webserv/cgi-bin/cgi/getLatestNew.py",
             NULL
         };
+        // std::string path_ = path.erase(0);
+        // args[1] = (char *) path_.c_str();
+        // args[2] = NULL;
         executeCGI("/Users/oel-asri/Kingsave/Webserv/CGI", args);
         readCGI("/Users/oel-asri/Kingsave/Webserv/CGI", response);
         responseHeader.status_line.statusCode = response.responseHeader.status_line.statusCode;

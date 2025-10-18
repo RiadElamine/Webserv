@@ -1,6 +1,10 @@
 from modules import Scraper, ScienceScraper
 from bs4 import BeautifulSoup
-from modules.Info import TEMPLATE, HEADERS
+from modules.Info import TEMPLATE, HEADERS, PATH
+# import cgi
+
+# cgitb.enable()
+# cgitb.enable(display=0, logdir="/tmp")
 
 
 def fill_section(soup, template, contents, section, category, categorical):
@@ -42,17 +46,24 @@ def fill_Science_content(soup, template):
     fill_section(soup, template, contents, "section.science .news-row", "Science", "Science")
 
 if __name__ == "__main__":
-    soup = None
-    with open("templates/News.html", "r", encoding='utf-8') as read_cont:
-        soup = BeautifulSoup(read_cont.read(), 'lxml')
-    
-    fill_finance_content(HEADERS, soup, TEMPLATE)
-    fill_politics_content(HEADERS, soup, TEMPLATE)
-    fill_Tech_content(HEADERS, soup, TEMPLATE)
-    fill_Science_content(soup, TEMPLATE)
+    try:
+        soup = None
+        with open(f"{PATH}/templates/News.html", "r", encoding='utf-8') as read_cont:
+            soup = BeautifulSoup(read_cont.read(), 'lxml')
 
-    with open("test.html", "w", encoding='utf-8') as f:
-        f.write(soup.decode())
+        fill_finance_content(HEADERS, soup, TEMPLATE)
+        fill_politics_content(HEADERS, soup, TEMPLATE)
+        fill_Tech_content(HEADERS, soup, TEMPLATE)
+        fill_Science_content(soup, TEMPLATE)
 
-    
-    
+        # with open("test.html", "w", encoding='utf-8') as f:
+        #     f.write(soup.decode())
+        print("Content-Type: text/html", end='\r\n')
+        print(end="\r\n")
+        print(soup.prettify())
+
+    except Exception as e:
+        print("Status: 500 Internal Server Error", end='\r\n')
+        print("Content-Type: text/html", end='\r\n')
+        print(end='\r\n')
+        print(f"<html><body><h1>500 Internal Server Error</h1><p>{e}</p></body></html>")

@@ -30,3 +30,5 @@ HEADERS = {
     "DNT": "1",  # Do Not Track
     "Cookie": cookie
 }
+
+PATH="/Users/oel-asri/Kingsave/Webserv/cgi-bin/cgi/"
