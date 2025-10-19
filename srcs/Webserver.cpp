@@ -114,6 +114,15 @@ void WebServer::_handleAccept() {
     std::cout << "Client connected: " << client_fd << std::endl;
 }
 
+
+
+bool isCgiRequest(HttpRequest &request) {
+    ServerConfig *currentServer = request.getServer();
+    Location *currentLocation = getCurrentLocation(request.getPath(), currentServer);
+    std::string path = buildPath(currentLocation->URI, request.getPath(), currentLocation->root);
+    return isCGI(path, currentLocation);
+}
+
 void WebServer::_handleReadable() {
     // Read data from client
     int client_fd = Context.event.ident;
@@ -130,14 +139,16 @@ void WebServer::_handleReadable() {
         // // request fully received
         // // check if it's a cgi request or not
         // if (isCgiRequest(Context.clientRequests[client_fd]))
-        {
-            // if i have cgi to execute, i will do it here
-            // std::cout << "CGI request detected for client: " << client_fd << std::endl;
-            // Context.clientCgiProcesses.insert(
-            //     std::pair<int, Cgi>(client_fd, Cgi(Context, client_fd))
-            // );
-            // Context.clientCgiProcesses.at(client_fd).executeCgi();
-        }
+        // {
+        //     // if i have cgi to execute, i will do it here
+        //     Context.clientCgiProcesses.insert(
+        //         std::pair<int, Cgi>(client_fd, Cgi(Context))
+        //     );
+        //     std::cout << "CGI request detected for client: " << client_fd << std::endl;
+           
+        //     Context.clientCgiProcesses.at(client_fd).executeCgi();
+        //     return;
+        // }
         // else 
         {
             // NO CGI, so we prepare to send response
@@ -160,21 +171,28 @@ void WebServer::_handleReadable() {
     }
 }
 
-int WebServer::_handleWritable() {
+void WebServer::_handleWritable() {
     // if (clientRequests[client_fd].getMethod() == "POST")
     //     return DISCONNECTED;
+
+    // Response &response;
+
+    // response = Context.clientResponses[Context.event.ident];
     Response response;
     getDataFromRequest(Context.clientRequests[Context.event.ident], response);
     response.execute_method();
     std::string message = response.getResponse();
     ssize_t n = send(Context.event.ident, message.c_str(), message.length(), 0);
-    if (n == -1)
-        return DISCONNECTED;
+    if (n <= 0)
+    {
+        Context.state_of_connection = DISCONNECTED;
+        return;
+    }
+
 
     //if data send successfully, we close the connection
     // std::cout << "Response sent to client: " << client_fd << std::endl;
     Context.state_of_connection = DISCONNECTED;
-    return DISCONNECTED;
 }
 
 void WebServer::handleReceiveEvent()
@@ -192,8 +210,9 @@ void WebServer::handleReceiveEvent()
    else
    {
        // cgi read event
-       Cgi &cgiClient = Context.clientCgiProcesses.at(Context.event.ident);
-       cgiClient._readCgiOutput();
+       Cgi *cgiClient = static_cast<Cgi*>(Context.event.udata);
+       cgiClient->_readCgiOutput();
+
    }
 }
 
@@ -269,6 +288,7 @@ void WebServer::startServer() {
             } 
             else if (Context.event.filter == EVFILT_WRITE)
             {
+                std::cout << "Sending response to client: " << Context.event.ident << std::endl;
                 _handleWritable();
             }
             else if (Context.event.filter == EVFILT_TIMER)
@@ -286,5 +306,7 @@ void WebServer::startServer() {
                 _closeConnection();
             }
         }
+        // Reset the data in the vector without changing the size or capacity
+        memset(Context.evlist.data(), 0, Context.evlist.size() * sizeof(struct kevent));
     }
 }

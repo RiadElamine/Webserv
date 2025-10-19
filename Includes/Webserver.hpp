@@ -18,7 +18,7 @@ class WebServer {
         void    registerEvents();
         void    _handleAccept();
         void    _handleReadable();
-        int     _handleWritable();
+        void     _handleWritable();
         void    _closeConnection();
         void    setNonBlocking(int fd);
 

@@ -3,7 +3,6 @@
 
 
 #include "HttpRequest.hpp"
-#define  DEFAULT_PAGE_ERRORS "/Users/oel-asri/Kingsave/Webserv/default_error_page"
 
 
 /*

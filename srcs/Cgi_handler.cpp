@@ -6,7 +6,7 @@ void Cgi::setNonBlockCloexec(int fd) {
         throw std::runtime_error("fcntl(F_SETFL) failed");
 }
 
-Cgi::Cgi(KqueueContext &Context, int client_fd) : Context(Context)
+Cgi::Cgi(KqueueContext &Context) : Context(Context)
 {
     this->client_fd = Context.event.ident;
     is_stdout_done = false;
@@ -14,28 +14,16 @@ Cgi::Cgi(KqueueContext &Context, int client_fd) : Context(Context)
     cgi_pid = -1;
 
     // i need to gernerate random name for the cgi script output file
-    cgi_stdout = open("cgi_output.txt", O_CREAT | O_RDWR, 0644);
-    if (cgi_stdout == -1)
-        throw std::runtime_error("Failed to open cgi_output.txt");
-    // 
-    if (!Context.clientRequests[client_fd].get_filename().empty())
-    {
-        cgi_stdin = open(Context.clientRequests[client_fd].get_filename().c_str(), O_RDWR);
-        if (cgi_stdin == -1)
-        {
-            close(cgi_stdout);
-            throw std::runtime_error("Failed to open body.txt");
-        }
-        // set both ends of my tunnel to non-blocking and close on exec
-        setNonBlockCloexec(cgi_stdin);
-        setNonBlockCloexec(cgi_stdout);
-    }
-    else
-        cgi_stdin = -1;
+  
 };
 
 void Cgi::executeCgi()
 {
+    // Open file to write CGI script output
+    cgi_stdout = open("cgi_output.txt", O_CREAT | O_RDWR, 0644);
+    if (cgi_stdout == -1)
+        throw std::runtime_error("Failed to open cgi_output.txt");
+
     // Fork a new process to execute the CGI script
     cgi_pid = fork();
     if (cgi_pid == -1) {
@@ -46,17 +34,33 @@ void Cgi::executeCgi()
     }
     else if (cgi_pid == 0) {
 
+        // Child process
+        // Open the file containing the request body
+        if (!Context.clientRequests[client_fd].get_filename().empty())
+        {
+            cgi_stdin = open(Context.clientRequests[client_fd].get_filename().c_str(), O_RDWR);
+            if (cgi_stdin == -1)
+            {
+                close(cgi_stdout);
+                throw std::runtime_error("Failed to open body.txt");
+            }
+            // set both ends of my tunnel to non-blocking and close on exec
+            setNonBlockCloexec(cgi_stdin);
+            // setNonBlockCloexec(cgi_stdout);
+            // send body to cgi script via stdin
+            if (dup2(cgi_stdin, STDIN_FILENO) == -1) {
+                close(cgi_stdin);
+                throw std::runtime_error("dup2 stdin failed2");
+            }
+        }
         // Redirect stdout to the write end of the pipe
         if (dup2(cgi_stdout, STDOUT_FILENO) == -1) {
             close(cgi_stdout);
-            throw std::runtime_error("dup2 stdout failed");
-        }
-        // send body to cgi script via stdin
-        if (dup2(cgi_stdin, STDIN_FILENO) == -1) {
-            close(cgi_stdout);
             close(cgi_stdin);
-            throw std::runtime_error("dup2 stdin failed");
+            exit(1); // handle error in child process
+            // throw std::runtime_error("dup2 stdout failed1");
         }
+
         // Send output to the pipe 
         // this the cgi script execution in execve system call
         // if (execve(CGI_PATH, Args, (char *const *)NULL) == -1)  
@@ -64,15 +68,18 @@ void Cgi::executeCgi()
         //     perror("execve");
         //     _exit(1);
         // }
+
+        // while (1)
+        // {
+            std::cout << "--CGI script running..." << std::endl;
+        // }
+        
         exit(0);
     } 
     else
     {
         // Parent process
-
-        // Close unused read end of the pipe
-        close(cgi_stdin);
-    
+        std::cout << "--CGI process started with PID: " << cgi_pid << " for client: " << client_fd << std::endl;
         std::vector<struct kevent> ev;
         // Add events to kqueue to monitor reading from body of CGI script
         _addEvent(ev, cgi_stdout, EVFILT_READ,  EV_ADD | EV_ENABLE, 0, 0, (void*)this);
@@ -91,7 +98,6 @@ void Cgi::executeCgi()
         EV_SET(&ev_proc, cgi_pid, EVFILT_PROC, EV_ADD, NOTE_EXIT, 0, (void*)this);
         if (kevent(Context.kq, &ev_proc, 1, NULL, 0, NULL) == -1)
             throw std::runtime_error("Failed to monitor CGI process");
-    
     }
 }
 
@@ -118,14 +124,21 @@ void Cgi::_readCgiOutput() {
     //     Context.state_of_connection = CONNECTED;
     //     return;
     // }
-
-    // Reset the timer
-    struct kevent ev;
-    EV_SET(&ev, cgi_stdout, EVFILT_TIMER, EV_ENABLE, 0, timeout, (void*)this);
-    if (kevent(Context.kq, &ev, 1, NULL, 0, NULL) == -1) {
-        perror("kevent");
-        throw std::runtime_error("Failed to reset timer");
+    if (true)
+    {
+        std::cout << "--CGI output read done for client: " << client_fd << std::endl;
+        makestdoutDone();
+        return;
     }
+
+    // // Reset the timer
+    // struct kevent ev;
+    // EV_SET(&ev, cgi_stdout, EVFILT_TIMER, EV_ENABLE , 0, timeout, (void*)this);
+    // if (kevent(Context.kq, &ev, 1, NULL, 0, NULL) == -1) {
+    //     perror("kevent");
+    //     throw std::runtime_error("Failed to reset timer");
+    // }
+    //     std::cout << "--CGI output read completed for client: " << client_fd << std::endl;
 
 }
 
@@ -147,6 +160,7 @@ void Cgi::removeCgiEventsFromKqueue(int FD, int PROCESS_ID) {
         if (kevent(Context.kq, ev_cgiFd.data(), ev_cgiFd.size(), NULL, 0, NULL) == -1) {
             throw std::runtime_error("Failed to remove CGI fd events");
         }
+        std::cout << "--CGI events removed from kqueue for client: " << client_fd << std::endl;
         cgi_stdout = -1;
     }
 }
@@ -196,6 +210,7 @@ void Cgi::handleCgiCompletion()
     {
         // we dont change the status code, let the response handler do it
         _status_code = Doesnt_fail;
+        std::cout << "--CGI process completed successfully for client: " << client_fd << std::endl;
         return;
     }
     else
@@ -203,6 +218,7 @@ void Cgi::handleCgiCompletion()
         // CGI exited with error
         // send 502 Bad Gateway response to client
         _status_code = Bad_Gateway;
+        std::cout << "--CGI process failed for client: " << client_fd << std::endl;
     }
     this->handleCgiFailure(_status_code);
 }
