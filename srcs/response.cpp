@@ -82,15 +82,15 @@ void Response::Get() {
         Response response;
 
         char *args[3] = {
-            (char*) "/Volumes/KINGSAVE/Webserv/cgi-bin/cgi/env/bin/python3",
-            (char *) "/Users/oel-asri/Kingsave/Webserv/cgi-bin/cgi/getLatestNew.py",
+            (char*) "/Users/relamine/Desktop/cgi/cgi-bin/cgi/env/bin/python3",
+            (char *) "/Users/relamine/Desktop/cgi/cgi-bin/cgi/getLatestNew.py",
             NULL
         };
         // std::string path_ = path.erase(0);
         // args[1] = (char *) path_.c_str();
         // args[2] = NULL;
-        executeCGI("/Users/oel-asri/Kingsave/Webserv/CGI", args);
-        readCGI("/Users/oel-asri/Kingsave/Webserv/CGI", response);
+        executeCGI("/Users/relamine/Desktop/cgi/CGI", args);
+        readCGI("/Users/relamine/Desktop/cgi/CGI", response);
         responseHeader.status_line.statusCode = response.responseHeader.status_line.statusCode;
         responseHeader.status_line.reasonPhrase = response.responseHeader.status_line.reasonPhrase;
         responseHeader.status_line.HttpVersion = response.responseHeader.status_line.HttpVersion;

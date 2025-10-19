@@ -123,7 +123,7 @@ std::string readFile(std::string path) {
         delete[] buffer;
         return content;
     } 
-    throw std::runtime_error("Error while opening the file");
+    throw std::runtime_error("-Error while opening the file");
 }
 
 std::string getCGI(std::string path __attribute__ ((unused))) {

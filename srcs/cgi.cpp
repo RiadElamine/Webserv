@@ -49,6 +49,7 @@ void parseCGIheader(std::ifstream& buffer, Response& response) {
             }
         }
     }
+
     if (responseHeader.status_line.statusCode == UNITILAZE) {
         responseHeader.status_line.statusCode = OK;
         responseHeader.status_line.reasonPhrase = "OK";
@@ -78,7 +79,7 @@ void executeCGI(std::string outFile, char* args[]) {
     int fd = open(outFile.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
     if (fd == -1)
         throw std::runtime_error("Error while opening the file!!!");
-    int saved_stdout = dup(1);        // Save original stdout
+    int saved_stdout = dup(1);       // Save original stdout
     dup2(fd, 1);                      // Redirect stdout to file
     close(fd);                        // fd no longer needed
 

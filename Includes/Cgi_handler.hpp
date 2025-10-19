@@ -12,6 +12,7 @@ struct KqueueContext {
     int                         kq;
     std::map<int, HttpRequest>  clientRequests;
     std::map<int, Cgi>          clientCgiProcesses;
+    std::map<int, Response>     clientResponses;
     ConnectionState             state_of_connection;
 };
 
@@ -29,11 +30,26 @@ class Cgi {
         KqueueContext &Context;
 
     public:
-        Cgi(KqueueContext &Context, int client_fd);
+        Cgi(KqueueContext &Context);
+        ~Cgi() {
+            // cleanup
+            if (cgi_stdout != -1)
+                close(cgi_stdout);
+            if (cgi_stdin != -1)
+                close(cgi_stdin);
+            if (cgi_pid != -1) {
+                // kill(cgi_pid, SIGKILL);
+                // reap CGI process to avoid zombie
+                int status;
+                if (waitpid(cgi_pid, &status, WNOHANG) == -1) {
+                    perror("waitpid");
+                }
+            }
+        }
         void executeCgi();
         void _readCgiOutput();
         void removeCgiEventsFromKqueue(int FD, int PROCESS_ID);
-        void handleCgiFailure(int statusCode, bool killAndReap, ConnectionState closeClient);
+        void handleCgiFailure(int statusCode);
 
         // getters
         int getCgiOutputFd() const { return cgi_stdout; }
@@ -44,6 +60,7 @@ class Cgi {
 
         void setNonBlockCloexec(int fd);
 
-        void makestdoutDone() { is_stdout_done = true; }
+        void makestdoutDone();
+        void handleCgiCompletion();
 };
 
