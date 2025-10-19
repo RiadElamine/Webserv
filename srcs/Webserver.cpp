@@ -189,64 +189,28 @@ void WebServer::handleReceiveEvent()
         // client read event
         _handleReadable();
     }
-//    else
-//    {
-//        // cgi read event
-//        Cgi &cgiClient = Context.clientCgiProcesses.at(Context.event.ident);
-//        cgiClient._readCgiOutput();
-//        if (Context.state_of_connection == DISCONNECTED)
-//        {
-//            // if cgi return DISCONNECTED that means error happened
-//            cgiClient.handleCgiFailure(-1, true, DISCONNECTED);
-//        }
-//    }
+   else
+   {
+       // cgi read event
+       Cgi &cgiClient = Context.clientCgiProcesses.at(Context.event.ident);
+       cgiClient._readCgiOutput();
+   }
 }
 
 void WebServer::handleTimeoutEvent()
 {
-//    if (Context.event.udata == (void*)client_event)
-//    {
-//        std::cout << "Connection timed out: " << Context.event.ident << std::endl;
-//        Context.state_of_connection = DISCONNECTED;
-//    }
-//    else
-//    {
-//        // CGI timeout event
-//        Cgi *e = static_cast<Cgi*>(Context.event.udata);
-//        e->handleCgiFailure(Gateway_Timeout, true, CONNECTED);
-//        std::cout << "CGI process timed out for client: " << e->getClientFd() << std::endl;
-//    }
-}
-
-void WebServer::handleCgiCompletion()
-{
-    Cgi* cgiClient = static_cast<Cgi*>(Context.event.udata);
-    // reap the cgi process to avoid zombie
-    if (waitpid(cgiClient->getCgiPid(), &cgiClient->getStatus(), 0) == -1)
-    {
-        perror("waitpid");
-        throw std::runtime_error("Failed to reap CGI process");
-    }
-    // check status of cgi process
-    int status = cgiClient->getStatus();
-    if ((WIFEXITED(status) && WEXITSTATUS(status) != 0 )|| WIFSIGNALED(status)) {
-        // CGI exited with error
-        // send 502 Bad Gateway response to client
-        cgiClient->handleCgiFailure(Bad_Gateway, false, CONNECTED);
-        return;
-    }
-    // check if cgi stdout is Done
-    if (cgiClient->isStdoutDone())
-    {
-        // CGI finished successfully, dont close client connection yet (we need to send response)
-        // only remove cgi events from kqueue
-        cgiClient->handleCgiFailure(-1, false, CONNECTED);
-        // enable write event on client socket to send response
-        struct kevent ev;
-        EV_SET(&ev, cgiClient->getClientFd(), EVFILT_WRITE, EV_ENABLE, 0, 0, NULL);
-        if (kevent(Context.kq, &ev, 1, NULL, 0, NULL) == -1)
-            throw std::runtime_error("Failed to enable write event on client socket");
-    }
+   if (Context.event.udata == (void*)client_event)
+   {
+       std::cout << "Connection timed out: " << Context.event.ident << std::endl;
+       Context.state_of_connection = DISCONNECTED;
+   }
+   else
+   {
+       // CGI timeout event
+       Cgi *e = static_cast<Cgi*>(Context.event.udata);
+       e->handleCgiFailure(Gateway_Timeout);
+       std::cout << "CGI process timed out for client: " << e->getClientFd() << std::endl;
+   }
 }
 
 void WebServer::_closeConnection() {
@@ -314,7 +278,8 @@ void WebServer::startServer() {
             else if (Context.event.filter == EVFILT_PROC && (Context.event.fflags & NOTE_EXIT))
             {
                 // CGI process exited
-                handleCgiCompletion();
+                Cgi* cgiClient = static_cast<Cgi*>(Context.event.udata);
+                cgiClient->handleCgiCompletion();
             }
             if (Context.state_of_connection == DISCONNECTED)
             {

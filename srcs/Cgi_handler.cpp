@@ -91,13 +91,13 @@ void Cgi::executeCgi()
         EV_SET(&ev_proc, cgi_pid, EVFILT_PROC, EV_ADD, NOTE_EXIT, 0, (void*)this);
         if (kevent(Context.kq, &ev_proc, 1, NULL, 0, NULL) == -1)
             throw std::runtime_error("Failed to monitor CGI process");
-        // reap the child process to avoid zombie
-        if (waitpid(cgi_pid, &status, WNOHANG) == -1) {
-            perror("waitpid");
-            throw std::runtime_error("Failed to reap CGI process");
-        }
     
     }
+}
+
+void  Cgi::makestdoutDone(){ 
+        is_stdout_done = true;
+        removeCgiEventsFromKqueue(cgi_stdout, -1);
 }
 
 void Cgi::_readCgiOutput() {
@@ -112,11 +112,10 @@ void Cgi::_readCgiOutput() {
     }
 
     // requestCgi.RequestData.append(buffer, n);
-    // if (clientRequests[client_fd].parse_request())
+    // if (parseCGIheader(buffer, response))
     // {
     //     makestdoutDone();
     //     Context.state_of_connection = CONNECTED;
-    //     removeCgiEventsFromKqueue(cgi_stdout, -1);
     //     return;
     // }
 
@@ -138,6 +137,7 @@ void Cgi::removeCgiEventsFromKqueue(int FD, int PROCESS_ID) {
         if (kevent(Context.kq, &ev, 1, NULL, 0, NULL) == -1) {
             throw std::runtime_error("Failed to remove CGI process event");
         }
+        cgi_pid = -1;
     }
 
     if (FD >= 0) {
@@ -147,16 +147,20 @@ void Cgi::removeCgiEventsFromKqueue(int FD, int PROCESS_ID) {
         if (kevent(Context.kq, ev_cgiFd.data(), ev_cgiFd.size(), NULL, 0, NULL) == -1) {
             throw std::runtime_error("Failed to remove CGI fd events");
         }
+        cgi_stdout = -1;
     }
 }
 
-void Cgi::handleCgiFailure(int statusCode, bool killAndReap, ConnectionState closeClient) {
+void Cgi::handleCgiFailure(int statusCode) {
 
     // set error status (500 or 504, etc.)
-    if (statusCode != -1)
+    if (statusCode != I_Dont_have_respons)
     {
-        // send error response to client
-        Context.clientRequests[this->getClientFd()].setStatusCode(statusCode);
+        if (statusCode == Doesnt_fail)
+        {
+            // send error response to client
+            Context.clientRequests[this->getClientFd()].setStatusCode(statusCode);
+        }
         // enable write event on client socket to send response
         // disable read event on client socket
         // reset timer
@@ -170,22 +174,35 @@ void Cgi::handleCgiFailure(int statusCode, bool killAndReap, ConnectionState clo
     }
     // remove cgi events from kqueue
     removeCgiEventsFromKqueue(this->getCgiOutputFd(), this->getCgiPid());
-    // clean up
-    if (killAndReap) {
-        // kill CGI if still running
-        if (kill(this->getCgiPid(), 0) == 0)
-            kill(this->getCgiPid(), SIGKILL);
-        // reap CGI process to avoid zombie
-        int status;
-        if (waitpid(this->getCgiPid(), &status, 0) == -1) {
-            perror("waitpid");
-            throw std::runtime_error("Failed to reap CGI process");
-        }
-    }
-    //
-    if (closeClient == DISCONNECTED)
+}
+
+
+void Cgi::handleCgiCompletion()
+{
+    // reap the cgi process to avoid zombie
+    if (waitpid(this->getCgiPid(), &this->getStatus(), 0) == -1)
     {
-        Context.state_of_connection = closeClient;
-        close(this->getCgiOutputFd());
+        perror("waitpid");
+        throw std::runtime_error("Failed to reap CGI process");
     }
+    int _status_code;
+
+    // CGI finished successfully, dont close client connection yet (we need to send response)
+    // prepare to send response to client
+    // and remove cgi process events from kqueue
+
+    // check if cgi stdout is Done and exited normally
+    if (this->isStdoutDone() && WIFEXITED(status) && WEXITSTATUS(status) == 0)
+    {
+        // we dont change the status code, let the response handler do it
+        _status_code = Doesnt_fail;
+        return;
+    }
+    else
+    {
+        // CGI exited with error
+        // send 502 Bad Gateway response to client
+        _status_code = Bad_Gateway;
+    }
+    this->handleCgiFailure(_status_code);
 }

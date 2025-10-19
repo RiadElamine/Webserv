@@ -25,8 +25,6 @@ class WebServer {
 
         void handleReceiveEvent();
         void handleTimeoutEvent();
-        // void handleCgiFailure(int statusCode, bool closeConnection, bool deleteCgiEvents);
-        void handleCgiCompletion();
 };
 
 #endif

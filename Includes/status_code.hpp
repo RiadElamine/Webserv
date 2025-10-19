@@ -24,4 +24,8 @@ enum e_StatusCode {
     Gateway_Timeout = 504
 };
 
+enum isSendingStatus {
+    Doesnt_fail = -2,
+    I_Dont_have_respons = -1,
+};
 #endif
