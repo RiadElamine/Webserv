@@ -111,16 +111,23 @@ void WebServer::_handleAccept() {
     // Initialize HttpRequest for the new client
     Context.clientRequests[client_fd] = HttpRequest();
     Context.clientRequests[client_fd].setServer(listeners[Context.event.ident]);
+    // Initialize Response for the new client
+    Context.clientResponses[client_fd] = Response();
     std::cout << "Client connected: " << client_fd << std::endl;
 }
 
 
+bool isCgiRequest(KqueueContext &Context, int fd_client) {
+    HttpRequest &request  = Context.clientRequests[fd_client];
+    Response &response = Context.clientResponses[fd_client];
+    Location *currentLocation;
 
-bool isCgiRequest(HttpRequest &request) {
     ServerConfig *currentServer = request.getServer();
-    Location *currentLocation = getCurrentLocation(request.getPath(), currentServer);
-    std::string path = buildPath(currentLocation->URI, request.getPath(), currentLocation->root);
-    return isCGI(path, currentLocation);
+    currentLocation = getCurrentLocation(request.getPath(), currentServer);
+    response.setCurrentLocation(currentLocation);
+    response.setPath(buildPath(currentLocation->URI, request.getPath(), currentLocation->root));
+
+    return isCGI(response.getPath(), currentLocation);
 }
 
 void WebServer::_handleReadable() {
@@ -136,20 +143,20 @@ void WebServer::_handleReadable() {
     
     if (Context.clientRequests[client_fd].parse_request(buffer, n))
     {
-        // // request fully received
-        // // check if it's a cgi request or not
-        // if (isCgiRequest(Context.clientRequests[client_fd]))
-        // {
-        //     // if i have cgi to execute, i will do it here
-        //     Context.clientCgiProcesses.insert(
-        //         std::pair<int, Cgi>(client_fd, Cgi(Context))
-        //     );
-        //     std::cout << "CGI request detected for client: " << client_fd << std::endl;
+        // request fully received
+        // check if it's a cgi request or not
+        if (isCgiRequest(Context, client_fd))
+        {
+            // if i have cgi to execute, i will do it here
+            Context.clientCgiProcesses.insert(
+                std::pair<int, Cgi>(client_fd, Cgi(Context))
+            );
+            std::cout << "CGI request detected for client: " << client_fd << std::endl;
            
-        //     Context.clientCgiProcesses.at(client_fd).executeCgi();
-        //     return;
-        // }
-        // else 
+            Context.clientCgiProcesses.at(client_fd).executeCgi();
+            return;
+        }
+        else 
         {
             // NO CGI, so we prepare to send response
             std::vector<struct kevent> ev;
@@ -227,7 +234,7 @@ void WebServer::handleTimeoutEvent()
    {
        // CGI timeout event
        Cgi *e = static_cast<Cgi*>(Context.event.udata);
-       e->handleCgiFailure(Gateway_Timeout);
+       e->finalizeCgiProcess(Gateway_Timeout);
        std::cout << "CGI process timed out for client: " << e->getClientFd() << std::endl;
    }
 }
@@ -253,6 +260,8 @@ void WebServer::_closeConnection() {
     }
     // remove client request from map
     Context.clientRequests.erase(fd_client);
+    // remove client response from map
+    Context.clientResponses.erase(fd_client);
     // close client socket
     shutdown(fd_client, SHUT_WR);
     std::cout << "Shutting down connection: " << fd_client << std::endl;

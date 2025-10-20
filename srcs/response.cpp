@@ -16,6 +16,20 @@ void Response::setPath(std::string _path) {
     path = _path;
 }
 
+///
+std::string Response::getPath(void) {
+    return path;
+}
+
+void  Response::setCurrentLocation(Location *loc) { 
+    currentLocation = loc; 
+}
+
+Location* Response::getCurrentRoute(void) { 
+    return currentLocation; 
+}
+///
+
 void Response::set_Server(ServerConfig *server) {
     currentServer = server;
 }

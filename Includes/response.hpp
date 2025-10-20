@@ -64,6 +64,7 @@ class Response {
     std::string path;
     std::list<ChunkedBodyData> chunkedBody;
     ServerConfig *currentServer;
+    Location *currentLocation;
     public:
         Response();
         void setMethod(std::string );
@@ -78,6 +79,12 @@ class Response {
         std::string getResponse();
         void setField_line(std::map<std::string, std::string>&);
         void setPath(std::string _path);
+
+        // getter
+        std::string getPath(void);
+        Location* getCurrentRoute(void);
+        // setter
+        void setCurrentLocation(Location *loc);
 };
 
 void getDataFromRequest(HttpRequest request, Response &response);
