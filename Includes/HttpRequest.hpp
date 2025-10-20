@@ -56,7 +56,7 @@ class HttpRequest {
         std::string getVersion() const {
             return version;
         }
-        std::map<std::string, std::string> getQueryParams() const {
+        std::map<std::string, std::string> &getQueryParams() {
             return query_params;
         }
         int getStatusCode() { return code_status; };

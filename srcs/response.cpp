@@ -7,6 +7,10 @@ Response::Response() {
     transferEncoding = false;
 }
 
+void Response::setStatusCode(int statusCode)
+{
+    responseHeader.status_line.statusCode = (e_StatusCode)statusCode;
+}
 
 void Response::setMethod(std::string _method) {
     method = _method;
@@ -15,6 +19,20 @@ void Response::setMethod(std::string _method) {
 void Response::setPath(std::string _path) {
     path = _path;
 }
+
+///
+std::string Response::getPath(void) {
+    return path;
+}
+
+void  Response::setCurrentLocation(Location *loc) { 
+    currentLocation = loc; 
+}
+
+Location* Response::getCurrentRoute(void) { 
+    return currentLocation; 
+}
+///
 
 void Response::set_Server(ServerConfig *server) {
     currentServer = server;
