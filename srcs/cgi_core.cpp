@@ -103,7 +103,7 @@ void Cgi::finalizeCgiProcess(int statusCode) {
         if (statusCode == Doesnt_fail)
         {
             // send error response to client
-            Context.clientRequests[this->getClientFd()].setStatusCode(statusCode);
+            Context.clientResponses[this->getClientFd()].setStatusCode(statusCode);
         }
         // enable write event on client socket to send response
         // disable read event on client socket

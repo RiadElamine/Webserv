@@ -7,6 +7,10 @@ Response::Response() {
     transferEncoding = false;
 }
 
+void Response::setStatusCode(int statusCode)
+{
+    responseHeader.status_line.statusCode = (e_StatusCode)statusCode;
+}
 
 void Response::setMethod(std::string _method) {
     method = _method;

@@ -85,6 +85,7 @@ class Response {
         Location* getCurrentRoute(void);
         // setter
         void setCurrentLocation(Location *loc);
+        void setStatusCode(int statusCode);
 };
 
 void getDataFromRequest(HttpRequest request, Response &response);
