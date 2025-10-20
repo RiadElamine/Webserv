@@ -38,7 +38,7 @@ enum ConnectionState {
 };
 
 // Timeout duration
-#define timeout 10 // 10 seconds
+#define timeout 100 // 
 
 
 // type of event
@@ -52,3 +52,6 @@ enum type_event {
 void _addEvent(std::vector<struct kevent> &events,
                           uintptr_t ident, int16_t filter, uint16_t flags,
                           uint32_t fflags, intptr_t data, void* udata);
+
+#define  DEFAULT_PAGE_ERRORS "./default_error_page/"
+#define DEFAULT_ROOT "./www"

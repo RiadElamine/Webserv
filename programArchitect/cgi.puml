@@ -1,94 +1,224 @@
+
 @startuml
-title CGI Request Handling with KQueue
+title CGI Execution Flow - Inside One Process
 
-participant Client
-participant WebServer
-participant KQueue
-participant "CGI Process" as CGI_Process
+actor Client
+participant "WebServer <<class>>" as WS
+participant "KQueue (Event Loop)" as KQ
+participant "Cgi Handler <<class>>" as CGI
+participant "CGI Process (forked)" as PROC
 
-note over WebServer, KQueue
-Initial State - Waiting for Request
-end note
+'==========================
+' Request Reception
+'==========================
+Client -> WS : HTTP Request (via socket)
+activate WS
+WS -> WS : acceptConnection() (if new client)
+WS -> KQ : Register READ event
+KQ --> WS : Read Event (client_fd)
+WS -> WS : parseHttpRequest()
 
-KQueue ->> WebServer : Read Event (client_fd)
-WebServer ->> WebServer : recv() from client
-WebServer ->> WebServer : parse_request()
+'==========================
+' Classification
+'==========================
+WS -> WS : isCgi(request)
+alt CGI Request (true)
 
-alt Request requires CGI
-    note over WebServer
-    Handle Chunked Request Body
+    '--------------------------
+    ' CGI Initialization
+    '--------------------------
+    WS -> CGI : newCgiInstance()
+    activate CGI
+    WS -> CGI : executeCgi()
+'--- CGI Child Pipe Setup ---
+    note over CGI
+                        Setup pipes for CGI communication:
+    - stdout -> parent reads CGI output (child writes to this pipe)
+    - stdin  <- parent sends request body (child reads from this pipe)
+   end note
+    CGI -> CGI : setupCustomPipes(cgi_stdin, cgi_stdout)
+
+    '--------------------------
+    ' CGI Execution
+    '--------------------------
+    note over CGI
+                Create CGI Process
+    end note
+    CGI -> PROC : fork()
+    activate PROC
+    
+    note over CGI , PROC
+                Sending body to CGI script
     end note
 
-    alt Request is chunked
-        WebServer ->> WebServer : un-chunk request body
-        WebServer ->> WebServer : buffer complete body
+    note over PROC
+                Redirect input and output:
+        - CGI reading request body from client via cgi_stdin
+        - CGI Sending output to client via cgi_stdout
+    end note
+
+    PROC -> PROC : setupCgiStdStreams()
+    note over PROC
+                Execute the CGI script
+    end note
+    PROC -> PROC : execve()
+
+    note over CGI , KQ
+        Monitor Events of CGI
+    end note
+    CGI -> KQ : AddEvent for cgi_stdout (read, timeout)
+    CGI -> KQ : AddEvent for cgi_process (exit)
+    CGI -> KQ : Disable client events (read, timout)
+    Deactivate CGI
+
+    '--------------------------
+    ' Output Collection
+    '--------------------------
+    note over CGI , WS
+        Read and Validate CGI Output
+    end note
+    KQ --> WS : Read event (cgi_stdout)
+    WS -> CGI : ReadCgiOutput(cgi_stdout)
+    activate CGI
+    loop Until stdout close
+        CGI -> CGI : read(cgi_stdout)
+        CGI -> CGI : parseCgiOutput(cgi_stdout)
+        CGI -> CGI : checkCompleteness()
+        break Complete(true)(valid_output/Not)
+            CGI -> CGI : markStdoutDone()
+            CGI -> CGI : removeCgiEvents(cgi_stdout)
+        end
+        CGI -> KQ : Reset timeout (cgi_stdout)
     end
-
-    WebServer ->> WebServer : create Cgi instance
-    WebServer ->> CGI_Process : fork()
-    CGI_Process ->> CGI_Process : execve(script)
-
-    note over WebServer
-    Send complete body to CGI
-    end note
-    WebServer ->> CGI_Process : write complete body + EOF to stdin
-
-    WebServer ->> KQueue : EV_DISABLE READ (client_fd)
-    WebServer ->> KQueue : EV_ADD READ (cgi_pipe)
-    WebServer ->> KQueue : EV_ADD PROC (cgi_pid, NOTE_EXIT)
-
-    note over WebServer
-    Buffer CGI output until EOF
-    end note
-    loop Until CGI stdout closes
-        KQueue ->> WebServer : Read Event (cgi_pipe)
-        WebServer ->> WebServer : read(cgi_pipe)
-        CGI_Process ->> WebServer : CGI output chunk
-        WebServer ->> WebServer : buffer_cgi_output()
+    Deactivate CGI
+    '--------------------------
+    ' CGI Timeout Handling
+    '--------------------------
+    alt CGI Timeout Occurred
+        KQ --> WS : Timeout event (cgi_stdout)
+        WS -> CGI : handleCgiTimeout()
+        activate CGI
+        note over CGI
+            - Set error to Gateway Timeout (504)
+            - Prepare to send error response to client
+            - cleanup CGI events when response is sent
+        end note
+        CGI -> CGI : setError(Gateway_Timeout)
+        CGI -> KQ : enable WRITE (client_fd)
+        CGI -> KQ : disable READ, timeout (cgi_stdout)
+        deactivate CGI
     end
-
-    note over WebServer
-    CGI stdout closed (EOF received)
+    '--------------------------
+    ' Process Termination
+    '--------------------------
+    note over WS , CGI
+        Handle CGI Process Completion
     end note
-    WebServer ->> WebServer : markStdoutDone()
 
-    KQueue ->> WebServer : Proc Event (cgi_pid EXIT)
-    WebServer ->> WebServer : markProcessDone()
-    WebServer ->> WebServer : checkCompletion()
-
-    note over WebServer
-    Both stdout and process done
+    KQ --> WS : Process event (exited)
+    WS -> CGI : handleCgiCompletion()
+    deactivate PROC
+    Activate CGI
+    note over CGI
+        - Reap CGI process to avoid zombie
+        - Check exit status of CGI
     end note
-    WebServer ->> WebServer : prepareFinalResponse()
-    WebServer ->> WebServer : parse CGI headers from buffer
-    WebServer ->> WebServer : determine response method
+    alt Process exited
+        CGI <-- WebServer : waitpid(cgi_pid)
+        '--------------------------
+        ' Response Preparation
+        '--------------------------
+        alt (Normal Exit && Stdout done)
+            CGI -> CGI : setError(No_Error)
+        else CGI exited with error
+            CGI -> CGI : setError(Bad_Gateway)
+        end
+        CGI -> KQ : disableRead(cgi_stdout)
+        CGI -> KQ : enable timeout(client_fd)
+        CGI -> KQ : enable WRITE (client_fd)
+        CGI -> CGI : removeCgiEvents(cgi_process)
+    end
+    deactivate CGI
+
+    '--------------------------
+    ' Response Transmission
+    '--------------------------
+    note over WS , CGI
+        Send Final Response to Client
+    end note
+
+    KQ --> WS : Write Event (client_fd)
+    WS ->> WS : prepareFinalResponse()
+    WS ->> WS : parse CGI headers from buffer
+    WS ->> WS : determine response method
 
     alt CGI provided Content-Length
-        WebServer ->> WebServer : send headers with Content-Length
-        WebServer ->> Client : send(complete CGI response)
+        WS ->> WS : send headers with Content-Length
+        WS ->> Client : send(complete CGI response)
     else No Content-Length from CGI
         alt HTTP/1.1 Client
-            WebServer ->> WebServer : send headers with Transfer-Encoding: chunked
-            WebServer ->> Client : send(chunked CGI response)
+            WS ->> WS : send headers with Transfer-Encoding: chunked
+            WS ->> Client : send(chunked CGI response)
         else HTTP/1.0 or Connection: close
-            WebServer ->> WebServer : send headers without Content-Length
-            WebServer ->> Client : send(complete CGI response)
-            WebServer ->> Client : close connection
+            WS ->> WS : send headers without Content-Length
+            WS ->> Client : send(complete CGI response)
         end
     end
 
-    WebServer ->> KQueue : EV_ENABLE READ, EV_DISABLE WRITE (client_fd)
+    WS ->> WS : close_connection()
+
+    '--------------------------
+    ' Cleanup
+    '--------------------------
+    note over WS , CGI
+        close connections and cleanup
+    end note
+    alt close connection
+       WS -> KQ : remove client events
+       WS -> WS : remove CGI object
+        alt Cgi Destructor Called (~Cgi)
+            WS -> CGI : ~Cgi()  // Object destruction
+            activate CGI
+            note over CGI
+                Perform cleanup on destruction:
+                - Close open pipe descriptors
+                - Kill leftover CGI process
+                - Reap the process to avoid zombie
+            end note
+
+            alt cgi_stdout is_open()
+                CGI -> CGI : close(cgi_stdout)
+            end
+
+            alt cgi_stdin is_open()
+                CGI -> CGI : close(cgi_stdin)
+            end
+
+            alt cgi_pid is_still_active()
+                CGI -> PROC : kill(cgi_pid, SIGKILL)
+                note right of CGI
+                    SIGKILL ensures no hanging child.
+                end note
+                CGI -> PROC : waitpid(cgi_pid, &status, WNOHANG)
+                note right of CGI
+                    Reap process to avoid zombie.
+                end note
+            end
+
+            CGI -> WS : destructor cleanup complete
+            deactivate CGI
+        end
+       WS -> WS : close (client_fd)
+    end
 
 else Normal request (non-CGI)
-    WebServer ->> WebServer : generate normal response
-    WebServer ->> KQueue : EV_DISABLE READ, EV_ENABLE WRITE (client_fd)
-    KQueue ->> WebServer : Write Event (client_fd)
-    WebServer ->> Client : send(normal response)
-    WebServer ->> KQueue : EV_ENABLE READ, EV_DISABLE WRITE (client_fd)
+    WS ->> WS : generate normal response
+    WS ->> KQ : EV_DISABLE READ, EV_ENABLE WRITE (client_fd)
+    KQ ->> WS : Write Event (client_fd)
+    WS ->> Client : send(normal response)
 end
 
-note over WebServer, KQueue
-Back to waiting for next request
-end note
-
+deactivate WS
 @enduml
+
+

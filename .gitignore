@@ -4,3 +4,5 @@ response_unit_testing/env
 programArchitect/*.png
 cgi-bin/cgi/env
 workspace
+modules/__pycache__
+.DS_Store

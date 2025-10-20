@@ -543,7 +543,7 @@ std::vector<ServerConfig> *ConfigFile::parse()
 
 void ConfigFile::fill_server_defaults()
 {
-	std::string errorDir = "./errors/";
+	std::string errorDir = DEFAULT_PAGE_ERRORS;
 	int codesArray[] = {
 		400, 401, 403, 404, 405, 408,
 		413, 414, 500, 501, 502, 503, 504
@@ -554,7 +554,7 @@ void ConfigFile::fill_server_defaults()
 		if (it->listens.empty())
 			it->listens.insert(std::make_pair("0.0.0.0", 8080));
 		if (it->global_root.empty())
-			it->global_root = "/home/relamine/nginx-1.25.3/tt";
+			it->global_root = DEFAULT_ROOT;
 		if (it->global_index.empty())
 			it->global_index = "index.html";
 		for (std::vector<Location>::iterator loc = it->locations.begin(); loc != it->locations.end(); ++loc) {

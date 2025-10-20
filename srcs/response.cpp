@@ -7,6 +7,10 @@ Response::Response() {
     transferEncoding = false;
 }
 
+void Response::setStatusCode(int statusCode)
+{
+    responseHeader.status_line.statusCode = (e_StatusCode)statusCode;
+}
 
 void Response::setMethod(std::string _method) {
     method = _method;
@@ -15,6 +19,20 @@ void Response::setMethod(std::string _method) {
 void Response::setPath(std::string _path) {
     path = _path;
 }
+
+///
+std::string Response::getPath(void) {
+    return path;
+}
+
+void  Response::setCurrentLocation(Location *loc) { 
+    currentLocation = loc; 
+}
+
+Location* Response::getCurrentRoute(void) { 
+    return currentLocation; 
+}
+///
 
 void Response::set_Server(ServerConfig *server) {
     currentServer = server;
@@ -81,13 +99,16 @@ void Response::Get() {
     else if (isCGI(path, currentLocation)) {
         Response response;
 
-        char *args[] = {
-            (char*) "/Volumes/KINGSAVE/Webserv/cgi-bin/cgi/env/bin/python3",
-            (char *) "/Users/oel-asri/Kingsave/Webserv/cgi-bin/cgi/displayAscii.py",
+        char *args[3] = {
+            (char*) "/Users/relamine/Desktop/cgi/cgi-bin/cgi/env/bin/python3",
+            (char *) "/Users/relamine/Desktop/cgi/cgi-bin/cgi/getLatestNew.py",
             NULL
         };
-        executeCGI("/Users/oel-asri/Kingsave/Webserv/CGI", args);
-        readCGI("/Users/oel-asri/Kingsave/Webserv/CGI", response);
+        // std::string path_ = path.erase(0);
+        // args[1] = (char *) path_.c_str();
+        // args[2] = NULL;
+        executeCGI("/Users/relamine/Desktop/cgi/CGI", args);
+        readCGI("/Users/relamine/Desktop/cgi/CGI", response);
         responseHeader.status_line.statusCode = response.responseHeader.status_line.statusCode;
         responseHeader.status_line.reasonPhrase = response.responseHeader.status_line.reasonPhrase;
         responseHeader.status_line.HttpVersion = response.responseHeader.status_line.HttpVersion;
