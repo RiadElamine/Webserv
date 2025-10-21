@@ -4,7 +4,6 @@ HttpRequest::HttpRequest() {
     contentLength = 0;
     chunked = "";
     path = "";
-    // query = "";
     flag_headers = 0;
     body_complete = false;
     j = 0;
@@ -33,14 +32,53 @@ void HttpRequest::method_valid()
     for(size_t i = 0; i < method.size(); i++)
     {
         if (!isupper(method[i]))
-        {
-            code_status = 400;
-            body_complete = true;
-            return;
+            return set_status(400);
+    }
+}
+
+std::string HttpRequest::remove_dot_segments(std::string path) {
+    std::string result;
+    result.reserve(path.size());
+
+    size_t i = 0;
+    while (i < path.size()) {
+        if (path[i] == '/' && path[i+1] == '/')
+            return set_status(400),"";
+        if (path.substr(i, 3) == "/./") {
+            result += '/';
+            i += 2;
+        } else if (path.substr(i, 4) == "/../") {
+            if (!result.empty()) {
+                size_t last_slash = result.find_last_of('/', result.size() - 2);
+                result.resize(last_slash + 1);
+            }
+            i += 3;
+        } else if (path.substr(i, 2) == "..") {
+            if (i + 2 == path.size()) {
+                if (!result.empty()) {
+                    size_t last_slash = result.find_last_of('/', result.size() - 2);
+                    result.resize(last_slash + 1);
+                }
+                i += 2;
+            } else {
+                result += path[i++];
+            }
+        } else if (path.substr(i, 1) == ".") {
+            if (i + 1 == path.size()) {
+                i++;
+            } else {
+                result += path[i++];
+            }
+        } else {
+            if (*(result.end() - 1) == '/' && path[i] == '/')
+            {
+                i++;
+                continue;
+            }
+            result += path[i++];
         }
     }
-    code_status = 501;
-    body_complete = true;
+    return result;
 }
 
 void HttpRequest::decode(std::string &value) {
@@ -64,33 +102,20 @@ void HttpRequest::decode(std::string &value) {
 void HttpRequest::uri_valid()
 {
     if (uri[0] != '/' || uri.empty() || uri.size() > 8000)
-    {
-        code_status = 400;
-        body_complete = true;
-        return;
-    }
+        return set_status(400);
     std::string character("-._~:/?#@[]!$&'()*+,;=%");
     for(size_t i = 0; i < uri.size(); i++)
     {
         if (!std::isalnum(uri[i]) && (character.find(uri[i]) == std::string::npos))
-        {
-            code_status = 400;
-            body_complete = true;
-            return;
-        }
+            return set_status(400);
     }
     if (uri.find('?') != std::string::npos)
     {
         size_t pos = uri.find('?');
         path = uri.substr(0, pos);
         std::string query = uri.substr(pos + 1);
-        //test this
         if (query.empty() || query[query.size() - 1] == '#')
-        {
-            code_status = 400;
-            body_complete = true;
-            return;
-        }
+            return set_status(400);
         decode(query);
         size_t start = 0;
         while (true) {
@@ -107,9 +132,14 @@ void HttpRequest::uri_valid()
     else
         path = uri;
     decode(path);
+
 }
 
-
+void HttpRequest::set_status(int status)
+{
+    code_status = status;
+    body_complete = true;
+}
 
 void HttpRequest::parse_headers(std::string& data) {
     int i = 0;
@@ -124,11 +154,7 @@ void HttpRequest::parse_headers(std::string& data) {
     i = data.find("\r\n");
     version = data.substr(0, i);
     if(version.empty() && (version != "HTTP/1.1"))
-    {
-        code_status = 400;
-        body_complete = true;
-        return;
-    }
+        return set_status(400);
     data.erase(0, i+2);
     size_t header_end = data.find("\r\n\r\n");
     std::string header_block = data.substr(0, header_end);
@@ -139,9 +165,12 @@ void HttpRequest::parse_headers(std::string& data) {
         size_t colon_pos = line.find(':');
         if (colon_pos != std::string::npos) {
             std::string key = line.substr(0, colon_pos);
+            if (key.empty() || key.find_first_not_of(" \t") != 0 || key.find_last_not_of(" \t") != key.size() - 1) {
+                return set_status(400);
+            }
             std::string value = line.substr(colon_pos + 1);
             value.erase(0, value.find_first_not_of(" \t"));
-            value.erase(value.find_last_not_of(" \t") + 1);
+            value.erase(value.find_first_not_of(" \t") + 1);
             headers[key] = value;
         }
         if (line_end > header_block.size())
@@ -152,20 +181,14 @@ void HttpRequest::parse_headers(std::string& data) {
     flag_headers = 1;
     if (headers.find("Content-Length") != headers.end()) {
         contentLength = std::atol(headers["Content-Length"].c_str());
-        if (contentLength < 0) {
-            code_status = 400;
-            body_complete = true;
-            return;
-        }
-        if (contentLength > server->client_max_body_size) {
-            std::cout << "Invalid Content-Length value: " << headers["Content-Length"] << std::endl;
-            code_status = 413;
-            body_complete = true;
-            return;
-        }
+        if (contentLength < 0) 
+            return set_status(400);
+        if (contentLength > server->client_max_body_size) 
+            return set_status(413);
     } else {
         contentLength = 0;
     }
+
     if (headers.find("Transfer-Encoding") != headers.end() && headers["Transfer-Encoding"] == "chunked") {
         chunked = "chunked";
     } else {
@@ -173,11 +196,8 @@ void HttpRequest::parse_headers(std::string& data) {
     }
     if (headers.find("Content-Type") != headers.end() && headers["Content-Type"].find("multipart/form-data;") != std::string::npos) {
         size_t boundary_pos = headers["Content-Type"].find("boundary=");
-        if (boundary_pos == std::string::npos) {
-            code_status = 400;
-            body_complete = true;
-            return;
-        }
+        if (boundary_pos == std::string::npos) 
+            return set_status(400);
         if (boundary_pos != std::string::npos) {
             boundary = headers["Content-Type"].substr(boundary_pos + 9);
         } 
@@ -187,10 +207,7 @@ void HttpRequest::parse_headers(std::string& data) {
 void HttpRequest::check(std::string& data, size_t pos)
 {
     if (data.find(boundary, pos) != std::string::npos)
-    {
-        code_status = 400;
-        body_complete = true;
-    }
+        set_status(400);
     else
         need_boundary = true;
 }
@@ -209,37 +226,30 @@ void HttpRequest::handl_boundary(std::string& data, size_t boundary_pos) {
                 size_t end_name_pos = data.find('"', name_pos);
                 if (end_name_pos != std::string::npos) {
                     name = data.substr(name_pos, end_name_pos - name_pos);
-                } else {
-                    check(data, pos);
-                    return;
-                }
+                } else 
+                    return  check(data, pos);
+                
                 size_t content_start = data.find("\r\n\r\n", end_name_pos);
                 if (content_start != std::string::npos) {
                     content_start += 4;
                     size_t content_end = data.find("\r\n", content_start);
                     if (content_end != std::string::npos) {
                         content = data.substr(content_start, content_end - content_start);
-                    } else {
-                        check(data, pos);
-                        return;
-                    }
-                } else {
-                    check(data, pos);
-                    return;
-                }
+                    } else 
+                        return check(data, pos);
+                } else 
+                    return check(data, pos);
                 data.erase(0, data.find(boundary));
                 form_data[name] = content;
-                if (data.find("--\r\n" , boundary.size()) != std::string::npos && data.find("--\r\n" , boundary.size()) < data.find("\r\n")) {
+                if (data.find("--"+boundary+"--\r\n" , boundary.size()+6) != std::string::npos && data.substr(0, data.find("--"+boundary+"--\r\n" , boundary.size()+6)).find(boundary) == std::string::npos) {
                     data.erase(0, data.find("--\r\n") + 4);
                     flag_body = 1;
                     body_complete = true;
                 }
                 return;
             }
-            else {
-                check(data, pos);
-                return;
-            }
+            else 
+                return check(data, pos);
         }
         if (pos < data.find("\r\n")) {
                 std::string name;
@@ -251,17 +261,14 @@ void HttpRequest::handl_boundary(std::string& data, size_t boundary_pos) {
                     if (end_name_pos != std::string::npos) {
                         name = data.substr(name_pos, end_name_pos - name_pos);
                         form_data["filename"] = name;
+                        create_file(1);
                         data.erase(0, end_name_pos + 3);
                         data.erase(0, data.find("\r\n\r\n") + 4);
                         flag_boundary = 1;
-                    } else {
-                        check(data, pos);
-                        return;
-                    }
-                } else {
-                    check(data, pos);
-                    return;
-                }
+                    } else 
+                        return check(data, pos);
+                } else 
+                    return check(data, pos);
         }
     }
     if (flag_boundary == 1) {
@@ -274,18 +281,17 @@ void HttpRequest::handl_boundary(std::string& data, size_t boundary_pos) {
         file << data.substr(0, data.find(boundary) - 4);
         flag_boundary = 0;
         file.close();
-        if (data.find("--\r\n" , boundary.size()) != std::string::npos && data.find("--\r\n" , boundary.size()) < data.find("\r\n")) {
+        code_status = 201;
+        if (data.find("--"+boundary+"--\r\n" , boundary.size()+6) != std::string::npos && data.substr(0, data.find("--"+boundary+"--\r\n" , boundary.size()+6)).find(boundary) == std::string::npos) {
             data.clear();
-            // flag_body = 1;
             body_complete = true;
-            std::cout << "oooo\n";
-            code_status = 201;
         }
     }
 }
 
 void HttpRequest::inchunk_body(std::string &data)
 {
+   Location *it = getCurrentLocation(path, server); 
     std::ofstream file(filename.c_str(), std::ios::binary | std::ios::app);
     std::istringstream iss;
     size_t pos = 0;
@@ -303,10 +309,8 @@ void HttpRequest::inchunk_body(std::string &data)
         if (chunk_size == 0) {
             data.erase(0, chunk_size_end + 2);
             file.close();
-            if (!boundary.empty() && body_complete)
-            {
-                code_status = 201;
-            }
+            if (boundary.empty())
+                set_status(201);
             return;
         }
         pos = chunk_size_end + 2;
@@ -316,7 +320,7 @@ void HttpRequest::inchunk_body(std::string &data)
             return;
         }
     }
-    if (boundary.empty() || cgi())
+    if (boundary.empty() || isCGI(path, it))
     {
         if (!file.is_open())
             file.open(filename.c_str(), std::ios::binary | std::ios::app);
@@ -337,15 +341,11 @@ void HttpRequest::inchunk_body(std::string &data)
     if (contentLength > server->client_max_body_size) {
         std::cout << "File size exceeded: " << contentLength << " bytes" << std::endl;
         remove(filename.c_str());
-        code_status = 413;
-        body_complete = true;
-        return;
+        return set_status(413);
     }
     if (data.substr(pos, 2) != "\r\n") {
         file.close();
-        code_status = 400;
-        body_complete = true;
-        return;
+        return set_status(400);
     }
     pos += 2;
     chunk_size = 0;
@@ -354,18 +354,22 @@ void HttpRequest::inchunk_body(std::string &data)
     }
 }
 
-std::string generate_random_string(size_t length) {
-    const char charset[] =
+std::string random_string(size_t length) {
+    static const char charset[] =
         "0123456789"
         "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
         "abcdefghijklmnopqrstuvwxyz";
-    const size_t max_index = sizeof(charset) - 1;
-    std::string random_string;
-    random_string.reserve(length);
+
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    static std::uniform_int_distribution<> dis(0, sizeof(charset) - 2); 
+
+    std::string result;
+    result.reserve(length);
     for (size_t i = 0; i < length; ++i) {
-        random_string += charset[rand() % max_index];
+        result += charset[dis(gen)];
     }
-    return random_string;
+    return result;
 }
 
 std::string HttpRequest::get_mime_type() const{
@@ -383,65 +387,58 @@ std::string HttpRequest::get_mime_type() const{
     mime_types["application/pdf"] = ".pdf";
     mime_types["application/zip"] = ".zip";
     mime_types["application/octet-stream"] = ".bin";
-
-
     std::string ext = headers.find("Content-Type") != headers.end() ? headers.at("Content-Type") : "";
     return mime_types.find(ext) != mime_types.end() ? mime_types.at(ext) : ".bin";
 }
 
-void HttpRequest::create_file()
+
+void HttpRequest::create_file(int flag)
 {
-    struct  stat buffer;
-    Location *it = getCurrentLocation(path, server);
+    Location* it = getCurrentLocation(path, server);
+    if (std::find(it->methods.begin(), it->methods.end(), method) == it->methods.end()) 
+        return  set_status(405);
     std::string build_pat = buildPath(it->URI, path, it->root);
-    std::cout << "Build path: " << build_pat << std::endl;
-    if (it->methods.end() == std::find(it->methods.begin(), it->methods.end(), method))
-    {
-        code_status = 405;
-        body_complete = true;
-        return;
+    struct stat buffer;
+    if (stat(build_pat.c_str(), &buffer) != 0 || !S_ISDIR(buffer.st_mode)) 
+        return  set_status(500);
+    std::string ext;
+    if (!boundary.empty() && !form_data["filename"].empty()) {
+        const std::string& orig_filename = form_data["filename"];
+        size_t dot_pos = orig_filename.find_last_of('.');
+        if (dot_pos != std::string::npos && dot_pos < orig_filename.length() - 1) {
+            ext = orig_filename.substr(dot_pos);
+        }
+    } else {
+        ext = get_mime_type(); 
     }
-    std::cout << "Build path: " << build_pat << std::endl;
-    if (stat(build_pat.c_str(), &buffer) != 0)
-    {
-        code_status = 500;
-        body_complete = true;
-        return;
-    }
-    else
-    {
-        if (!boundary.empty())
+    const int MAX_ATTEMPTS = 1000;
+    for (int i = 1; i <= MAX_ATTEMPTS; ++i) {
+        std::string candidate = build_pat + "/upload_" + random_string(8) + ext;
+        if (stat(candidate.c_str(), &buffer) != 0) {
+            if (flag == 1)
+                form_data["filename"] = std::move(candidate);
+            else
+                filename = std::move(candidate);
             return;
-        int i = 1;
-        while (true)
-        {
-            filename = build_pat + "/upload_" + generate_random_string(i) + get_mime_type();
-            std::cout << "Generated filename: " << filename << std::endl;
-            if (stat(filename.c_str(), &buffer) != 0)
-                break;
-            i++;
         }
     }
     
 }
 
-bool HttpRequest::cgi()
-{
-    return false;
-}
 
 
 
 void HttpRequest::parse_body(std::string& data) {
-    if (filename == "")
-        create_file();
+    Location *it = getCurrentLocation(path, server);
+    if (filename == "" && boundary.empty())
+        create_file(0);
     if (!chunked.empty())
     {
         inchunk_body(data);
     }
     if (contentLength > 0 && chunked.empty())
     {
-        if (boundary.empty() || cgi())
+        if (boundary.empty() || isCGI(path, it))
         {
             std::ofstream file(filename.c_str(), std::ios::binary | std::ios::app);        
             size_t bytesToWrite = std::min(static_cast<size_t>(contentLength), data.size());
@@ -450,10 +447,7 @@ void HttpRequest::parse_body(std::string& data) {
             data.erase(0, bytesToWrite); 
             if (contentLength <= 0) {
                 file.close();
-                body_complete = true;
-                std::cout << "pppp\n";
-                code_status = 201;
-                return;
+                return set_status(201);
             }
         }
         else{

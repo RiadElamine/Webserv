@@ -3,7 +3,7 @@
 
 #include "ConfigFile.hpp"
 #include "response.hpp"
-
+#include <random>
 
 class HttpRequest {
     private:
@@ -30,6 +30,7 @@ class HttpRequest {
         std::string RequestData;
         void check(std::string& data, size_t pos);
         std::string filename;
+        std::string remove_dot_segments(std::string path);
     public:
         HttpRequest();
         int  parse_request(char* buffer, ssize_t n);
@@ -68,13 +69,13 @@ class HttpRequest {
         void setServer(ServerConfig *srv) {
             server = srv;
         }
-        void create_file();
+        void create_file(int flag);
         std::string get_filename() const {
             return filename;
         }
         std::string get_mime_type()const;
-        bool cgi();
         void setStatusCode(int code_status) { this->code_status = code_status; }
+        void set_status(int status);
 };
 
 #endif
