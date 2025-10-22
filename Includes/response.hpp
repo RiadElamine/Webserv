@@ -62,6 +62,7 @@ class Response {
     Header responseHeader;
     std::string body;
     std::string path;
+    std::string CGI_Header;
     std::list<ChunkedBodyData> chunkedBody;
     ServerConfig *currentServer;
     Location *currentLocation;
@@ -79,13 +80,17 @@ class Response {
         std::string getResponse();
         void setField_line(std::map<std::string, std::string>&);
         void setPath(std::string _path);
+        void fill_CGI_Header(std::string );
+        void update_CGI_Header(std::string);
 
         // getter
         std::string getPath(void);
         Location* getCurrentRoute(void);
+        std::string get_CGI_Header(void) const;
         // setter
         void setCurrentLocation(Location *loc);
         void setStatusCode(int statusCode);
+
 };
 
 void getDataFromRequest(HttpRequest request, Response &response);
@@ -107,4 +112,5 @@ void listDirectory(const std::string& path, std::vector<std::string>&);
 bool isDirectoryEmpty(const std::string& path);
 void executeCGI(std::string outFile, char* args[]);
 void readCGI(std::string filename, Response& response);
+bool parseCGIheader(char*, size_t , Response& );
 #endif

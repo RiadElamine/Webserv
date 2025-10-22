@@ -47,6 +47,19 @@ void Response::setField_line(std::map<std::string, std::string>& filed_line) {
         responseHeader.field_line[it->first] = it->second;
     }
 }
+
+void Response::fill_CGI_Header(std::string tmp) {
+    CGI_Header.append(tmp);
+}
+
+void Response::update_CGI_Header(std::string str) {
+    CGI_Header = str;
+}
+
+std::string Response::get_CGI_Header() const {
+    return CGI_Header;
+}
+
 void Response::setHeader(Header copyHeader) {
     responseHeader.status_line.HttpVersion = copyHeader.status_line.HttpVersion;
     responseHeader.status_line.statusCode = copyHeader.status_line.statusCode;
@@ -97,26 +110,26 @@ void Response::Get() {
         body = makeBodyResponse(currentLocation, statusCode, currentServer->error_pages, "");
     }
     else if (isCGI(path, currentLocation)) {
-        Response response;
-
-        char *args[3] = {
-            (char*) "/Users/relamine/Desktop/cgi/cgi-bin/cgi/env/bin/python3",
-            (char *) "/Users/relamine/Desktop/cgi/cgi-bin/cgi/getLatestNew.py",
-            NULL
-        };
-        // std::string path_ = path.erase(0);
-        // args[1] = (char *) path_.c_str();
-        // args[2] = NULL;
-        executeCGI("/Users/relamine/Desktop/cgi/CGI", args);
-        readCGI("/Users/relamine/Desktop/cgi/CGI", response);
-        responseHeader.status_line.statusCode = response.responseHeader.status_line.statusCode;
-        responseHeader.status_line.reasonPhrase = response.responseHeader.status_line.reasonPhrase;
-        responseHeader.status_line.HttpVersion = response.responseHeader.status_line.HttpVersion;
-        setField_line(response.responseHeader.field_line);
-        body = response.body;
-        std::ostringstream ss;
-        ss << body.size();
-        responseHeader.field_line["Content-Length"] = ss.str();
+//        Response response;
+//
+//        char *args[3] = {
+//            (char*) "/Users/relamine/Desktop/cgi/cgi-bin/cgi/env/bin/python3",
+//            (char *) "/Users/relamine/Desktop/cgi/cgi-bin/cgi/getLatestNew.py",
+//            NULL
+//        };
+//        // std::string path_ = path.erase(0);
+//        // args[1] = (char *) path_.c_str();
+//        // args[2] = NULL;
+//        executeCGI("/Users/relamine/Desktop/cgi/CGI", args);
+//        readCGI("/Users/relamine/Desktop/cgi/CGI", response);
+//        responseHeader.status_line.statusCode = response.responseHeader.status_line.statusCode;
+//        responseHeader.status_line.reasonPhrase = response.responseHeader.status_line.reasonPhrase;
+//        responseHeader.status_line.HttpVersion = response.responseHeader.status_line.HttpVersion;
+//        setField_line(response.responseHeader.field_line);
+//        body = response.body;
+//        std::ostringstream ss;
+//        ss << body.size();
+//        responseHeader.field_line["Content-Length"] = ss.str();
         return ;
     }
     else if (info.st_mode & S_IFDIR) {
@@ -290,3 +303,15 @@ void Response::handle_directorys(e_StatusCode& statusCode, std::string& mime, Lo
         }
     }
 }
+
+//char *readheader() {
+//    return NULL;
+//}
+//
+//char * readBuffer(int fd, size_t BUFFER_SIZE, response& response) {
+//
+//    char * buffer[BUFFER_SIZE];
+//    read(fd, buffer, BUFFER_SIZE);
+//    if (check_is_)
+//    response.buffer_string.append(buffer);
+//}

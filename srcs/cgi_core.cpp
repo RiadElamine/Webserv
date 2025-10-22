@@ -31,6 +31,7 @@ Cgi::~Cgi()
     }
 }
 
+
 void Cgi::executeCgi()
 {
     // Open file to write CGI script output
@@ -40,6 +41,8 @@ void Cgi::executeCgi()
 
     // set both ends of my tunnel to non-blocking and close on exec
     setNonBlockCloexec(cgi_stdout);
+    
+    redirectCgiOutput();
 
     // Fork a new process to execute the CGI script
     cgi_pid = fork();
@@ -55,12 +58,12 @@ void Cgi::executeCgi()
     else
     {
         setupParentProcessEvents();
-        sleep(100);
     }
 }
 
 void Cgi::_readCgiOutput() {
     char buffer[4096];
+    std::cout << cgi_stdout << std::endl;
     ssize_t n = read(cgi_stdout, buffer, sizeof(buffer));
     if (n <= 0)
     {
@@ -69,30 +72,23 @@ void Cgi::_readCgiOutput() {
         Context.state_of_connection = DISCONNECTED;
         return;
     }
+      
+     if (parseCGIheader(buffer, n, Context.clientResponses[client_fd]))
+     {
+         std::cout << "--CGI output read done for client: " << client_fd << std::endl;
+         makestdoutDone();
+         return;
+     }
 
-    // requestCgi.RequestData.append(buffer, n);
-    // if (parseCGIheader(buffer, response))
-    // {
-    //     makestdoutDone();
-    //     Context.state_of_connection = CONNECTED;
-    //     return;
-    // }
-    if (true)
-    {
-        std::cout << "--CGI output read done for client: " << client_fd << std::endl;
-        makestdoutDone();
-        return;
-    }
-
-    // // Reset the timer
-    // struct kevent ev;
-    // EV_SET(&ev, cgi_stdout, EVFILT_TIMER, EV_ENABLE , 0, timeout, (void*)this);
-    // if (kevent(Context.kq, &ev, 1, NULL, 0, NULL) == -1) {
-    //     perror("kevent");
-    //     throw std::runtime_error("Failed to reset timer");
-    // }
-    //     std::cout << "--CGI output read completed for client: " << client_fd << std::endl;
-
+     // Reset the timer
+     struct kevent ev;
+     EV_SET(&ev, cgi_stdout, EVFILT_TIMER, EV_ENABLE , 0, timeout, (void*)this);
+     if (kevent(Context.kq, &ev, 1, NULL, 0, NULL) == -1) {
+         perror("kevent");
+         throw std::runtime_error("Failed to reset timer");
+     }
+    
+     std::cout << "--CGI output read completed for client: " << client_fd << std::endl;
 }
 
 void Cgi::finalizeCgiProcess(int statusCode) {
@@ -127,7 +123,7 @@ void Cgi::handleCgiCompletion()
     if (waitpid(this->getCgiPid(), &this->getStatus(), 0) == -1)
     {
         perror("waitpid");
-        throw std::runtime_error("Failed to reap CGI process");
+        throw std::runtime_error("Failed to read CGI process");
     }
     int _status_code;
 

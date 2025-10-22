@@ -52,7 +52,6 @@ bool file_Exist(std::string path) {
     return (0);
 }
 
-
 std::string makeBodyResponse(Location *currentLocation, int statusCode, std::map<int, std::string>& error_pages, std::string path) {
     std::string body;
     if (path.empty()) {

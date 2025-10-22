@@ -233,10 +233,9 @@ void WebServer::handleTimeoutEvent()
    else
    {
        // CGI timeout event
+       std::cout << "CGI process timed out for client: " << std::endl;
        Cgi *e = static_cast<Cgi*>(Context.event.udata);
-       e->finalizeCgiProcess(Gateway_Timeout);
-       std::cout << "CGI process timed out for client: " << e->getClientFd() << std::endl;
-   }
+       e->finalizeCgiProcess(Gateway_Timeout);   }
 }
 
 void WebServer::_closeConnection() {
