@@ -1,5 +1,4 @@
 #include "../Includes/response.hpp"
-#define BUFFER_SIZE 100000
 
 //size_t headerEnd(char *buffer, size_t buffer_size, Response& response){
 //
@@ -109,6 +108,8 @@ bool parseCGIheader(std::string& header, char *buffer , size_t buffer_size, Resp
     bool statusCode_found(false);
     bool valid_header(false);
     std::map<std::string, std::string>::iterator tmp;
+    response.setIndex(header.size() + 2);
+
     try {
         make_field_line(field_line, header);
 
@@ -141,20 +142,27 @@ bool parseCGIheader(std::string& header, char *buffer , size_t buffer_size, Resp
     return true;
 }
 
-//int main() {
-//    Response response;
-//    std::string Header;
-//
-//    int fd = open("/Users/oel-asri/Kingsave/Webserv/cgi_test", O_RDONLY);
-//    char buffer[BUFFER_SIZE];
-//    int size;
-//
-//    while ((size = read(fd, buffer, BUFFER_SIZE)) > 0) {
-//
-//        parseCGIheader(Header, buffer, size, response);
-//    }
-//    close(fd);
-//    std::cout << response.getResponse();
-//
-//    return (0);
-//}
+int main() {
+    Response response;
+    std::string Header;
+
+    int fd = open("/Users/oel-asri/Kingsave/Webserv/cgi_test", O_RDONLY);
+    char buffer[BUFFER_SIZE];
+    int size;
+
+    while ((size = read(fd, buffer, BUFFER_SIZE)) > 0) {
+
+        parseCGIheader(Header, buffer, size, response);
+    }
+    close(fd);
+ 
+    std::ifstream file("/Users/oel-asri/Kingsave/Webserv/cgi_test", std::ifstream::in);
+    std::string chunk;
+    
+    chunk = get_body_chunk(file, response);
+    std::cout << chunk ;
+//    while ((chunk = get_body_chunk(file, response)).empty())
+//        std::cout << "-------- " << chunk << " -------" << std::endl;
+    file.close();
+    return (0);
+}

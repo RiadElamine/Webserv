@@ -4,6 +4,7 @@
 
 #include "HttpRequest.hpp"
 
+#define BUFFER_SIZE 100000
 
 /*
 * StatusLineData: Data containing the information used by status line
@@ -66,6 +67,8 @@ class Response {
     std::list<ChunkedBodyData> chunkedBody;
     ServerConfig *currentServer;
     Location *currentLocation;
+    size_t index;
+
     public:
         Response();
         void setMethod(std::string );
@@ -87,9 +90,12 @@ class Response {
         std::string getPath(void);
         Location* getCurrentRoute(void);
         std::string get_CGI_Header(void) const;
+        size_t getIndex(void) const;
+
         // setter
         void setCurrentLocation(Location *loc);
         void setStatusCode(int statusCode);
+        void setIndex(size_t);
 
 };
 
@@ -113,4 +119,5 @@ bool isDirectoryEmpty(const std::string& path);
 void executeCGI(std::string outFile, char* args[]);
 void readCGI(std::string filename, Response& response);
 bool parseCGIheader(char*, size_t , Response& );
+std::string get_body_chunk(std::ifstream& file_stream, Response& response);
 #endif

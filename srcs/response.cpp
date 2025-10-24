@@ -62,6 +62,14 @@ std::string Response::get_CGI_Header() const {
     return CGI_Header;
 }
 
+void Response::setIndex(size_t pos) {
+    index = pos;
+}
+
+size_t Response::getIndex(void) const {
+    return index;
+}
+
 void Response::setHeader(Header copyHeader) {
     responseHeader.status_line.HttpVersion = copyHeader.status_line.HttpVersion;
     responseHeader.status_line.statusCode = copyHeader.status_line.statusCode;
