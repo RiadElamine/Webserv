@@ -119,5 +119,5 @@ bool isDirectoryEmpty(const std::string& path);
 void executeCGI(std::string outFile, char* args[]);
 void readCGI(std::string filename, Response& response);
 bool parseCGIheader(char*, size_t , Response& );
-std::string get_body_chunk(std::ifstream& file_stream, Response& response);
+std::string get_body_chunk(std::string&, Response&);
 #endif
