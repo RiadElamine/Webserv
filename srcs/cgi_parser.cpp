@@ -66,7 +66,8 @@ void make_field_line(std::map<std::string, std::string>& filed_line, std::string
         
         end += 2;
         start = end;
-        filed_line[key] = value;
+        if (!key.empty())
+            filed_line[key] = value;
     }
 }
 
@@ -90,17 +91,17 @@ void set_statusCode(std::string& statusCode, Response& response) {
     size_t len = statusCode.size();
     size_t index = match_only(statusCode, ' ', 0, len, 1);
     if (index == std::string::npos && !isdigit(statusCode[len - 1]))
-        throw std::runtime_error("status code and the reason phrase should have only one space between them\n");
+        throw std::runtime_error("status code and the reason phrase should have only one space between them");
     std::stringstream ss(statusCode);
     int val ;
     ss >> val;
     if (val < 100 || val > 599)
-        throw std::runtime_error("Invalid range of status code\n");
+        throw std::runtime_error("Invalid range of status code");
 
     response.setStatusCode(val);
 }
 
-bool parseCGIheader(std::string& header, char *buffer , size_t buffer_size, Response& response __attribute__ ((unused))) { //
+bool parseCGIheader(std::string& header, char *buffer , size_t buffer_size, Response& response) { //
     if (!form_header(buffer, buffer_size, header))
         return false;
 
@@ -108,48 +109,52 @@ bool parseCGIheader(std::string& header, char *buffer , size_t buffer_size, Resp
     bool statusCode_found(false);
     bool valid_header(false);
     std::map<std::string, std::string>::iterator tmp;
+    try {
+        make_field_line(field_line, header);
 
-    make_field_line(field_line, header);
+        for (std::map<std::string, std::string>::iterator it = field_line.begin(); it != field_line.end(); ++it) {
+            std::string key = to_lower(it->first);
+            if (key == "status") {
+                set_statusCode(it->second, response);
+                statusCode_found = true;
+                tmp = it;
 
-    for (std::map<std::string, std::string>::iterator it = field_line.begin(); it != field_line.end(); ++it) {
-        std::string key = to_lower(it->first);
-        if (key == "status") {
-            set_statusCode(it->second, response);
-            statusCode_found = true;
-            tmp = it;
-
+            }
+            if (key == "content-type" || key == "location")
+                valid_header = true;
         }
-        if (key == "content-type" || key == "location")
-            valid_header = true;
+
+        if (!valid_header)
+            throw std::runtime_error("Invalid Header, content-type, and location not provided");
+
+        if (!statusCode_found)
+            response.setStatusCode(200);
+        else
+            field_line.erase(tmp);
+
+        response.setField_line(field_line);
+    } catch (std::exception& e) {
+        std::cout << e.what() << std::endl;
+        response.setStatusCode(502);
     }
-
-    if (!valid_header)
-        throw std::runtime_error("Invalid Header, content-type, and location not provided\n");
-
-    if (!statusCode_found)
-        response.setStatusCode(200);
-    else
-        field_line.erase(tmp);
-
-    response.setField_line(field_line);
 
     return true;
 }
 
-int main() {
-    Response response;
-    std::string Header;
-
-    int fd = open("/Users/mac/Webserv/cgi_test", O_RDONLY);
-    char buffer[BUFFER_SIZE];
-    size_t size;
-
-    while ((size = read(fd, buffer, BUFFER_SIZE)) > 0) {
-
-        parseCGIheader(Header, buffer, size, response);
-    }
-    close(fd);
-    std::cout << response.getResponse();
-
-    return (0);
-}
+//int main() {
+//    Response response;
+//    std::string Header;
+//
+//    int fd = open("/Users/oel-asri/Kingsave/Webserv/cgi_test", O_RDONLY);
+//    char buffer[BUFFER_SIZE];
+//    int size;
+//
+//    while ((size = read(fd, buffer, BUFFER_SIZE)) > 0) {
+//
+//        parseCGIheader(Header, buffer, size, response);
+//    }
+//    close(fd);
+//    std::cout << response.getResponse();
+//
+//    return (0);
+//}

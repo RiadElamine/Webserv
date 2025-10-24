@@ -5,11 +5,13 @@
 
 Response::Response() {
     transferEncoding = false;
+    responseHeader.status_line.HttpVersion = "HTTP/1.1";
 }
 
 void Response::setStatusCode(int statusCode)
 {
     responseHeader.status_line.statusCode = (e_StatusCode)statusCode;
+    responseHeader.status_line.reasonPhrase = getReasonPhrase((e_StatusCode)statusCode);
 }
 
 void Response::setMethod(std::string _method) {
