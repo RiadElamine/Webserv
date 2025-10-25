@@ -63,11 +63,11 @@ class Response {
     Header responseHeader;
     std::string body;
     std::string path;
-    std::string CGI_Header;
     std::list<ChunkedBodyData> chunkedBody;
     ServerConfig *currentServer;
     Location *currentLocation;
-    size_t index;
+    std::ifstream cgi_stream;
+    
     // bool    is_cgi;
     public:
         Response();
@@ -83,19 +83,20 @@ class Response {
         std::string getResponse();
         void setField_line(std::map<std::string, std::string>&);
         void setPath(std::string _path);
-        void fill_CGI_Header(std::string );
-        void update_CGI_Header(std::string);
+        std::string Read_chunks(size_t size);
 
         // getter
         std::string getPath(void);
         Location* getCurrentRoute(void);
-        std::string get_CGI_Header(void) const;
-        size_t getIndex(void) const;
+//        size_t getIndex(void) const;
+        bool is_cgi_strem_open() const;
+        std::string getHeader() const;
 
         // setter
         void setCurrentLocation(Location *loc);
         void setStatusCode(int statusCode);
-        void setIndex(size_t);
+//        void setIndex(size_t);
+        bool open_cgi_stream(std::string& file_path); // if this return false, the server should response with 500
 
         //
         bool &isCgi(void);

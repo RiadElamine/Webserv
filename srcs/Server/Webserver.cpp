@@ -185,6 +185,7 @@ void WebServer::_handleReadable() {
         throw std::runtime_error("Failed to reset timer");
     }
 }
+// here is my functions
 
 void WebServer::_handleWritable() {
     // if (clientRequests[client_fd].getMethod() == "POST")

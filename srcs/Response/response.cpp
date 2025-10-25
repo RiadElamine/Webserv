@@ -51,24 +51,49 @@ void Response::setField_line(std::map<std::string, std::string>& filed_line) {
     }
 }
 
-void Response::fill_CGI_Header(std::string tmp) {
-    CGI_Header.append(tmp);
+//void Response::setIndex(size_t pos) {
+//    index = pos;
+//}
+
+//size_t Response::getIndex(void) const {
+//    return index;
+//}
+
+bool Response::open_cgi_stream(std::string& file_path) {
+    cgi_stream.open(file_path.c_str(), std::ios_base::in | std::ios_base::binary);
+    
+    if (!cgi_stream.is_open())
+        return false;
+    return true;
 }
 
-void Response::update_CGI_Header(std::string str) {
-    CGI_Header = str;
+bool Response::is_cgi_strem_open() const {
+    return cgi_stream.is_open();
 }
 
-std::string Response::get_CGI_Header() const {
-    return CGI_Header;
+std::string Response::Read_chunks(size_t size) {
+    char buffer[size];
+
+    if (cgi_stream.eof()) {
+        cgi_stream.close();
+        return "";
+    }
+    cgi_stream.read(buffer, size);
+    return std::string(buffer, cgi_stream.gcount());
 }
 
-void Response::setIndex(size_t pos) {
-    index = pos;
-}
+std::string Response::getHeader() const
+{
+    std::string header;
+    std::stringstream ss;
 
-size_t Response::getIndex(void) const {
-    return index;
+    ss << responseHeader.status_line.statusCode ;
+    header += responseHeader.status_line.HttpVersion + " " + ss.str() + " " + responseHeader.status_line.reasonPhrase + "\r\n";
+
+    for(std::map<std::string, std::string>::const_iterator it = responseHeader.field_line.begin(); it != responseHeader.field_line.end(); ++it) {
+        header += it->first + ": " + it->second + "\r\n";
+    }
+    return header;
 }
 
 void Response::setHeader(Header copyHeader) {
@@ -106,8 +131,8 @@ void Response::Get() {
     struct stat info;
     std::string oldPath = path;
 
-    Location *currentLocation = getCurrentLocation(path, currentServer);
-    path = buildPath(currentLocation->URI, path, currentLocation->root);
+//    Location *currentLocation = getCurrentLocation(path, currentServer);
+//    path = buildPath(currentLocation->URI, path, currentLocation->root);
     if (!pathExists(path, &info)) {
         // respond with 404 code status
         statusCode = Not_Found;
