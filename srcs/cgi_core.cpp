@@ -90,7 +90,7 @@ void Cgi::finalizeCgiProcess(int statusCode) {
     // set error status (500 or 504, etc.)
     if (statusCode != I_Dont_have_respons)
     {
-        if (statusCode == Doesnt_fail)
+        if (statusCode != Doesnt_fail)
         {
             // send error response to client
             Context.clientResponses[this->getClientFd()].setStatusCode(statusCode);
@@ -127,7 +127,6 @@ void Cgi::handleCgiCompletion()
         // we dont change the status code, let the response handler do it
         _status_code = Doesnt_fail;
         std::cout << "--CGI process completed successfully for client: " << client_fd << std::endl;
-        return;
     }
     else
     {

@@ -128,6 +128,8 @@ bool isCgiRequest(KqueueContext &Context, int fd_client) {
     response.setCurrentLocation(currentLocation);
     response.setPath(buildPath(currentLocation->URI, request.getPath(), currentLocation->root));
 
+    // response.isCgi() = isCGI(response.getPath(), currentLocation);
+    // return response.isCgi();
     return isCGI(response.getPath(), currentLocation);
 }
 
@@ -192,7 +194,8 @@ void WebServer::_handleWritable() {
 
     // response = Context.clientResponses[Context.event.ident];
     // std::string message = get_body_chunk(file_name, response);
-    Response response;
+    Response &response = Context.clientResponses[Context.event.ident];
+
     getDataFromRequest(Context.clientRequests[Context.event.ident], response);
     response.execute_method();
     std::string message = response.getResponse();
@@ -307,7 +310,6 @@ void WebServer::startServer() {
             } 
             else if (Context.event.filter == EVFILT_WRITE)
             {
-                std::cout << "Sending response to client: " << Context.event.ident << std::endl;
                 _handleWritable();
             }
             else if (Context.event.filter == EVFILT_TIMER)
@@ -320,7 +322,7 @@ void WebServer::startServer() {
                 Cgi* cgiClient = static_cast<Cgi*>(Context.event.udata);
                 cgiClient->handleCgiCompletion();
             }
-            if (Context.state_of_connection[Context.event.ident] == DISCONNECTED)
+            if (Context.event.udata == (void *)client_event && Context.state_of_connection[Context.event.ident] == DISCONNECTED)
             {
                 _closeConnection();
             }

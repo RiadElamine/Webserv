@@ -68,6 +68,7 @@ class Response {
     ServerConfig *currentServer;
     Location *currentLocation;
     size_t index;
+    // bool    is_cgi;
     public:
         Response();
         void setMethod(std::string );
@@ -95,6 +96,9 @@ class Response {
         void setCurrentLocation(Location *loc);
         void setStatusCode(int statusCode);
         void setIndex(size_t);
+
+        //
+        bool &isCgi(void);
 
 };
 

@@ -22,6 +22,8 @@ void Response::setPath(std::string _path) {
     path = _path;
 }
 
+//  bool &Response::isCgi(void) { return is_cgi; };
+
 ///
 std::string Response::getPath(void) {
     return path;

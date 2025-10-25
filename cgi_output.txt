@@ -1,18 +1,10 @@
-"""
-Date
-Content-type
-Content-lenght
-Connection
-Server
-Location ?*
-"""
-import sys
+Status: 200 OK
+Content-Type: text/html
+Content-Length: 1606
+Connection: close
+Server: WebServer/1.1.0
 
-def getIndexBody():
-	"""
-		getIndexBody - return the body response for the index file
-	"""
-	body = """
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -85,28 +77,3 @@ def getIndexBody():
 	<footer>Powered by CGI & Python ⚙️</footer>
 </body>
 </html>
-"""
-	return body
-
-def getHeader(bodyLength):
-
-	return (
-		f"Status: 200 OK\r\n"
-		f"Content-Type: text/html\r\n"
-		f"Content-Length: {bodyLength}\r\n"
-		f"Connection: close\r\n"
-		f"Server: WebServer/1.1.0\r\n\r\n"
-	)
-	
-
-def main():
-	"""
-		main - Entry point fo the program
-	"""
-	body = getIndexBody()
-	header = getHeader(len(body))
-	sys.stdout.write(header + body)
-
-if __name__ == "__main__":
-	main()
-
