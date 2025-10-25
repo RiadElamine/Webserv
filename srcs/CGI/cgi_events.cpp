@@ -1,5 +1,4 @@
-
-#include "../Includes/Cgi_handler.hpp"
+#include "../../Includes/CGI/Cgi_handler.hpp"
 
 
 void Cgi::setupCgiOuput_Parent()

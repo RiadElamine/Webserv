@@ -1,4 +1,4 @@
-#include "../Includes/ConfigFile.hpp"
+#include "../../Includes/Server/ConfigFile.hpp"
 
 ConfigFile::ConfigFile(int argc, char **argv)
 {

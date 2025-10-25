@@ -2,8 +2,8 @@
 #define WEBSERVER_HPP
 
 // #include "../Includes/HttpRequest.hpp"
-#include "response.hpp"
-#include "Cgi_handler.hpp"
+
+#include "../CGI/Cgi_handler.hpp"
 
 class WebServer {
     public:

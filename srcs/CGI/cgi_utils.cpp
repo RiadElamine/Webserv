@@ -1,5 +1,5 @@
 
-#include "../Includes/Cgi_handler.hpp"
+#include "../../Includes/CGI/Cgi_handler.hpp"
 
 void Cgi::setNonBlockCloexec(int fd) {
     if (fcntl(fd, F_SETFL, FD_CLOEXEC | O_NONBLOCK) == -1)

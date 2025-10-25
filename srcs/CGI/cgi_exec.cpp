@@ -1,6 +1,6 @@
 
 
-#include "../Includes/Cgi_handler.hpp"
+#include "../../Includes/CGI/Cgi_handler.hpp"
 
 // Execute the CGI script in the child process
 

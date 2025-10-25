@@ -1,6 +1,5 @@
 
-#include "../Includes/Cgi_handler.hpp"
-
+#include "../../Includes/CGI/Cgi_handler.hpp"
 
 Cgi::Cgi(KqueueContext &Context) : Context(Context)
 {
@@ -56,7 +55,6 @@ void Cgi::executeCgi()
 
 void Cgi::_readCgiOutput() {
     char buffer[4096];
-    std::cout << "fd of cgi output :" << cgi_stdout << std::endl;
     ssize_t n = read(cgi_stdout, buffer, sizeof(buffer));
     if (n <= 0)
     {
@@ -66,12 +64,8 @@ void Cgi::_readCgiOutput() {
         return;
     }
 
-    bool done = parseCGIheader( Context.headers_buffer_CGI[client_fd], buffer, n, Context.clientResponses[client_fd]);
-    const char *str = (done == true )? "true" : "false";
-    std::cout << str << std::endl;
-    if (done)
+    if (parseCGIheader( Context.headers_buffer_CGI[client_fd], buffer, n, Context.clientResponses[client_fd]))
      {
-         std::cout << "--CGI output read done for client: " << client_fd << std::endl;
          makestdoutDone();
          return;
      }

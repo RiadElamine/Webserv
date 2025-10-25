@@ -1,4 +1,4 @@
-#include "../Includes/HttpRequest.hpp"
+#include "../../Includes/Request/HttpRequest.hpp"
 
 HttpRequest::HttpRequest() {
     contentLength = 0;

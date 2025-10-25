@@ -1,5 +1,4 @@
-#include "../Includes/response.hpp"
-#include "../Includes/HttpRequest.hpp"
+#include "../../Includes/Request/HttpRequest.hpp"
 
 void getDataFromRequest(HttpRequest request, Response &response){
     Header copyHeader;

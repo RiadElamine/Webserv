@@ -1,4 +1,4 @@
-#include "../Includes/response.hpp"
+#include "../../Includes/CGI/Cgi_handler.hpp"
 
 //size_t headerEnd(char *buffer, size_t buffer_size, Response& response){
 //

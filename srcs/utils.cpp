@@ -1,4 +1,4 @@
-#include "../Includes/response.hpp"
+#include "../Includes/Response/response.hpp"
 
 std::string getTimeOftheDay() {
     std::time_t t = std::time(0);        // get current time
@@ -64,7 +64,6 @@ std::string makeBodyResponse(Location *currentLocation, int statusCode, std::map
         body = readFile(error_pages[statusCode]);
     } else {
         if (!isCGI(path, currentLocation)) {
-            std::cout << "not cGI" << std::endl;
             body = readFile(path);
         } else {
         

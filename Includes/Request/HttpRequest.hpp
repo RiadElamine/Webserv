@@ -1,8 +1,8 @@
 #ifndef HTTPREQUEST_HPP
 #define HTTPREQUEST_HPP
 
-#include "ConfigFile.hpp"
-#include "response.hpp"
+#include "../Server/ConfigFile.hpp"
+#include "../Response/response.hpp"
 #include <random>
 
 class HttpRequest {

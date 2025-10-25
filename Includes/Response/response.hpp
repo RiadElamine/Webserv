@@ -2,7 +2,7 @@
 #define __RESPONSE_H_
 
 
-#include "HttpRequest.hpp"
+#include "..//Request/HttpRequest.hpp"
 
 #define BUFFER_SIZE 100000
 

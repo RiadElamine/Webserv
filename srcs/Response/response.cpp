@@ -1,6 +1,5 @@
-#include "../Includes/response.hpp"
 
-
+#include "../../Includes/Response/response.hpp"
 //handle redirection in the config file 
 
 Response::Response() {
@@ -109,7 +108,6 @@ void Response::Get() {
 
     Location *currentLocation = getCurrentLocation(path, currentServer);
     path = buildPath(currentLocation->URI, path, currentLocation->root);
-    std::cout << "path: " << path << std::endl;
     if (!pathExists(path, &info)) {
         // respond with 404 code status
         statusCode = Not_Found;

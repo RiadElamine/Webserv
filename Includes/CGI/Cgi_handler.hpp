@@ -1,6 +1,6 @@
 #pragma once
-#include "Common.hpp"
-#include "HttpRequest.hpp"
+#include "../Common.hpp"
+#include "../Request/HttpRequest.hpp"
 
 class HttpRequest;
 class Cgi;
