@@ -191,6 +191,7 @@ void WebServer::_handleWritable() {
     // Response &response;
 
     // response = Context.clientResponses[Context.event.ident];
+    // std::string message = get_body_chunk(file_name, response);
     Response response;
     getDataFromRequest(Context.clientRequests[Context.event.ident], response);
     response.execute_method();
