@@ -9,7 +9,7 @@ void Cgi::setupCgiPipes()
     if (hasRequestBody())
         setupCgiStdin();
 
-    redirectCgiOutput();
+    setupCgiStdout();
 }
 
 bool Cgi::hasRequestBody()
@@ -24,13 +24,27 @@ void Cgi::setupCgiStdin()
     cgi_stdin = open(bodyFile.c_str(), O_RDONLY);
     if (cgi_stdin == -1)
     {
+        perror("open body file for cgi_stdin");
         close(cgi_stdout);
-        throw std::runtime_error("Failed to open request body file for CGI stdin");
+        exit(1);
     }
 
     setNonBlockCloexec(cgi_stdin);
 
     redirectCgiInput();
+}
+
+void Cgi::setupCgiStdout()
+{
+    cgi_stdout = open("cgi_output.txt", O_CREAT | O_RDWR | O_TRUNC, 0644);
+    if (cgi_stdout == -1){
+        perror("open cgi_stdout");
+        exit(1);
+    }
+
+    setNonBlockCloexec(cgi_stdout);
+
+    redirectCgiOutput();
 }
 
 void Cgi::redirectCgiInput()
@@ -48,7 +62,7 @@ void Cgi::redirectCgiOutput()
     {
         close(cgi_stdout);
         close(cgi_stdin);
-        _exit(1);
+        exit(1);
     }
 }
 
@@ -79,14 +93,14 @@ void Cgi::runExecve(const char *interpreter, const std::vector<char*> &args, std
 {
     if (execve(interpreter, const_cast<char* const*>(args.data()), env.data()) == -1)
     {
-        _exit(1);
+        exit(1);
     }
 }
 
 void Cgi::executeCgiScript()
 {
     setupCgiPipes();
-    std::cout << "--CGI Environment built for client: " << client_fd << std::endl;
+        // std::cout << "In child process to execute CGI script" << std::endl;
 
     Response &response = Context.clientResponses[client_fd];
     const char *scriptInterpreter = response.getCurrentRoute()->cgi_Path_Info.c_str();

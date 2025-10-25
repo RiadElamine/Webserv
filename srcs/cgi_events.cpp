@@ -1,6 +1,16 @@
 
 #include "../Includes/Cgi_handler.hpp"
 
+
+void Cgi::setupCgiOuput_Parent()
+{
+    cgi_stdout = open("cgi_output.txt", O_CREAT | O_RDWR | O_TRUNC, 0644);
+    if (cgi_stdout == -1)
+        throw std::runtime_error("Failed to open cgi_output.txt");
+    
+    setNonBlocking(cgi_stdout);
+}
+
 // Setup kqueue events in the parent process after forking CGI
 void Cgi::setupParentProcessEvents()
 {
@@ -39,7 +49,7 @@ void Cgi::registerKqueueEvents(std::vector<struct kevent> &ev)
 void Cgi::monitorCgiProcessExit()
 {
     struct kevent ev_proc;
-    EV_SET(&ev_proc, cgi_pid, EVFILT_PROC, EV_ADD, NOTE_EXIT, 0, (void*)this);
+    EV_SET(&ev_proc, cgi_pid, EVFILT_PROC, EV_ADD | EV_ONESHOT, NOTE_EXIT, 0, (void*)this);
     if (kevent(Context.kq, &ev_proc, 1, NULL, 0, NULL) == -1)
         throw std::runtime_error("Failed to monitor CGI process");
 }
@@ -49,10 +59,13 @@ void Cgi::monitorCgiProcessExit()
 void Cgi::removeCgiEventsFromKqueue(int FD, int PROCESS_ID) {
 
     if (PROCESS_ID >= 0) {
-        struct kevent ev;
-        EV_SET(&ev, PROCESS_ID, EVFILT_PROC, EV_DELETE, 0, 0, NULL);
-        if (kevent(Context.kq, &ev, 1, NULL, 0, NULL) == -1) {
-            throw std::runtime_error("Failed to remove CGI process event");
+        if (kill(PROCESS_ID, 0) == 0)
+        {
+            struct kevent ev;
+            EV_SET(&ev, PROCESS_ID, EVFILT_PROC, EV_DELETE, 0, 0, NULL);
+            if (kevent(Context.kq, &ev, 1, NULL, 0, NULL) == -1) {
+                perror("kevent delete failed");
+            }
         }
         cgi_pid = -1;
     }
@@ -64,7 +77,7 @@ void Cgi::removeCgiEventsFromKqueue(int FD, int PROCESS_ID) {
         if (kevent(Context.kq, ev_cgiFd.data(), ev_cgiFd.size(), NULL, 0, NULL) == -1) {
             throw std::runtime_error("Failed to remove CGI fd events");
         }
-        std::cout << "--CGI events removed from kqueue for client: " << client_fd << std::endl;
+        close(cgi_stdout);
         cgi_stdout = -1;
     }
 }

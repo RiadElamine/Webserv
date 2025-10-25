@@ -5,6 +5,12 @@
 class HttpRequest;
 class Cgi;
 
+// Connection state
+enum ConnectionState {
+    CONNECTED,
+    DISCONNECTED
+};
+
 struct KqueueContext {
     std::vector<struct kevent>  evlist;
     struct kevent               event;
@@ -12,7 +18,8 @@ struct KqueueContext {
     std::map<int, HttpRequest>  clientRequests;
     std::map<int, Cgi>          clientCgiProcesses;
     std::map<int, Response>     clientResponses;
-    ConnectionState             state_of_connection;
+    std::map<int, ConnectionState> state_of_connection;
+    std::map<int, std::string>  headers_buffer_CGI;
 };
 
 class Cgi {
@@ -52,6 +59,8 @@ class Cgi {
         void setupCgiPipes();
         bool hasRequestBody();
         void setupCgiStdin();
+        void setupCgiStdout();
+        void setupCgiOuput_Parent();
         void redirectCgiInput();
         void redirectCgiOutput();
         std::vector<char*> buildCgiArgs(const std::string &scriptPath);

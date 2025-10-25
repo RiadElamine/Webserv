@@ -20,8 +20,6 @@ class WebServer {
         void    _handleReadable();
         void     _handleWritable();
         void    _closeConnection();
-        void    setNonBlocking(int fd);
-
 
         void handleReceiveEvent();
         void handleTimeoutEvent();

@@ -77,7 +77,7 @@ void WebServer::registerEvents() {
     Context.evlist.resize(listeners.size());
 }
 
-void WebServer::setNonBlocking(int fd) {
+void setNonBlocking(int fd) {
     if (fcntl(fd, F_SETFL, O_NONBLOCK) == -1)
     {
         close(fd);
@@ -113,6 +113,7 @@ void WebServer::_handleAccept() {
     Context.clientRequests[client_fd].setServer(listeners[Context.event.ident]);
     // Initialize Response for the new client
     Context.clientResponses[client_fd] = Response();
+    Context.state_of_connection[client_fd] = CONNECTED;
     std::cout << "Client connected: " << client_fd << std::endl;
 }
 
@@ -137,7 +138,7 @@ void WebServer::_handleReadable() {
     ssize_t n = recv(client_fd, buffer, sizeof(buffer), 0);
     if (n <= 0)
     {
-        Context.state_of_connection = DISCONNECTED;
+        Context.state_of_connection[client_fd] = DISCONNECTED;
         return;
     }
     
@@ -151,6 +152,11 @@ void WebServer::_handleReadable() {
             Context.clientCgiProcesses.insert(
                 std::pair<int, Cgi>(client_fd, Cgi(Context))
             );
+
+            Context.headers_buffer_CGI.insert(
+                std::pair<int, std::string>(client_fd, std::string())
+            );
+
             std::cout << "CGI request detected for client: " << client_fd << std::endl;
            
             Context.clientCgiProcesses.at(client_fd).executeCgi();
@@ -192,14 +198,14 @@ void WebServer::_handleWritable() {
     ssize_t n = send(Context.event.ident, message.c_str(), message.length(), 0);
     if (n <= 0)
     {
-        Context.state_of_connection = DISCONNECTED;
+        Context.state_of_connection[Context.event.ident] = DISCONNECTED;
         return;
     }
 
 
     //if data send successfully, we close the connection
     // std::cout << "Response sent to client: " << client_fd << std::endl;
-    Context.state_of_connection = DISCONNECTED;
+    Context.state_of_connection[Context.event.ident] = DISCONNECTED;
 }
 
 void WebServer::handleReceiveEvent()
@@ -228,14 +234,15 @@ void WebServer::handleTimeoutEvent()
    if (Context.event.udata == (void*)client_event)
    {
        std::cout << "Connection timed out: " << Context.event.ident << std::endl;
-       Context.state_of_connection = DISCONNECTED;
+       Context.state_of_connection[Context.event.ident] = DISCONNECTED;
    }
    else
    {
        // CGI timeout event
        std::cout << "CGI process timed out for client: " << std::endl;
        Cgi *e = static_cast<Cgi*>(Context.event.udata);
-       e->finalizeCgiProcess(Gateway_Timeout);   }
+       e->finalizeCgiProcess(Gateway_Timeout);
+    }
 }
 
 void WebServer::_closeConnection() {
@@ -261,6 +268,10 @@ void WebServer::_closeConnection() {
     Context.clientRequests.erase(fd_client);
     // remove client response from map
     Context.clientResponses.erase(fd_client);
+    // remove client header buffer for cgi from map
+    Context.headers_buffer_CGI.erase(fd_client);
+    // remove client state from map
+    Context.state_of_connection.erase(fd_client);
     // close client socket
     shutdown(fd_client, SHUT_WR);
     std::cout << "Shutting down connection: " << fd_client << std::endl;
@@ -288,7 +299,6 @@ void WebServer::startServer() {
 
         for (int i = 0; i < nev; ++i) {
             Context.event = Context.evlist[i];
-            Context.state_of_connection = CONNECTED;
 
             if (Context.event.filter == EVFILT_READ)
             {
@@ -309,12 +319,11 @@ void WebServer::startServer() {
                 Cgi* cgiClient = static_cast<Cgi*>(Context.event.udata);
                 cgiClient->handleCgiCompletion();
             }
-            if (Context.state_of_connection == DISCONNECTED)
+            if (Context.state_of_connection[Context.event.ident] == DISCONNECTED)
             {
                 _closeConnection();
             }
         }
-        // Reset the data in the vector without changing the size or capacity
-        memset(Context.evlist.data(), 0, Context.evlist.size() * sizeof(struct kevent));
+
     }
 }

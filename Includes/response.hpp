@@ -68,7 +68,6 @@ class Response {
     ServerConfig *currentServer;
     Location *currentLocation;
     size_t index;
-
     public:
         Response();
         void setMethod(std::string );
@@ -118,6 +117,6 @@ void listDirectory(const std::string& path, std::vector<std::string>&);
 bool isDirectoryEmpty(const std::string& path);
 void executeCGI(std::string outFile, char* args[]);
 void readCGI(std::string filename, Response& response);
-bool parseCGIheader(char*, size_t , Response& );
+bool parseCGIheader(std::string& header, char *buffer , size_t buffer_size, Response& response);
 std::string get_body_chunk(std::ifstream& file_stream, Response& response);
 #endif

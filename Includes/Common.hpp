@@ -31,20 +31,14 @@
 // Project-specific headers
 #include "status_code.hpp"
 
-// Connection state
-enum ConnectionState {
-    CONNECTED,
-    DISCONNECTED
-};
-
 // Timeout duration
-#define timeout 10 // 
+#define timeout 1000 // 
 
 
 // type of event
 enum type_event {
-    server_event,
-    client_event,
+    server_event = 98,
+    client_event = 99,
 };
 
 
@@ -55,3 +49,6 @@ void _addEvent(std::vector<struct kevent> &events,
 
 #define  DEFAULT_PAGE_ERRORS "./default_error_page/"
 #define DEFAULT_ROOT "./www"
+
+
+void setNonBlocking(int fd);

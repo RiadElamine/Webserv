@@ -25,24 +25,16 @@ Cgi::~Cgi()
         kill(cgi_pid, SIGKILL);
         // reap CGI process to avoid zombie
         int status;
-        if (waitpid(cgi_pid, &status, WNOHANG) == -1){ 
-            perror("waitpid"); 
-        }
+        waitpid(cgi_pid, &status, WNOHANG);
     }
 }
 
 
 void Cgi::executeCgi()
 {
-    // Open file to write CGI script output
-    cgi_stdout = open("cgi_output.txt", O_CREAT | O_RDWR, 0644);
-    if (cgi_stdout == -1)
-        throw std::runtime_error("Failed to open cgi_output.txt");
 
-    // set both ends of my tunnel to non-blocking and close on exec
-    setNonBlockCloexec(cgi_stdout);
-    
-    redirectCgiOutput();
+    // generate random name for cgi stdin if needed
+    // name_cgi_stdout = generateRandomFilename();
 
     // Fork a new process to execute the CGI script
     cgi_pid = fork();
@@ -57,23 +49,27 @@ void Cgi::executeCgi()
     } 
     else
     {
+        setupCgiOuput_Parent();
         setupParentProcessEvents();
     }
 }
 
 void Cgi::_readCgiOutput() {
     char buffer[4096];
-    std::cout << cgi_stdout << std::endl;
+    std::cout << "fd of cgi output :" << cgi_stdout << std::endl;
     ssize_t n = read(cgi_stdout, buffer, sizeof(buffer));
     if (n <= 0)
     {
-        perror("read");
+        perror("*read");
         // remember to remove the file
-        Context.state_of_connection = DISCONNECTED;
+        Context.state_of_connection[client_fd] = DISCONNECTED;
         return;
     }
-      
-     if (parseCGIheader(buffer, n, Context.clientResponses[client_fd]))
+
+    bool done = parseCGIheader( Context.headers_buffer_CGI[client_fd], buffer, n, Context.clientResponses[client_fd]);
+    const char *str = (done == true )? "true" : "false";
+    std::cout << str << std::endl;
+    if (done)
      {
          std::cout << "--CGI output read done for client: " << client_fd << std::endl;
          makestdoutDone();
@@ -87,8 +83,6 @@ void Cgi::_readCgiOutput() {
          perror("kevent");
          throw std::runtime_error("Failed to reset timer");
      }
-    
-     std::cout << "--CGI output read completed for client: " << client_fd << std::endl;
 }
 
 void Cgi::finalizeCgiProcess(int statusCode) {
@@ -120,11 +114,7 @@ void Cgi::finalizeCgiProcess(int statusCode) {
 void Cgi::handleCgiCompletion()
 {
     // reap the cgi process to avoid zombie
-    if (waitpid(this->getCgiPid(), &this->getStatus(), 0) == -1)
-    {
-        perror("waitpid");
-        throw std::runtime_error("Failed to read CGI process");
-    }
+    waitpid(this->getCgiPid(), &this->getStatus(), 0);
     int _status_code;
 
     // CGI finished successfully, dont close client connection yet (we need to send response)

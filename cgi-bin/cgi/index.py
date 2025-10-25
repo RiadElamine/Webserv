@@ -95,7 +95,7 @@ def getHeader(bodyLength):
 		f"Content-Type: text/html\r\n"
 		f"Content-Length: {bodyLength}\r\n"
 		f"Connection: close\r\n"
-		f"Server: WebServer/1.1.0\r\n"
+		f"Server: WebServer/1.1.0\r\n\r"
 	)
 	
 
