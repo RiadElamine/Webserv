@@ -198,16 +198,28 @@ void WebServer::_handleWritable() {
     Response &response = Context.clientResponses[Context.event.ident];
 
     getDataFromRequest(Context.clientRequests[Context.event.ident], response);
-    response.execute_method();
-    std::string message = response.getResponse();
-    ssize_t n = send(Context.event.ident, message.c_str(), message.length(), 0);
+//    response.execute_method();
+//    std::string message = response.getResponse();
+//    ssize_t n = send(Context.event.ident, message.c_str(), message.length(), 0);
+//    if (n <= 0)
+//    {
+//        Context.state_of_connection[Context.event.ident] = DISCONNECTED;
+//        return;
+//    }
+    std::string message = response.getHeader();
+    size_t n = send(Context.event.ident, message.c_str(), message.length(), 0);
     if (n <= 0)
     {
         Context.state_of_connection[Context.event.ident] = DISCONNECTED;
         return;
     }
-
-
+    std::cout << "header send" << std::endl;
+    while (!message.empty()) {
+        message = response.Read_chunks(100);
+        n = send(Context.event.ident, message.c_str(), message.length(), 0);
+        if (n <= 0)
+            break ;
+    }
     //if data send successfully, we close the connection
     // std::cout << "Response sent to client: " << client_fd << std::endl;
     Context.state_of_connection[Context.event.ident] = DISCONNECTED;

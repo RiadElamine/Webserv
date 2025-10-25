@@ -3,8 +3,11 @@
 //handle redirection in the config file 
 
 Response::Response() {
-    transferEncoding = false;
     responseHeader.status_line.HttpVersion = "HTTP/1.1";
+}
+
+Response& Response::operator=(const Response&) {
+    return *this;
 }
 
 void Response::setStatusCode(int statusCode)

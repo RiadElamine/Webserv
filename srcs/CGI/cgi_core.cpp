@@ -63,10 +63,13 @@ void Cgi::_readCgiOutput() {
         Context.state_of_connection[client_fd] = DISCONNECTED;
         return;
     }
-
+    
     if (parseCGIheader( Context.headers_buffer_CGI[client_fd], buffer, n, Context.clientResponses[client_fd]))
      {
          makestdoutDone();
+         std::string file_path("/Users/oel-asri/Kingsave/Webserv/cgi_output.txt");
+         if (!Context.clientResponses[client_fd].open_cgi_stream(file_path))
+             throw std::runtime_error("Can't open the cgi output file");
          return;
      }
 

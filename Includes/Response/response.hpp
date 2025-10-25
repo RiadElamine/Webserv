@@ -37,18 +37,6 @@ struct Header {
 };
 
 /*
-* struct chunked_body: contain the chuncked message body response
-*                      if the transfer-encoding used
-* @length: the size of the chunked data
-* @content: the actual content data
-*/
-
-struct ChunkedBodyData {
-    int length;
-    std::string content;
-};
-
-/*
 * Response: Class contain the full response message to be send
 * @transferEncoding: a boolean indicating if the message body should be chunked or not
 * @method: The method requested by the client {GET, POST, DELETE,...}
@@ -58,19 +46,18 @@ struct ChunkedBodyData {
 */
 
 class Response {
-    bool transferEncoding;
     std::string method;
     Header responseHeader;
     std::string body;
     std::string path;
-    std::list<ChunkedBodyData> chunkedBody;
     ServerConfig *currentServer;
     Location *currentLocation;
     std::ifstream cgi_stream;
-    
-    // bool    is_cgi;
+    bool    is_cgi;
+
     public:
         Response();
+        Response& operator=(const Response&);
         void setMethod(std::string );
         void set_Server(ServerConfig *);
         void setHeader(Header );
