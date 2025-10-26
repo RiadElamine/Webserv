@@ -127,8 +127,9 @@ T Convert_to__Number(const std::string &data)
 	{
 		if (!isdigit(*str))
 			throw std::invalid_argument("Invalid number");
-		if ((res > (max / 10)) || (res == (max / 10) && *str > '7'))
-			throw std::out_of_range("Overflow detected");
+		T digit = (*str - 48);
+		if (res > (max - digit) / 10)
+            throw std::out_of_range("Overflow detected");
 		res = res * 10 + (*str - 48);
 		str++;
 	}
@@ -204,7 +205,7 @@ void ConfigFile::ParseRedir()
 	std::string data = get_data_location(2);
 	if (check_semi == 1)
 	{
-		indexOfRedircat = Convert_to__Number<long>(data);
+		indexOfRedircat = Convert_to__Number<int>(data);
 		if (indexOfRedircat < 100 || indexOfRedircat > 599)
 			throw std::out_of_range("value " + data + " must be between 300 and 599");
 	}
@@ -248,7 +249,7 @@ void ConfigFile::ParseErrorPages()
 	std::string data = get_data(2);
 	if (check_semi == 1)
 	{
-		indexOfErrorPages = Convert_to__Number<long>(data);
+		indexOfErrorPages = Convert_to__Number<int>(data);
 		if (indexOfErrorPages < 300 || indexOfErrorPages > 599)
 			throw std::out_of_range("value " + data + " must be between 300 and 599");
 	}
@@ -301,7 +302,7 @@ void ConfigFile::ParseListen()
 
 	try
 	{
-		long port = Convert_to__Number<long>(data);
+		int port = Convert_to__Number<int>(data);
 		if ( port < 1 || port > 65535)
 			throw std::invalid_argument("Port must be between 1 and 65535");
 		typedef std::set<std::pair<std::string, uint16_t> >::iterator it;
