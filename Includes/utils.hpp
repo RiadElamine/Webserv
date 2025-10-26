@@ -34,5 +34,5 @@ bool isDirectoryEmpty(const std::string& path);
 void readCGI(std::string filename, Response& response);
 bool parseCGIheader(std::string& header, char *buffer , size_t buffer_size, Response& response);
 std::string get_body_chunk(std::string&, Response&);
-
+std::string to_lower(const std::string& str);
 #endif // UTILS_HPP

@@ -36,8 +36,8 @@ struct Header {
 
 struct fileStream {
     size_t offset;
-    std::ifstream stream;
-}
+    std::ifstream file_stream;
+};
 
 /*
 * Response: Class contain the full response message to be send
@@ -54,6 +54,7 @@ class Response : virtual public brain {
     std::string body;
     fileStream stream;
     bool header_sent;
+    // bool is_method_executed
 
     public:
         Response();
@@ -71,21 +72,22 @@ class Response : virtual public brain {
         void setField_line(std::map<std::string, std::string>&);
         void setPath(std::string _path);
         std::string Read_chunks(size_t size);
+        size_t calculate_content_length();
 
         // getter
         std::string getPath(void);
         Location* getCurrentRoute(void);
-//        size_t getIndex(void) const;
+        size_t get_offset(void) const;
         bool is_cgi_strem_open() const;
         bool is_header_sent() const;
-        std::string getHeader() const;
+        std::string getHeader();
 
         // setter
         void setCurrentLocation(Location *loc);
         void setStatusCode(int statusCode);
         void set_header_sent(bool val);
-//        void setIndex(size_t);
-        bool open_cgi_stream(std::string& file_path); // if this return false, the server should response with 500
+        void set_offset(size_t pos);
+        bool open_stream(std::string& file_path); // if this return false, the server should response with 500
 
 
 };

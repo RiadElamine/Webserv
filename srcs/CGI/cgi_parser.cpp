@@ -108,31 +108,36 @@ bool parseCGIheader(std::string& header, char *buffer , size_t buffer_size, Resp
     bool statusCode_found(false);
     bool valid_header(false);
     std::map<std::string, std::string>::iterator tmp;
-//    response.set_offset(header.size() + 2);
+    response.set_offset(header.size() + 2);
 
-    make_field_line(field_line, header);
+    try {
+        make_field_line(field_line, header);
 
-    for (std::map<std::string, std::string>::iterator it = field_line.begin(); it != field_line.end(); ++it) {
-        std::string key = to_lower(it->first);
-        if (key == "status") {
-            set_statusCode(it->second, response);
-            statusCode_found = true;
-            tmp = it;
+        for (std::map<std::string, std::string>::iterator it = field_line.begin(); it != field_line.end(); ++it) {
+            std::string key = to_lower(it->first);
+            if (key == "status") {
+                set_statusCode(it->second, response);
+                statusCode_found = true;
+                tmp = it;
 
+            }
+            if (key == "content-type" || key == "location")
+                valid_header = true;
         }
-        if (key == "content-type" || key == "location")
-            valid_header = true;
+
+        if (!valid_header)
+            throw std::runtime_error("Invalid Header, content-type, and location not provided");
+
+        if (!statusCode_found)
+            response.setStatusCode(200);
+        else
+            field_line.erase(tmp);
+
+        response.setField_line(field_line);
+    } catch (std::exception& e) {
+        // std::cout << e.what() << std::endl;
+        response.setStatusCode(502);
     }
-
-    if (!valid_header)
-        throw std::runtime_error("Invalid Header, content-type, and location not provided");
-
-    if (!statusCode_found)
-        response.setStatusCode(200);
-    else
-        field_line.erase(tmp);
-
-    response.setField_line(field_line);
 
     return true;
 }

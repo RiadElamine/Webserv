@@ -186,33 +186,13 @@ void WebServer::_handleReadable() {
 // here is my functions
 
 void WebServer::_handleWritable() {
-    // if (clientRequests[client_fd].getMethod() == "POST")
-    //     return DISCONNECTED;
-
-    // Response &response;
-
-    // response = Context.clientResponses[Context.event.ident];
-    // std::string message = get_body_chunk(file_name, response);
     Response &response = (*Context.clientResponses[Context.event.ident]);
     HttpRequest &request = (*Context.clientRequests[Context.event.ident]);
 
     getDataFromRequest(request, response);
-//    send_response(response)
     
-    response.execute_method();
-//    std::string message = response.getResponse();
-//    ssize_t n = send(Context.event.ident, message.c_str(), message.length(), 0);
-//    if (n <= 0)
-//    {
-//        Context.state_of_connection[Context.event.ident] = DISCONNECTED;
-//        return;
-//    }
-//    size_t n = send(Context.event.ident, message.c_str(), message.length(), 0);
-//    if (n <= 0)
-//    {
-//        clients[Context.event.ident]->state_of_connection = DISCONNECTED;
-//        return;
-//    }
+    // response.execute_method();
+
     std::string message("");
     if (!response.is_header_sent()) {
         message = response.getHeader();
@@ -231,7 +211,6 @@ void WebServer::_handleWritable() {
     }
 
 //    if data send successfully, we close the connection
-//     std::cout << "Response sent to client: " << client_fd << std::endl;
     else
         clients[Context.event.ident]->state_of_connection = DISCONNECTED;
 }

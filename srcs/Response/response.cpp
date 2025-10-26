@@ -6,6 +6,7 @@
 Response::Response() {
     responseHeader.status_line.HttpVersion = "HTTP/1.1";
     header_sent = false;
+    stream.offset = 0;
 }
 
 bool Response::is_header_sent() const {
@@ -48,7 +49,6 @@ void  Response::setCurrentLocation(Location *loc) {
 Location* Response::getCurrentRoute(void) { 
     return currentLocation; 
 }
-///
 
 void Response::set_Server(ServerConfig *server) {
     currentServer = server;
@@ -64,51 +64,66 @@ void Response::setField_line(std::map<std::string, std::string>& filed_line) {
     }
 }
 
-//void Response::setIndex(size_t pos) {
-//    index = pos;
-//}
+void Response::set_offset(size_t pos) {
+   stream.offset = pos;
+}
 
-//size_t Response::getIndex(void) const {
-//    return index;
-//}
+size_t Response::get_offset(void) const {
+   return stream.offset;
+}
 
-bool Response::open_cgi_stream(std::string& file_path) {
-    cgi_stream.open(file_path.c_str(), std::ios_base::in | std::ios_base::binary);
+bool Response::open_stream(std::string& file_path) {
+    stream.file_stream.open(file_path.c_str(), std::ios_base::in | std::ios_base::binary);
     
-    if (!cgi_stream.is_open())
+    if (!stream.file_stream.is_open())
         return false;
+    stream.file_stream.seekg(stream.offset, std::ios::beg);
     return true;
 }
 
 bool Response::is_cgi_strem_open() const {
-    return cgi_stream.is_open();
+    return stream.file_stream.is_open();
 }
 
 std::string Response::Read_chunks(size_t size) {
     char *buffer = new char[size];
 
-    if (cgi_stream.eof()) {
-        cgi_stream.close();
+    if (stream.file_stream.eof()) {
+        stream.file_stream.close();
         return "";
     }
-    cgi_stream.read(buffer, size);
-    std::string ret(buffer, cgi_stream.gcount());
+
+    stream.file_stream.read(buffer, size);
+    std::string ret(buffer, stream.file_stream.gcount());
     delete[] buffer;
+
     return ret;
 }
 
-std::string Response::getHeader() const
-{
-    std::string header;
-    std::stringstream ss;
+size_t Response::calculate_content_length() {
+    std::streampos current = stream.file_stream.tellg(); // start of body
+    stream.file_stream.seekg(0, std::ios::end);          // end of file
+    std::streampos end = stream.file_stream.tellg();
+    stream.file_stream.seekg(current, std::ios::beg);    // restore position
+    size_t size = static_cast<size_t>(end - current);
+    return (size - 1);
+}
 
-    ss << responseHeader.status_line.statusCode ;
-    header += responseHeader.status_line.HttpVersion + " " + ss.str() + " " + responseHeader.status_line.reasonPhrase + "\r\n";
+std::string Response::getHeader()
+{
+    // std::string header;
+    std::stringstream header;
+
+    // header <<  ;
+    header << responseHeader.status_line.HttpVersion << " " << responseHeader.status_line.statusCode << " " << responseHeader.status_line.reasonPhrase << "\r\n";
 
     for(std::map<std::string, std::string>::const_iterator it = responseHeader.field_line.begin(); it != responseHeader.field_line.end(); ++it) {
-        header += it->first + ": " + it->second + "\r\n";
+        if (to_lower(it->first) == "content-length")
+            header << it->first << ": " << calculate_content_length() << "\r\n";
+        else
+            header << it->first << ": " << it->second << "\r\n";
     }
-    return header;
+    return header.str();
 }
 
 void Response::setHeader(Header copyHeader) {
