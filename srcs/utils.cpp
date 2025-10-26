@@ -1,4 +1,17 @@
-#include "../Includes/Response/response.hpp"
+#include "../Includes/Client.hpp"
+#include <sys/stat.h>
+#include <unistd.h>
+#include <dirent.h>
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <algorithm>
+#include <cctype>
+
+// Forward declarations for functions used before they are defined
+std::string readFile(std::string path);
+bool isCGI(std::string path, Location *currentLocation);
+bool file_Exist(std::string path);
 
 std::string getTimeOftheDay() {
     std::time_t t = std::time(0);        // get current time

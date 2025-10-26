@@ -17,6 +17,8 @@
 #include <cstring>
 #include <ctime>
 #include <stdexcept>
+#include <random>
+
 
 // POSIX / System Headers
 #include <unistd.h>
@@ -30,7 +32,6 @@
 
 // Project-specific headers
 #include "status_code.hpp"
-
 // Timeout duration
 #define timeout 1000 // 
 
@@ -41,6 +42,11 @@ enum type_event {
     client_event = 99,
 };
 
+// Connection state
+enum ConnectionState {
+    CONNECTED,
+    DISCONNECTED
+};
 
 // Helper function to add events to a vector
 void _addEvent(std::vector<struct kevent> &events,

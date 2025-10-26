@@ -1,5 +1,6 @@
 
 #include "../../Includes/Response/response.hpp"
+#include "../../Includes/utils.hpp"
 //handle redirection in the config file 
 
 Response::Response() {

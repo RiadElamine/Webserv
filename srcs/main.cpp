@@ -60,6 +60,6 @@ int main(int argc, char **argv)
 
     }
     
-    free(server);
+    delete server;
 }
 

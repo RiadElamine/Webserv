@@ -1,4 +1,5 @@
 #include "../../Includes/Request/HttpRequest.hpp"
+#include "../../Includes/utils.hpp"
 
 HttpRequest::HttpRequest() {
     contentLength = 0;
@@ -124,7 +125,7 @@ void HttpRequest::uri_valid()
             std::string key = query.substr(start, equal_pos - start);
             size_t and_pos = query.find('&', equal_pos);
             std::string value = query.substr(equal_pos + 1, and_pos - equal_pos - 1);
-            query_params[key] = value;
+            params[key] = value;
             if (and_pos == std::string::npos) break;
             start = and_pos + 1;
         }
@@ -183,7 +184,7 @@ void HttpRequest::parse_headers(std::string& data) {
         contentLength = std::atol(headers["Content-Length"].c_str());
         if (contentLength < 0) 
             return set_status(400);
-        if (contentLength > server->client_max_body_size) 
+        if (contentLength > currentServer->client_max_body_size) 
             return set_status(413);
     } else {
         contentLength = 0;
@@ -291,7 +292,7 @@ void HttpRequest::handl_boundary(std::string& data, size_t boundary_pos) {
 
 void HttpRequest::inchunk_body(std::string &data)
 {
-   Location *it = getCurrentLocation(path, server); 
+   Location *it = getCurrentLocation(path, currentServer); 
     std::ofstream file(filename.c_str(), std::ios::binary | std::ios::app);
     std::istringstream iss;
     size_t pos = 0;
@@ -338,7 +339,7 @@ void HttpRequest::inchunk_body(std::string &data)
     }
     pos += chunk_size;
     contentLength += chunk_size;
-    if (contentLength > server->client_max_body_size) {
+    if (contentLength > currentServer->client_max_body_size) {
         std::cout << "File size exceeded: " << contentLength << " bytes" << std::endl;
         remove(filename.c_str());
         return set_status(413);
@@ -394,7 +395,7 @@ std::string HttpRequest::get_mime_type() const{
 
 void HttpRequest::create_file(int flag)
 {
-    Location* it = getCurrentLocation(path, server);
+    Location* it = getCurrentLocation(path, currentServer);
     if (std::find(it->methods.begin(), it->methods.end(), method) == it->methods.end()) 
         return  set_status(405);
     std::string build_pat = buildPath(it->URI, path, it->root);
@@ -429,7 +430,7 @@ void HttpRequest::create_file(int flag)
 
 
 void HttpRequest::parse_body(std::string& data) {
-    Location *it = getCurrentLocation(path, server);
+    Location *it = getCurrentLocation(path, currentServer);
     if (filename == "" && boundary.empty())
         create_file(0);
     if (!chunked.empty())

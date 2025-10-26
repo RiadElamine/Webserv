@@ -1,39 +1,17 @@
 #pragma once
-#include "../Common.hpp"
-#include "../Request/HttpRequest.hpp"
 
-class HttpRequest;
-class Cgi;
+#include "../brain.hpp"
 
-// Connection state
-enum ConnectionState {
-    CONNECTED,
-    DISCONNECTED
-};
-
-struct KqueueContext {
-    std::vector<struct kevent>  evlist;
-    struct kevent               event;
-    int                         kq;
-    std::map<int, HttpRequest>  clientRequests;
-    std::map<int, Cgi>          clientCgiProcesses;
-    std::map<int, Response>     clientResponses;
-    std::map<int, ConnectionState> state_of_connection;
-    std::map<int, std::string>  headers_buffer_CGI;
-};
-
-class Cgi {
+class Cgi : virtual public brain {
     private:
         int       cgi_stdout;
         int       cgi_stdin;
         pid_t     cgi_pid;
         bool      is_stdout_done;
         int       status;
-        int       client_fd;
-        KqueueContext &Context;
 
     public:
-        Cgi(KqueueContext &Context);
+        Cgi();
         ~Cgi();
         
         // high-level CGI execution

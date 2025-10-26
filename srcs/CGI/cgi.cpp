@@ -1,111 +1,136 @@
+
+#include "../../Includes/CGI/Cgi.hpp"
 #include "../../Includes/Response/response.hpp"
-// #define BUFFER_SIZE 10
+#include "../../Includes/utils.hpp"
+#include <sys/wait.h>
+#include <unistd.h>
+#include <signal.h>
 
+Cgi::Cgi()
+{
+    is_stdout_done = false;
+    status = 0;
+    cgi_pid = -1;
+    cgi_stdin = -1;
+    cgi_stdout = -1;
+};
 
-
-// Trim leading and trailing spaces
-static std::string trim(const std::string &s) {
-    size_t start = s.find_first_not_of(" \t\r\n");
-    if (start == std::string::npos) return "";
-    size_t end = s.find_last_not_of(" \t\r\n");
-    return s.substr(start, end - start + 1);
+Cgi::~Cgi()
+{
+    // cleanup
+    if (cgi_stdout != -1)
+        close(cgi_stdout);
+    if (cgi_stdin != -1)
+        close(cgi_stdin);
+    if (cgi_pid != -1)
+    {
+        kill(cgi_pid, SIGKILL);
+        // reap CGI process to avoid zombie
+        int status;
+        waitpid(cgi_pid, &status, WNOHANG);
+    }
 }
 
-void parseCGIheader(std::ifstream& buffer, Response& response) {
-    // std::istringstream iss(cgiOutput);
-    Header responseHeader;
-    std::string line;
-    bool headerDone = false;
-    std::string body;
 
-    responseHeader.status_line.statusCode = UNITILAZE;
-    responseHeader.status_line.HttpVersion = "HTTP/1.1";
-    while (std::getline(buffer, line) && line != "\r") {
-        // Remove possible '\r' at line end
-        if (!line.empty() && line[line.size() - 1] == '\r')
-            line.erase(line.size() - 1);
+void Cgi::executeCgi()
+{
 
-        if (!headerDone) {
-            if (line.empty()) {
-                // Empty line = end of headers
-                headerDone = true;
-                continue;
-            }
+    // generate random name for cgi stdin if needed
+    // name_cgi_stdout = generateRandomFilename();
 
-            // Split key:value
-            size_t pos = line.find(':');
-            if (pos != std::string::npos) {
-                std::string key = trim(line.substr(0, pos));
-                std::string value = trim(line.substr(pos + 1));
-                if (key == "Status")
-                {
-                    std::stringstream ss(value);
-                    int val ;
-                    ss >> val;
-                    responseHeader.status_line.statusCode = (e_StatusCode) val;
-                    responseHeader.status_line.reasonPhrase = getReasonPhrase((e_StatusCode) val);
-                } else
-                    responseHeader.field_line[key] = value;
-            }
+    // Fork a new process to execute the CGI script
+    cgi_pid = fork();
+    if (cgi_pid == -1) {
+        perror("fork");
+        close(cgi_stdin);
+        close(cgi_stdout);
+        throw std::runtime_error("Fork failed");
+    }
+    else if (cgi_pid == 0) {
+        executeCgiScript();
+    } 
+    else
+    {
+        setupCgiOuput_Parent();
+        setupParentProcessEvents();
+    }
+}
+
+void Cgi::_readCgiOutput() {
+    char buffer[4096];
+    ssize_t n = read(cgi_stdout, buffer, sizeof(buffer));
+    if (n <= 0)
+    {
+        perror("*read");
+        // remember to remove the file
+        state_of_connection = DISCONNECTED;
+        return;
+    }
+
+    if (parseCGIheader( headers_buffer_CGI, buffer, n, *Context->clientResponses[this->getClientFd()]))
+     {
+         makestdoutDone();
+         return;
+     }
+
+     // Reset the timer
+     struct kevent ev;
+     EV_SET(&ev, cgi_stdout, EVFILT_TIMER, EV_ENABLE , 0, timeout, (void*)this);
+     if (kevent(Context->kq, &ev, 1, NULL, 0, NULL) == -1) {
+         perror("kevent");
+         throw std::runtime_error("Failed to reset timer");
+     }
+}
+
+void Cgi::finalizeCgiProcess(int statusCode) {
+
+    // set error status (500 or 504, etc.)
+    if (statusCode != I_Dont_have_respons)
+    {
+        if (statusCode != Doesnt_fail)
+        {
+            // send error response to client
+            Context->clientResponses[this->getClientFd()]->setStatusCode(statusCode);
+        }
+        // enable write event on client socket to send response
+        // disable read event on client socket
+        // reset timer
+        std::vector<struct kevent> ev;
+        _addEvent(ev, this->getClientFd(), EVFILT_READ,  EV_DISABLE, 0, 0, (void *)client_event);
+        _addEvent(ev, this->getClientFd(), EVFILT_WRITE, EV_ENABLE, 0, 0, (void *)client_event);
+        _addEvent(ev, this->getClientFd(), EVFILT_TIMER, EV_ENABLE, 0, timeout, (void *)client_event);
+        if (kevent(Context->kq, ev.data(), ev.size(), NULL, 0, NULL) == -1) {
+            throw std::runtime_error("Failed to modify client events");
         }
     }
+    // remove cgi events from kqueue
+    removeCgiEventsFromKqueue(this->getCgiOutputFd(), this->getCgiPid());
+}
 
-    if (responseHeader.status_line.statusCode == UNITILAZE) {
-        responseHeader.status_line.statusCode = OK;
-        responseHeader.status_line.reasonPhrase = "OK";
+// Handle CGI process completion
+void Cgi::handleCgiCompletion()
+{
+    // reap the cgi process to avoid zombie
+    waitpid(this->getCgiPid(), &this->getStatus(), 0);
+    int _status_code;
+
+    // CGI finished successfully, dont close client connection yet (we need to send response)
+    // prepare to send response to client
+    // and remove cgi process events from kqueue
+
+    // check if cgi stdout is Done and exited normally
+    if (this->isStdoutDone() && WIFEXITED(status) && WEXITSTATUS(status) == 0)
+    {
+        // we dont change the status code, let the response handler do it
+        _status_code = Doesnt_fail;
+        std::cout << "--CGI process completed successfully for client: " << client_fd << std::endl;
     }
-    response.setHeader(responseHeader);
-    response.setField_line(responseHeader.field_line);
-}
-
-
-void makeCGIbody(std::ifstream& buffer, Response& response) {
-    char store[BUFFER_SIZE];
-    while (!buffer.eof()) {
-        buffer.read(store, BUFFER_SIZE);
-        response.addToBody(store, buffer.gcount());
+    else
+    {
+        // CGI exited with error
+        // send 502 Bad Gateway response to client
+        _status_code = Bad_Gateway;
+        std::cout << "--CGI process failed for client: " << client_fd << std::endl;
     }
+    this->finalizeCgiProcess(_status_code);
 }
-
-void readCGI(std::string filename, Response& response) {
-	std::ifstream buffer(filename, std::ios::in | std::ifstream::binary);
-
-	parseCGIheader(buffer, response);
-	makeCGIbody(buffer, response);
-}
-
-
-void executeCGI(std::string outFile, char* args[]) {
-    int fd = open(outFile.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
-    if (fd == -1)
-        throw std::runtime_error("Error while opening the file!!!");
-    int saved_stdout = dup(1);       // Save original stdout
-    dup2(fd, 1);                      // Redirect stdout to file
-    close(fd);                        // fd no longer needed
-
-    pid_t pid = fork();
-    if (pid == 0) {
-        execve(args[0], args, NULL);
-        exit(1);
-    } else if (pid == -1) {
-        throw std::runtime_error("Can't create child process");
-    }
-    waitpid(pid, NULL, 0);
-
-    // Restore stdout
-    dup2(saved_stdout, 1);
-    close(saved_stdout);
-}
-
-//int main() {
-//     char *args[] = {
-//            (char*) "/Volumes/KINGSAVE/Webserv/cgi-bin/cgi/env/bin/python3",
-//            (char *) "/Users/oel-asri/Kingsave/Webserv/cgi-bin/cgi/displayAscii.py",
-//            NULL
-//        };
-//        executeCGI("/Users/oel-asri/Kingsave/Webserv/CGI", args);
-//        readCGI("/Users/oel-asri/Kingsave/Webserv/CGI");
-//    return (0);
-//}
-
-

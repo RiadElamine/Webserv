@@ -1,6 +1,6 @@
 
 
-#include "../../Includes/CGI/Cgi_handler.hpp"
+#include "../../Includes/CGI/Cgi.hpp"
 
 // Execute the CGI script in the child process
 
@@ -14,13 +14,13 @@ void Cgi::setupCgiPipes()
 
 bool Cgi::hasRequestBody()
 {
-    return !Context.clientRequests[client_fd].get_filename().empty();
+    return !filename.empty();
 }
 
 void Cgi::setupCgiStdin()
 {
     // Open the file containing the request body
-    const std::string &bodyFile = Context.clientRequests[client_fd].get_filename();
+    const std::string &bodyFile = filename;
     cgi_stdin = open(bodyFile.c_str(), O_RDONLY);
     if (cgi_stdin == -1)
     {
@@ -78,7 +78,7 @@ std::vector<char*> Cgi::buildCgiArgs(const std::string &scriptPath)
 std::vector<char*> Cgi::buildCgiEnv()
 {
     std::vector<char*> env;
-    const std::map<std::string, std::string> &params = Context.clientRequests[client_fd].getQueryParams();
+    const std::map<std::string, std::string> &params = this->params;
 
     for (std::map<std::string, std::string>::const_iterator it = params.begin(); it != params.end(); ++it)
     {
@@ -102,9 +102,8 @@ void Cgi::executeCgiScript()
     setupCgiPipes();
         // std::cout << "In child process to execute CGI script" << std::endl;
 
-    Response &response = Context.clientResponses[client_fd];
-    const char *scriptInterpreter = response.getCurrentRoute()->cgi_Path_Info.c_str();
-    std::string scriptPath = response.getPath();
+    const char *scriptInterpreter = currentLocation->cgi_Path_Info.c_str();
+    std::string scriptPath = path;
 
     std::vector<char*> env = buildCgiEnv();
     std::vector<char*> args = buildCgiArgs(scriptPath);

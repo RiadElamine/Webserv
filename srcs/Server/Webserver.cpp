@@ -1,4 +1,6 @@
 #include "../../Includes/Server/Webserver.hpp"
+#include "../../Includes/utils.hpp"
+
 
 WebServer::WebServer(std::vector<ServerConfig>  &servers) {
     for (size_t i = 0; i < servers.size(); ++i) {
@@ -108,19 +110,20 @@ void WebServer::_handleAccept() {
             close(client_fd);
             throw std::runtime_error("Failed to register client events");
         }
+
     // Initialize HttpRequest for the new client
-    Context.clientRequests[client_fd] = HttpRequest();
-    Context.clientRequests[client_fd].setServer(listeners[Context.event.ident]);
-    // Initialize Response for the new client
-    Context.clientResponses[client_fd] = Response();
-    Context.state_of_connection[client_fd] = CONNECTED;
+    Client *newClient = new Client(client_fd, &Context, listeners[Context.event.ident]);
+    Context.clientResponses[client_fd] = static_cast<Response *>(newClient);
+    Context.clientRequests[client_fd] = static_cast<HttpRequest *>(newClient);
+    clients[client_fd] = newClient;
     std::cout << "Client connected: " << client_fd << std::endl;
 }
 
 
-bool isCgiRequest(KqueueContext &Context, int fd_client) {
-    HttpRequest &request  = Context.clientRequests[fd_client];
-    Response &response = Context.clientResponses[fd_client];
+bool isCgiRequest(Client &client) {
+    // convete client to HttpRequest
+    HttpRequest &request  = static_cast<HttpRequest&>(client);
+    Response &response = static_cast<Response&>(client);
     Location *currentLocation;
 
     ServerConfig *currentServer = request.getServer();
@@ -128,9 +131,8 @@ bool isCgiRequest(KqueueContext &Context, int fd_client) {
     response.setCurrentLocation(currentLocation);
     response.setPath(buildPath(currentLocation->URI, request.getPath(), currentLocation->root));
 
-    // response.isCgi() = isCGI(response.getPath(), currentLocation);
-    // return response.isCgi();
-    return isCGI(response.getPath(), currentLocation);
+    client.is_cgi = isCGI(response.getPath(), currentLocation);
+    return client.is_cgi;
 }
 
 void WebServer::_handleReadable() {
@@ -140,28 +142,24 @@ void WebServer::_handleReadable() {
     ssize_t n = recv(client_fd, buffer, sizeof(buffer), 0);
     if (n <= 0)
     {
-        Context.state_of_connection[client_fd] = DISCONNECTED;
+        clients[Context.event.ident]->state_of_connection = DISCONNECTED;
         return;
     }
     
-    if (Context.clientRequests[client_fd].parse_request(buffer, n))
+    if (Context.clientRequests[client_fd]->parse_request(buffer, n))
     {
         // request fully received
         // check if it's a cgi request or not
-        if (isCgiRequest(Context, client_fd))
+        if (isCgiRequest(*(clients[client_fd])))
         {
             // if i have cgi to execute, i will do it here
             Context.clientCgiProcesses.insert(
-                std::pair<int, Cgi>(client_fd, Cgi(Context))
-            );
-
-            Context.headers_buffer_CGI.insert(
-                std::pair<int, std::string>(client_fd, std::string())
+                std::pair<int, Cgi *>(client_fd, &static_cast<Cgi&>(*(clients[client_fd])))
             );
 
             std::cout << "CGI request detected for client: " << client_fd << std::endl;
            
-            Context.clientCgiProcesses.at(client_fd).executeCgi();
+            Context.clientCgiProcesses.at(client_fd)->executeCgi();
             return;
         }
         else 
@@ -194,22 +192,23 @@ void WebServer::_handleWritable() {
 
     // response = Context.clientResponses[Context.event.ident];
     // std::string message = get_body_chunk(file_name, response);
-    Response &response = Context.clientResponses[Context.event.ident];
+    Response &response = (*Context.clientResponses[Context.event.ident]);
+    HttpRequest &request = (*Context.clientRequests[Context.event.ident]);
 
-    getDataFromRequest(Context.clientRequests[Context.event.ident], response);
+    getDataFromRequest(request, response);
     response.execute_method();
     std::string message = response.getResponse();
     ssize_t n = send(Context.event.ident, message.c_str(), message.length(), 0);
     if (n <= 0)
     {
-        Context.state_of_connection[Context.event.ident] = DISCONNECTED;
+       clients[Context.event.ident]->state_of_connection = DISCONNECTED;
         return;
     }
 
 
     //if data send successfully, we close the connection
     // std::cout << "Response sent to client: " << client_fd << std::endl;
-    Context.state_of_connection[Context.event.ident] = DISCONNECTED;
+   clients[Context.event.ident]->state_of_connection = DISCONNECTED;
 }
 
 void WebServer::handleReceiveEvent()
@@ -238,7 +237,7 @@ void WebServer::handleTimeoutEvent()
    if (Context.event.udata == (void*)client_event)
    {
        std::cout << "Connection timed out: " << Context.event.ident << std::endl;
-       Context.state_of_connection[Context.event.ident] = DISCONNECTED;
+       clients[Context.event.ident]->state_of_connection = DISCONNECTED;
    }
    else
    {
@@ -262,7 +261,7 @@ void WebServer::_closeConnection() {
         throw std::runtime_error("Failed to remove client events");
     }
     // if there is a cgi process associated with this client, remove its events too
-    std::map<int, Cgi>::iterator it = Context.clientCgiProcesses.find(fd_client);
+    std::map<int, Cgi *>::iterator it = Context.clientCgiProcesses.find(fd_client);
     if (it != Context.clientCgiProcesses.end())
     {
         // remove cgi Process from map
@@ -272,14 +271,10 @@ void WebServer::_closeConnection() {
     Context.clientRequests.erase(fd_client);
     // remove client response from map
     Context.clientResponses.erase(fd_client);
-    // remove client header buffer for cgi from map
-    Context.headers_buffer_CGI.erase(fd_client);
-    // remove client state from map
-    Context.state_of_connection.erase(fd_client);
     // close client socket
     shutdown(fd_client, SHUT_WR);
     std::cout << "Shutting down connection: " << fd_client << std::endl;
-    // close(fd);
+    // close(fd_client);
     std::cout << "Connection closed: " << fd_client << std::endl;
 }
 
@@ -322,7 +317,8 @@ void WebServer::startServer() {
                 Cgi* cgiClient = static_cast<Cgi*>(Context.event.udata);
                 cgiClient->handleCgiCompletion();
             }
-            if (Context.event.udata == (void *)client_event && Context.state_of_connection[Context.event.ident] == DISCONNECTED)
+            if (Context.event.udata == (void *)client_event &&
+                    clients[Context.event.ident]->state_of_connection == DISCONNECTED)
             {
                 _closeConnection();
             }

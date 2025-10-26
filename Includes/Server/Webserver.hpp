@@ -1,9 +1,7 @@
 #ifndef WEBSERVER_HPP
 #define WEBSERVER_HPP
 
-// #include "../Includes/HttpRequest.hpp"
-
-#include "../CGI/Cgi_handler.hpp"
+#include "../Client.hpp"
 
 class WebServer {
     public:
@@ -13,6 +11,7 @@ class WebServer {
     private:
         KqueueContext              Context;
         std::map<int, ServerConfig *> listeners;
+        std::map<int, Client *>       clients;
 
         // Methods
         void    registerEvents();

@@ -1,4 +1,4 @@
-#include "../../Includes/CGI/Cgi_handler.hpp"
+#include "../../Includes/CGI/Cgi.hpp"
 
 
 void Cgi::setupCgiOuput_Parent()
@@ -41,7 +41,7 @@ void Cgi::disableClientEvents(std::vector<struct kevent> &ev)
 
 void Cgi::registerKqueueEvents(std::vector<struct kevent> &ev)
 {
-    if (kevent(Context.kq, ev.data(), ev.size(), NULL, 0, NULL) == -1)
+    if (kevent(Context->kq, ev.data(), ev.size(), NULL, 0, NULL) == -1)
         throw std::runtime_error("Failed to register CGI events");
 }
 
@@ -49,7 +49,7 @@ void Cgi::monitorCgiProcessExit()
 {
     struct kevent ev_proc;
     EV_SET(&ev_proc, cgi_pid, EVFILT_PROC, EV_ADD | EV_ONESHOT, NOTE_EXIT, 0, (void*)this);
-    if (kevent(Context.kq, &ev_proc, 1, NULL, 0, NULL) == -1)
+    if (kevent(Context->kq, &ev_proc, 1, NULL, 0, NULL) == -1)
         throw std::runtime_error("Failed to monitor CGI process");
 }
 
@@ -62,7 +62,7 @@ void Cgi::removeCgiEventsFromKqueue(int FD, int PROCESS_ID) {
         {
             struct kevent ev;
             EV_SET(&ev, PROCESS_ID, EVFILT_PROC, EV_DELETE, 0, 0, NULL);
-            if (kevent(Context.kq, &ev, 1, NULL, 0, NULL) == -1) {
+            if (kevent(Context->kq, &ev, 1, NULL, 0, NULL) == -1) {
                 perror("kevent delete failed");
             }
         }
@@ -73,7 +73,7 @@ void Cgi::removeCgiEventsFromKqueue(int FD, int PROCESS_ID) {
         std::vector<struct kevent> ev_cgiFd;
         _addEvent(ev_cgiFd, FD, EVFILT_READ,  EV_DELETE, 0, 0, NULL);
         _addEvent(ev_cgiFd, FD, EVFILT_TIMER, EV_DELETE, 0, 0, NULL);
-        if (kevent(Context.kq, ev_cgiFd.data(), ev_cgiFd.size(), NULL, 0, NULL) == -1) {
+        if (kevent(Context->kq, ev_cgiFd.data(), ev_cgiFd.size(), NULL, 0, NULL) == -1) {
             throw std::runtime_error("Failed to remove CGI fd events");
         }
         close(cgi_stdout);
