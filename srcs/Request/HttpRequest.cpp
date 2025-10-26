@@ -7,7 +7,7 @@ HttpRequest::HttpRequest() {
     path = "";
     flag_headers = 0;
     body_complete = false;
-    j = 0;
+    // j = 0;
     chunk_size = 0;
     boundary = "";
     flag_body = 0;
@@ -16,15 +16,7 @@ HttpRequest::HttpRequest() {
     code_status = 200;
     filename = "";
 }
-void HttpRequest::printRequest() const
-{
-    std::cout << "Method: " << method << "\n";
-    std::cout << "URI: " << uri << "\n";
-    std::cout << "Headers:\n";
-    for (std::map<std::string, std::string>::const_iterator it = headers.begin(); it != headers.end(); ++it) {
-        std::cout << it->first << ": " << it->second << "\n";
-    }
-}
+
 
 void HttpRequest::method_valid()
 {
@@ -102,19 +94,20 @@ void HttpRequest::decode(std::string &value) {
 
 void HttpRequest::uri_valid()
 {
-    if (uri[0] != '/' || uri.empty() || uri.size() > 8000)
+    if (path[0] != '/' || path.empty() || path.size() > 8000)
         return set_status(400);
     std::string character("-._~:/?#@[]!$&'()*+,;=%");
-    for(size_t i = 0; i < uri.size(); i++)
+    for(size_t i = 0; i < path.size(); i++)
     {
-        if (!std::isalnum(uri[i]) && (character.find(uri[i]) == std::string::npos))
+        if (!std::isalnum(path[i]) && (character.find(path[i]) == std::string::npos))
             return set_status(400);
     }
-    if (uri.find('?') != std::string::npos)
+    if (path.find('?') != std::string::npos)
     {
-        size_t pos = uri.find('?');
-        path = uri.substr(0, pos);
-        std::string query = uri.substr(pos + 1);
+        size_t pos = path.find('?');
+        std::string query = path.substr(pos + 1);
+        // path = uri.substr(0, pos);
+        path.erase(pos);
         if (query.empty() || query[query.size() - 1] == '#')
             return set_status(400);
         decode(query);
@@ -130,10 +123,9 @@ void HttpRequest::uri_valid()
             start = and_pos + 1;
         }
     }
-    else
-        path = uri;
+    // else
+    //     path = uri;
     decode(path);
-
 }
 
 void HttpRequest::set_status(int status)
@@ -149,12 +141,12 @@ void HttpRequest::parse_headers(std::string& data) {
     method_valid();
     data.erase(0, i+1);
     i = data.find(' ');
-    uri = data.substr(0, i);
+    path = data.substr(0, i);
     uri_valid();
     data.erase(0, i+1);
     i = data.find("\r\n");
-    version = data.substr(0, i);
-    if(version.empty() && (version != "HTTP/1.1"))
+    // version = data.substr(0, i);
+    if(data.substr(0, i).empty() && (data.substr(0, i) != "HTTP/1.1"))
         return set_status(400);
     data.erase(0, i+2);
     size_t header_end = data.find("\r\n\r\n");
@@ -171,7 +163,7 @@ void HttpRequest::parse_headers(std::string& data) {
             }
             std::string value = line.substr(colon_pos + 1);
             value.erase(0, value.find_first_not_of(" \t"));
-            value.erase(value.find_first_not_of(" \t") + 1);
+            value.erase(value.find_last_not_of(" \t") + 1);
             headers[key] = value;
         }
         if (line_end > header_block.size())
@@ -179,7 +171,7 @@ void HttpRequest::parse_headers(std::string& data) {
         start = line_end + 2;
     }
     data.erase(0, header_end+4);
-    flag_headers = 1;
+    flag_headers = true;
     if (headers.find("Content-Length") != headers.end()) {
         contentLength = std::atol(headers["Content-Length"].c_str());
         if (contentLength < 0) 
@@ -218,41 +210,41 @@ void HttpRequest::handl_boundary(std::string& data, size_t boundary_pos) {
         size_t start_pos = boundary_pos + boundary.size() + 2;
         data.erase(0, start_pos);
         size_t pos = data.find("filename=", 0);
-        if (pos  > data.find("\r\n")) {
-            std::string name;
-            std::string content;
-            size_t name_pos = data.find("name="); 
-            if (name_pos != std::string::npos) {
-                name_pos += 6;
-                size_t end_name_pos = data.find('"', name_pos);
-                if (end_name_pos != std::string::npos) {
-                    name = data.substr(name_pos, end_name_pos - name_pos);
-                } else 
-                    return  check(data, pos);
+        // if (pos  > data.find("\r\n")) {
+        //     std::string name;
+        //     std::string content;
+        //     size_t name_pos = data.find("name="); 
+        //     if (name_pos != std::string::npos) {
+        //         name_pos += 6;
+        //         size_t end_name_pos = data.find('"', name_pos);
+        //         if (end_name_pos != std::string::npos) {
+        //             name = data.substr(name_pos, end_name_pos - name_pos);
+        //         } else 
+        //             return  check(data, pos);
                 
-                size_t content_start = data.find("\r\n\r\n", end_name_pos);
-                if (content_start != std::string::npos) {
-                    content_start += 4;
-                    size_t content_end = data.find("\r\n", content_start);
-                    if (content_end != std::string::npos) {
-                        content = data.substr(content_start, content_end - content_start);
-                    } else 
-                        return check(data, pos);
-                } else 
-                    return check(data, pos);
-                data.erase(0, data.find(boundary));
-                form_data[name] = content;
-                if (data.find("--"+boundary+"--\r\n" , boundary.size()+6) != std::string::npos && data.substr(0, data.find("--"+boundary+"--\r\n" , boundary.size()+6)).find(boundary) == std::string::npos) {
-                    data.erase(0, data.find("--\r\n") + 4);
-                    flag_body = 1;
-                    body_complete = true;
-                }
-                return;
-            }
-            else 
-                return check(data, pos);
-        }
-        if (pos < data.find("\r\n")) {
+        //         size_t content_start = data.find("\r\n\r\n", end_name_pos);
+        //         if (content_start != std::string::npos) {
+        //             content_start += 4;
+        //             size_t content_end = data.find("\r\n", content_start);
+        //             if (content_end != std::string::npos) {
+        //                 content = data.substr(content_start, content_end - content_start);
+        //             } else 
+        //                 return check(data, pos);
+        //         } else 
+        //             return check(data, pos);
+        //         data.erase(0, data.find(boundary));
+        //         form_data[name] = content;
+        //         if (data.find("--"+boundary+"--\r\n" , boundary.size()+6) != std::string::npos && data.substr(0, data.find("--"+boundary+"--\r\n" , boundary.size()+6)).find(boundary) == std::string::npos) {
+        //             data.erase(0, data.find("--\r\n") + 4);
+        //             flag_body = 1;
+        //             body_complete = true;
+        //         }
+        //         return;
+        //     }
+        //     else 
+        //         return check(data, pos);
+        // }
+        if (pos != std::string::npos) {
                 std::string name;
                 std::string content;
                 size_t name_pos = data.find("filename=");
