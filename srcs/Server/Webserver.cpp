@@ -197,7 +197,9 @@ void WebServer::_handleWritable() {
     HttpRequest &request = (*Context.clientRequests[Context.event.ident]);
 
     getDataFromRequest(request, response);
-//    response.execute_method();
+//    send_response(response)
+    
+    response.execute_method();
 //    std::string message = response.getResponse();
 //    ssize_t n = send(Context.event.ident, message.c_str(), message.length(), 0);
 //    if (n <= 0)
@@ -205,23 +207,33 @@ void WebServer::_handleWritable() {
 //        Context.state_of_connection[Context.event.ident] = DISCONNECTED;
 //        return;
 //    }
-    std::string message = response.getHeader();
-    size_t n = send(Context.event.ident, message.c_str(), message.length(), 0);
-    if (n <= 0)
-    {
-       clients[Context.event.ident]->state_of_connection = DISCONNECTED;
-        return;
-    }
-    std::cout << "header send" << std::endl;
-    while (!message.empty()) {
+//    size_t n = send(Context.event.ident, message.c_str(), message.length(), 0);
+//    if (n <= 0)
+//    {
+//        clients[Context.event.ident]->state_of_connection = DISCONNECTED;
+//        return;
+//    }
+    std::string message("");
+    if (!response.is_header_sent()) {
+        message = response.getHeader();
+        std::cout << "header: " << message;
+        response.set_header_sent(true);
+    } else {
         message = response.Read_chunks(100);
-        n = send(Context.event.ident, message.c_str(), message.length(), 0);
-        if (n <= 0)
-            break ;
     }
-    //if data send successfully, we close the connection
-    // std::cout << "Response sent to client: " << client_fd << std::endl;
-   clients[Context.event.ident]->state_of_connection = DISCONNECTED;
+    std::cout << "message: " << message ;
+    if (!message.empty()) {
+        size_t n = send(Context.event.ident, message.c_str(), message.length(), 0);
+        if (n <= 0) {
+            clients[Context.event.ident]->state_of_connection = DISCONNECTED;
+            return ;
+        }
+    }
+
+//    if data send successfully, we close the connection
+//     std::cout << "Response sent to client: " << client_fd << std::endl;
+    else
+        clients[Context.event.ident]->state_of_connection = DISCONNECTED;
 }
 
 void WebServer::handleReceiveEvent()

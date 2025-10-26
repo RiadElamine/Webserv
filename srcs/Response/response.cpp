@@ -5,6 +5,15 @@
 
 Response::Response() {
     responseHeader.status_line.HttpVersion = "HTTP/1.1";
+    header_sent = false;
+}
+
+bool Response::is_header_sent() const {
+    return header_sent;
+}
+
+void Response::set_header_sent(bool val) {
+    header_sent = val;
 }
 
 Response& Response::operator=(const Response&) {
@@ -76,14 +85,16 @@ bool Response::is_cgi_strem_open() const {
 }
 
 std::string Response::Read_chunks(size_t size) {
-    char buffer[size];
+    char *buffer = new char[size];
 
     if (cgi_stream.eof()) {
         cgi_stream.close();
         return "";
     }
     cgi_stream.read(buffer, size);
-    return std::string(buffer, cgi_stream.gcount());
+    std::string ret(buffer, cgi_stream.gcount());
+    delete[] buffer;
+    return ret;
 }
 
 std::string Response::getHeader() const
