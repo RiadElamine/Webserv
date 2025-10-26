@@ -36,7 +36,7 @@ void Cgi::setupCgiStdin()
 
 void Cgi::setupCgiStdout()
 {
-    cgi_stdout = open("cgi_output.txt", O_CREAT | O_RDWR | O_TRUNC, 0644);
+    cgi_stdout = open(filename_cgi_output.c_str(), O_CREAT | O_RDWR | O_TRUNC, 0644);
     if (cgi_stdout == -1){
         perror("open cgi_stdout");
         exit(1);

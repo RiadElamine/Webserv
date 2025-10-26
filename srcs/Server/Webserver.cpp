@@ -183,6 +183,7 @@ void WebServer::_handleReadable() {
         throw std::runtime_error("Failed to reset timer");
     }
 }
+// here is my functions
 
 void WebServer::_handleWritable() {
     // if (clientRequests[client_fd].getMethod() == "POST")
@@ -196,16 +197,28 @@ void WebServer::_handleWritable() {
     HttpRequest &request = (*Context.clientRequests[Context.event.ident]);
 
     getDataFromRequest(request, response);
-    response.execute_method();
-    std::string message = response.getResponse();
-    ssize_t n = send(Context.event.ident, message.c_str(), message.length(), 0);
+//    response.execute_method();
+//    std::string message = response.getResponse();
+//    ssize_t n = send(Context.event.ident, message.c_str(), message.length(), 0);
+//    if (n <= 0)
+//    {
+//        Context.state_of_connection[Context.event.ident] = DISCONNECTED;
+//        return;
+//    }
+    std::string message = response.getHeader();
+    size_t n = send(Context.event.ident, message.c_str(), message.length(), 0);
     if (n <= 0)
     {
        clients[Context.event.ident]->state_of_connection = DISCONNECTED;
         return;
     }
-
-
+    std::cout << "header send" << std::endl;
+    while (!message.empty()) {
+        message = response.Read_chunks(100);
+        n = send(Context.event.ident, message.c_str(), message.length(), 0);
+        if (n <= 0)
+            break ;
+    }
     //if data send successfully, we close the connection
     // std::cout << "Response sent to client: " << client_fd << std::endl;
    clients[Context.event.ident]->state_of_connection = DISCONNECTED;

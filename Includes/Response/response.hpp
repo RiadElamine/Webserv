@@ -35,18 +35,6 @@ struct Header {
 };
 
 /*
-* struct chunked_body: contain the chuncked message body response
-*                      if the transfer-encoding used
-* @length: the size of the chunked data
-* @content: the actual content data
-*/
-
-struct ChunkedBodyData {
-    int length;
-    std::string content;
-};
-
-/*
 * Response: Class contain the full response message to be send
 * @transferEncoding: a boolean indicating if the message body should be chunked or not
 * @method: The method requested by the client {GET, POST, DELETE,...}
@@ -56,15 +44,14 @@ struct ChunkedBodyData {
 */
 
 class Response : virtual public brain {
-    bool transferEncoding;
     std::string method;
     Header responseHeader;
     std::string body;
-    std::string CGI_Header;
-    std::list<ChunkedBodyData> chunkedBody;
-    size_t index;
+    std::ifstream cgi_stream;
+
     public:
         Response();
+        Response& operator=(const Response&);
         void setMethod(std::string );
         void set_Server(ServerConfig *);
         void setHeader(Header );
@@ -77,19 +64,20 @@ class Response : virtual public brain {
         std::string getResponse();
         void setField_line(std::map<std::string, std::string>&);
         void setPath(std::string _path);
-        void fill_CGI_Header(std::string );
-        void update_CGI_Header(std::string);
+        std::string Read_chunks(size_t size);
 
         // getter
         std::string getPath(void);
         Location* getCurrentRoute(void);
-        std::string get_CGI_Header(void) const;
-        size_t getIndex(void) const;
+//        size_t getIndex(void) const;
+        bool is_cgi_strem_open() const;
+        std::string getHeader() const;
 
         // setter
         void setCurrentLocation(Location *loc);
         void setStatusCode(int statusCode);
-        void setIndex(size_t);
+//        void setIndex(size_t);
+        bool open_cgi_stream(std::string& file_path); // if this return false, the server should response with 500
 
 
 };

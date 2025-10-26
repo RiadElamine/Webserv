@@ -3,7 +3,7 @@
 
 void Cgi::setupCgiOuput_Parent()
 {
-    cgi_stdout = open("cgi_output.txt", O_CREAT | O_RDWR | O_TRUNC, 0644);
+    cgi_stdout = open(filename_cgi_output.c_str(), O_CREAT | O_RDWR | O_TRUNC, 0644);
     if (cgi_stdout == -1)
         throw std::runtime_error("Failed to open cgi_output.txt");
     

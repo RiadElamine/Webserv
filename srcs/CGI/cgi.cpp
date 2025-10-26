@@ -31,8 +31,8 @@ void Cgi::executeCgi()
 {
 
     // generate random name for cgi stdin if needed
-    // name_cgi_stdout = generateRandomFilename();
-
+    // filename_cgi_output = generateRandomFilename();
+    filename_cgi_output = "cgi_output.txt";
     // Fork a new process to execute the CGI script
     cgi_pid = fork();
     if (cgi_pid == -1) {
@@ -62,9 +62,11 @@ void Cgi::_readCgiOutput() {
         return;
     }
 
-    if (parseCGIheader( headers_buffer_CGI, buffer, n, *Context->clientResponses[this->getClientFd()]))
+    if (parseCGIheader( headers_buffer_CGI, buffer, n, *(Context->clientResponses[this->getClientFd()])))
      {
          makestdoutDone();
+         if (!Context->clientResponses[client_fd]->open_cgi_stream(filename_cgi_output))
+             throw std::runtime_error("Can't open the cgi output file");
          return;
      }
 

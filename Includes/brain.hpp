@@ -22,7 +22,8 @@ class brain
         ServerConfig *currentServer;
         std::string headers_buffer_CGI;
         std::string path;
-        std::string filename;
+        std::string filename; // for post method
+        std::string filename_cgi_output;
         int client_fd;
         std::map<std::string, std::string> params;
         KqueueContext *Context;
