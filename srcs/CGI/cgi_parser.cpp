@@ -108,7 +108,7 @@ bool parseCGIheader(std::string& header, char *buffer , size_t buffer_size, Resp
     bool statusCode_found(false);
     bool valid_header(false);
     std::map<std::string, std::string>::iterator tmp;
-//    response.setIndex(header.size() + 2);
+//    response.set_offset(header.size() + 2);
 
     make_field_line(field_line, header);
 

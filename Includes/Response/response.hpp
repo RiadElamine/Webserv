@@ -34,6 +34,11 @@ struct Header {
     std::map<std::string, std::string> field_line;
 };
 
+struct fileStream {
+    size_t offset;
+    std::ifstream stream;
+}
+
 /*
 * Response: Class contain the full response message to be send
 * @transferEncoding: a boolean indicating if the message body should be chunked or not
@@ -47,7 +52,8 @@ class Response : virtual public brain {
     std::string method;
     Header responseHeader;
     std::string body;
-    std::ifstream cgi_stream;
+    fileStream stream;
+    bool header_sent;
 
     public:
         Response();
@@ -71,11 +77,13 @@ class Response : virtual public brain {
         Location* getCurrentRoute(void);
 //        size_t getIndex(void) const;
         bool is_cgi_strem_open() const;
+        bool is_header_sent() const;
         std::string getHeader() const;
 
         // setter
         void setCurrentLocation(Location *loc);
         void setStatusCode(int statusCode);
+        void set_header_sent(bool val);
 //        void setIndex(size_t);
         bool open_cgi_stream(std::string& file_path); // if this return false, the server should response with 500
 
