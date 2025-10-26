@@ -1,10 +1,5 @@
-
 #include "../../Includes/CGI/Cgi.hpp"
-#include "../../Includes/Response/response.hpp"
 #include "../../Includes/utils.hpp"
-#include <sys/wait.h>
-#include <unistd.h>
-#include <signal.h>
 
 Cgi::Cgi()
 {

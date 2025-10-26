@@ -31,4 +31,5 @@ class brain
         ConnectionState state_of_connection;
         brain();
         brain( ServerConfig *server, int client_fd, KqueueContext *Context);
+        ~brain();
 };
