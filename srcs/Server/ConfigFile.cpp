@@ -58,7 +58,6 @@ void ConfigFile::Initialize()
 	//
 	funcs_location.insert(std::make_pair("autoindex", &ConfigFile::ParseAutoindex));
 	funcs_location.insert(std::make_pair("methods", &ConfigFile::ParseMethods));
-	funcs_location.insert(std::make_pair("cgi_ext", &ConfigFile::ParseCGI));
 	funcs_location.insert(std::make_pair("cgi_Path_Info", &ConfigFile::ParseCGIPath));
 	funcs_location.insert(std::make_pair("upload", &ConfigFile::ParseUpload));
 	funcs_location.insert(std::make_pair("redir", &ConfigFile::ParseRedir));
@@ -69,13 +68,12 @@ void ConfigFile::Initialize()
 void Location::reset()
 {
 	URI.clear();
-	root.clear();;
-	index.clear();;
-	methods.clear();;
+	root.clear();
+	index.clear();
+	methods.clear();
 	autoindex = false;
 	redirect.clear();
-	upload_store.clear();;
-	cgi_ext.clear();
+	upload_store.clear();
 	cgi_Path_Info.clear();
 
 }
@@ -102,7 +100,6 @@ void ConfigFile::resetLocation()
 {
 	directiveFlagsLocation["autoindex"] = false;
 	directiveFlagsLocation["methods"] = false;
-	directiveFlagsLocation["cgi_ext"] = false;
 	directiveFlagsLocation["cgi_Path_Info"] = false;
 	directiveFlagsLocation["upload"] = false;
 	directiveFlagsLocation["redir"] = false;
@@ -222,19 +219,22 @@ void ConfigFile::ParseLocationRoot()
 	location.root = data;
 }
 
-void ConfigFile::ParseCGI()
-{
-	std::string data = get_data_location();
-	std::transform(data.begin(), data.end(), data.begin(), tolower);
-	location.cgi_ext = data;
-	if (location.cgi_ext.compare(".php") != 0 && location.cgi_ext.compare(".py") != 0)
-		throw std::invalid_argument("Invalid CGI extension: " + location.cgi_ext);
-}	
-
 void ConfigFile::ParseCGIPath()
 {
-	std::string data = get_data_location();
-	location.cgi_Path_Info = data;
+	std::string data = get_data_location(2);
+	if (check_semi == 1)
+	{
+		extension_cgi = data;
+		std::transform(extension_cgi.begin(), extension_cgi.end(), extension_cgi.begin(), tolower);
+		if (location.cgi_Path_Info.find(extension_cgi) != location.cgi_Path_Info.end())
+			throw std::invalid_argument("Duplicate CGI path definition for " + extension_cgi);
+		location.cgi_Path_Info[extension_cgi] = "";
+	}
+	else
+	{
+		std::transform(data.begin(), data.end(), data.begin(), tolower);
+		location.cgi_Path_Info[extension_cgi] = data;
+	}
 }
 
 void ConfigFile::ParseIndex()
@@ -489,7 +489,7 @@ void ConfigFile::verifyDelimiterLocation(CharSymbol char_symbol)
 
 		if (directiveFlagsLocation.find(key) != directiveFlagsLocation.end())
 		{
-			if (directiveFlagsLocation[key] == true)
+			if (directiveFlagsLocation[key] == true && key.compare("cgi_Path_Info"))
 				throw std::invalid_argument("Duplicate definition for " + key);
 			call = funcs_location[key];
 			i += key.length();
@@ -565,9 +565,6 @@ void ConfigFile::fill_server_defaults()
 				loc->index = it->global_index;
 			if (loc->upload_store.empty())
 				loc->upload_store = "/tmp";
-			if ((loc->cgi_ext.empty() && !loc->cgi_Path_Info.empty())
-				|| ((!loc->cgi_ext.empty() && loc->cgi_Path_Info.empty())))
-				throw std::runtime_error("Both cgi_ext and cgi_Path_Info must be set together in location " + loc->URI);
 		}
 		for (int i = 0 ; i != 13; ++i) 
 		{

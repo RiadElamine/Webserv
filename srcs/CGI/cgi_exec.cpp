@@ -100,9 +100,12 @@ void Cgi::runExecve(const char *interpreter, const std::vector<char*> &args, std
 void Cgi::executeCgiScript()
 {
     setupCgiPipes();
-        // std::cout << "In child process to execute CGI script" << std::endl;
+    std::cout << "In child process to execute CGI script" << std::endl;
 
-    const char *scriptInterpreter = currentLocation->cgi_Path_Info.c_str();
+    std::string ext = path.substr(path.find_last_of('.'));
+    std::transform(ext.begin(), ext.end(), ext.begin(), tolower);
+    const char *scriptInterpreter = currentLocation->cgi_Path_Info[ext].c_str();
+
     std::string scriptPath = path;
 
     std::vector<char*> env = buildCgiEnv();

@@ -1,17 +1,9 @@
 #include "../Includes/Client.hpp"
-#include <sys/stat.h>
-#include <unistd.h>
-#include <dirent.h>
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <algorithm>
-#include <cctype>
+
 
 // Forward declarations for functions used before they are defined
 std::string readFile(std::string path);
 bool isCGI(std::string path, Location *currentLocation);
-bool file_Exist(std::string path);
 
 std::string getTimeOftheDay() {
     std::time_t t = std::time(0);        // get current time
@@ -145,7 +137,7 @@ std::string getCGI(std::string path __attribute__ ((unused))) {
 bool isCGI(std::string path, Location *currentLocation) {
     if (!currentLocation)
         return false;
-    if (currentLocation->cgi_ext.empty())
+    if (currentLocation->cgi_Path_Info.empty())
         return false;
 
     std::string::size_type dot = path.find_last_of('.');
@@ -153,7 +145,8 @@ bool isCGI(std::string path, Location *currentLocation) {
         return false;
 
     std::string ext = path.substr(dot);
-    if (ext == currentLocation->cgi_ext)
+    std::transform(ext.begin(), ext.end(), ext.begin(), tolower);
+    if (currentLocation->cgi_Path_Info.find(ext) != currentLocation->cgi_Path_Info.end())
         return true;
 
     return false;

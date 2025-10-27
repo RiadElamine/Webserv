@@ -16,8 +16,7 @@ class Location
         bool autoindex;
         std::map<int, std::string> redirect;
         std::string upload_store;
-        std::string cgi_ext;
-        std::string cgi_Path_Info;
+        std::map<std::string, std::string> cgi_Path_Info;
 
         void reset();
 };
@@ -58,6 +57,7 @@ class ConfigFile
         std::ifstream ConfigFileStream;
         ServerConfig server;
         std::vector<ServerConfig> *servers;
+        std::string extension_cgi;
         // check state of file
         void checkFile(int argc, char **argv);
         // 

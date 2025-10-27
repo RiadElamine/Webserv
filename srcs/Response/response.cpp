@@ -35,7 +35,6 @@ void Response::setPath(std::string _path) {
     path = _path;
 }
 
-//  bool &Response::isCgi(void) { return is_cgi; };
 
 ///
 std::string Response::getPath(void) {
@@ -174,7 +173,7 @@ void Response::Get() {
         mime = "text/html";
         body = makeBodyResponse(currentLocation, statusCode, currentServer->error_pages, "");
     }
-    else if (isCGI(path, currentLocation)) {
+    else if (is_cgi) {
 //        Response response;
 //
 //        char *args[3] = {
