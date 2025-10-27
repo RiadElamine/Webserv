@@ -98,6 +98,7 @@ def getHeader(bodyLength):
 		f"Server: WebServer/1.1.0\r\n\r\n"
 	)
 	
+import os
 
 def main():
 	"""
@@ -106,6 +107,8 @@ def main():
 	body = getIndexBody()
 	header = getHeader(len(body))
 	sys.stdout.write(header + body)
+	for key, value in os.environ.items():
+		print("%s : %s" % (key, value))
 
 if __name__ == "__main__":
 	main()

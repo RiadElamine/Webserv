@@ -1,6 +1,7 @@
 
 
 #include "../../Includes/CGI/Cgi.hpp"
+#include "../../Includes/Request/HttpRequest.hpp"
 
 // Execute the CGI script in the child process
 
@@ -87,11 +88,68 @@ std::vector<char*> Cgi::buildCgiEnv()
 {
     std::vector<char*> env;
     const std::map<std::string, std::string> &params = this->params;
+    char *envVar;
 
     for (std::map<std::string, std::string>::const_iterator it = params.begin(); it != params.end(); ++it)
     {
-        std::string envVar = it->first + "=" + it->second;
-        env.push_back(strdup(envVar.c_str()));
+        std::string params = it->first + "=" + it->second;
+        envVar = strdup(params.c_str());
+        if (!envVar)
+        {
+            // Handle memory allocation failure
+            for (size_t i = 0; i < env.size(); ++i)
+                free(env[i]);
+            env.clear();
+            exit(1);
+        }
+        env.push_back(envVar);
+    }
+
+    HttpRequest &request = *Context->clientRequests[client_fd];
+    std::map<std::string, std::string> headers = request.getHeaders();
+    for (std::map<std::string, std::string>::const_iterator it = headers.begin(); it != headers.end(); ++it)
+    {
+        std::string headerVar = it->first + "=" + it->second;
+        envVar = strdup(headerVar.c_str());
+        if (!envVar)
+        {
+            // Handle memory allocation failure
+            for (size_t i = 0; i < env.size(); ++i)
+                free(env[i]);
+            env.clear();
+            exit(1);
+        }
+        env.push_back(strdup(headerVar.c_str()));
+    }
+
+    if (!request.getMethod().empty())
+    {
+        std::string requestMethodVar = "REQUEST_METHOD=" + request.getMethod();
+        envVar = strdup(requestMethodVar.c_str());
+        if (!envVar)
+        {
+            // Handle memory allocation failure
+            for (size_t i = 0; i < env.size(); ++i)
+                free(env[i]);
+            env.clear();
+            exit(1);
+        }
+        env.push_back(envVar);
+    }
+    if (request.getContentLength() > 0)
+    {
+        std::stringstream contentLengthVar;
+        contentLengthVar << "CONTENT_LENGTH=" << request.getContentLength();
+        envVar = strdup(contentLengthVar.str().c_str());
+        if (!envVar)
+        {
+            // Handle memory allocation failure
+            for (size_t i = 0; i < env.size(); ++i)
+                free(env[i]);
+            env.clear();
+            exit(1);
+        }
+        env.push_back(envVar);
     }
     env.push_back(NULL);
     return env;

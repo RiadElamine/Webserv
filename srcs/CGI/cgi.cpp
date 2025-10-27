@@ -73,7 +73,6 @@ void Cgi::_readCgiOutput() {
     if (n <= 0)
     {
         perror("*read");
-        // remember to remove the file
         state_of_connection = DISCONNECTED;
         return;
     }
