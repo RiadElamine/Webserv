@@ -42,7 +42,7 @@ std::string Cgi::generateRandomFilename() {
     int num_chars = 62;
 
     std::time_t t = std::time(0);
-    std::srand(t);
+    std::srand(t + client_fd + cgi_pid);
 
     std::string random_str;
     for (int i = 0; i < 10; ++i)

@@ -33,6 +33,7 @@ std::string getReasonPhrase(e_StatusCode statusCode) {
         case Not_Implemented: return "Not Implemented";
         case Bad_Gateway: return "Bad Gateway";
         case Service_Unavailable: return "Service Unavailable";
+        case Gateway_Timeout: return "Gateway Timeout";
         default:
             throw std::runtime_error("Status Code Not Implemented");
     }
