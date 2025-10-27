@@ -6,7 +6,6 @@
 class HttpRequest : virtual public brain {
     private:
         std::string method;
-        // std::string uri;
         std::map<std::string, std::string> headers;
         size_t contentLength;
         std::string chunked;
@@ -29,7 +28,7 @@ class HttpRequest : virtual public brain {
         HttpRequest();
         int  parse_request(char* buffer, ssize_t n);
         void method_valid();
-        void uri_valid();
+        void Route_valid();
         void decode(std::string &value);
         void parse_headers(std::string& data);
         void parse_body(std::string& data);

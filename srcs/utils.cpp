@@ -152,17 +152,17 @@ bool isCGI(std::string path, Location *currentLocation) {
     
 }
 
-size_t matchNB(const std::string& URI, const std::string& path) {
-    if (URI.size() > path.size())
+size_t matchNB(const std::string& Route, const std::string& path) {
+    if (Route.size() > path.size())
         return 0;
-    size_t index = path.find(URI);
+    size_t index = path.find(Route);
     if (index == std::string::npos || index != 0)
         return 0;
-    if (path.size() == URI.size())
-        return URI.size();
-    if (URI[URI.size() - 1] != '/' && path[URI.size()] != '/')
+    if (path.size() == Route.size())
+        return Route.size();
+    if (Route[Route.size() - 1] != '/' && path[Route.size()] != '/')
         return 0;
-    return URI.size();
+    return Route.size();
 }
 
 Location* getCurrentLocation(std::string oldPath, ServerConfig *currentServer) {
@@ -173,11 +173,11 @@ Location* getCurrentLocation(std::string oldPath, ServerConfig *currentServer) {
     for (size_t i = 0; i < currentServer->locations.size(); i++) {
         const Location &loc = currentServer->locations[i];
 
-        if (loc.URI == "/") {
+        if (loc.Route == "/") {
             fallBack = &currentServer->locations[i];
         }
 
-        size_t ret = matchNB(loc.URI, oldPath);
+        size_t ret = matchNB(loc.Route, oldPath);
         if (ret > longestMatch) {
             longestMatch = ret;
             currentLocation = &currentServer->locations[i];
@@ -198,8 +198,8 @@ Location* getCurrentLocation(std::string oldPath, ServerConfig *currentServer) {
     return currentLocation;
 }
 
-std::string buildPath(std::string URI __attribute__ ((unused)), std::string path, std::string root) {
-    // std::string reminder = path.substr(URI.size());
+std::string buildPath(std::string Route __attribute__ ((unused)), std::string path, std::string root) {
+    // std::string reminder = path.substr(Route.size());
 
     return root + path;
 }

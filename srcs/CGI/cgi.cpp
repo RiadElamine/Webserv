@@ -32,7 +32,7 @@ Cgi::~Cgi()
 }
 
 void Cgi::openCgiOutputFile() {
-    cgi_dir = currentLocation->root + currentLocation->URI + "/";
+    cgi_dir = currentLocation->root + currentLocation->Route + "/";
 
     filename_cgi_output = generateRandomFilename();
 

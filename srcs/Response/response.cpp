@@ -161,7 +161,7 @@ void Response::Get() {
     std::string oldPath = path;
 
 //    Location *currentLocation = getCurrentLocation(path, currentServer);
-//    path = buildPath(currentLocation->URI, path, currentLocation->root);
+//    path = buildPath(currentLocation->Route, path, currentLocation->root);
     if (!pathExists(path, &info)) {
         // respond with 404 code status
         statusCode = Not_Found;
@@ -231,7 +231,7 @@ void Response::Delete() {
     Location *currentLocation = getCurrentLocation(path, currentServer);
     // if (currentLocation->root[currentLocation->root.length() - 1] != '/')
     //     currentLocation->root += '/';
-    path = buildPath(currentLocation->URI, path, currentLocation->root);
+    path = buildPath(currentLocation->Route, path, currentLocation->root);
 
     if (!pathExists(path, &info)) {
         // respond with 404 code status

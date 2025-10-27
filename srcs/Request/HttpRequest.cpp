@@ -91,7 +91,7 @@ void HttpRequest::decode(std::string &value) {
     value = decoded.str();
 }
 
-void HttpRequest::uri_valid()
+void HttpRequest::Route_valid()
 {
     if (path[0] != '/' || path.empty() || path.size() > 8000)
         return set_status(400);
@@ -105,7 +105,7 @@ void HttpRequest::uri_valid()
     {
         size_t pos = path.find('?');
         std::string query = path.substr(pos + 1);
-        // path = uri.substr(0, pos);
+        // path = Route.substr(0, pos);
         path.erase(pos);
         if (query.empty() || query[query.size() - 1] == '#')
             return set_status(400);
@@ -123,7 +123,7 @@ void HttpRequest::uri_valid()
         }
     }
     // else
-    //     path = uri;
+    //     path = Route;
     decode(path);
 }
 
@@ -141,7 +141,7 @@ void HttpRequest::parse_headers(std::string& data) {
     data.erase(0, i+1);
     i = data.find(' ');
     path = data.substr(0, i);
-    uri_valid();
+    Route_valid();
     data.erase(0, i+1);
     i = data.find("\r\n");
     // version = data.substr(0, i);
@@ -388,7 +388,7 @@ void HttpRequest::create_file(int flag)
     Location* it = getCurrentLocation(path, currentServer);
     if (std::find(it->methods.begin(), it->methods.end(), method) == it->methods.end()) 
         return  set_status(405);
-    std::string build_pat = buildPath(it->URI, path, it->root);
+    std::string build_pat = buildPath(it->Route, path, it->root);
     struct stat buffer;
     if (stat(build_pat.c_str(), &buffer) != 0 || !S_ISDIR(buffer.st_mode)) 
         return  set_status(500);

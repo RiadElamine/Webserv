@@ -9,7 +9,7 @@
 class Location
 {
     public:
-        std::string URI;
+        std::string Route;
         std::string root;
         std::string index;
         std::vector<std::string> methods;
@@ -74,7 +74,7 @@ class ConfigFile
         void ParseIndexGlobal();
         //keys: this in location
         void Parselocationblock();
-        void checkDuplicateURIs(std::string &path_name);
+        void checkDuplicateRoutes(std::string &path_name);
         void verifyLocationPath();
         void verifyDelimiterLocation(CharSymbol char_symbol);
         //if parselocationblock is good than call this fuction
@@ -82,7 +82,6 @@ class ConfigFile
         //
         void ParseAutoindex();
         void ParseMethods();
-        void ParseCGI();
         void ParseCGIPath();
         void ParseUpload();
         void ParseRedir();

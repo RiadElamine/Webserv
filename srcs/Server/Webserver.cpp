@@ -128,7 +128,7 @@ bool isCgiRequest(Client &client) {
     ServerConfig *currentServer = request.getServer();
     currentLocation = getCurrentLocation(request.getPath(), currentServer);
     response.setCurrentLocation(currentLocation);
-    response.setPath(buildPath(currentLocation->URI, request.getPath(), currentLocation->root));
+    response.setPath(buildPath(currentLocation->Route, request.getPath(), currentLocation->root));
 
     client.is_cgi = isCGI(response.getPath(), currentLocation);
     return client.is_cgi;

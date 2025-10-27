@@ -67,7 +67,7 @@ void ConfigFile::Initialize()
 
 void Location::reset()
 {
-	URI.clear();
+	Route.clear();
 	root.clear();
 	index.clear();
 	methods.clear();
@@ -435,12 +435,12 @@ void ConfigFile::verifyDelimiter(CharSymbol char_symbol)
 	
 // Location Syntax
 
-void ConfigFile::checkDuplicateURIs(std::string &path_name)
+void ConfigFile::checkDuplicateRoutes(std::string &path_name)
 {
 	for (std::vector<Location>::iterator it = server.locations.begin(); it != server.locations.end(); ++it) {
-		const std::string& uri = it->URI;
-		if (!uri.compare(path_name))
-			throw std::runtime_error("Duplicate URI found: " + uri);
+		const std::string& Route = it->Route;
+		if (!Route.compare(path_name))
+			throw std::runtime_error("Duplicate Route found: " + Route);
 	}
 }
 
@@ -457,8 +457,8 @@ void ConfigFile::verifyLocationPath()
 		i += data.length();
 	else
 		i += pos;
-	checkDuplicateURIs(data);
-	location.URI = data;
+	checkDuplicateRoutes(data);
+	location.Route = data;
 	index_of_lm++;
 }
 

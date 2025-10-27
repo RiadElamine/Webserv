@@ -8,13 +8,13 @@
 // Function to check if a path is a CGI script based on location settings
 bool isCGI(std::string path, Location *currentLocation);
 
-// Function to match the longest valid URI from a path
-size_t matchNB(const std::string& URI, const std::string& path);
+// Function to match the longest valid Route from a path
+size_t matchNB(const std::string& Route, const std::string& path);
 
-// Function to get the location from the server config based on URI path
+// Function to get the location from the server config based on Route path
 Location* getCurrentLocation(std::string oldPath, ServerConfig *currentServer);
 
-std::string buildPath(std::string URI __attribute__ ((unused)), std::string path, std::string root) ;
+std::string buildPath(std::string Route __attribute__ ((unused)), std::string path, std::string root) ;
 
 
 void getDataFromRequest(HttpRequest &request, Response &response);
