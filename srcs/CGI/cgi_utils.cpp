@@ -31,3 +31,26 @@ int &Cgi::getStatus() {
 bool Cgi::isStdoutDone() const { 
     return is_stdout_done; 
 }
+
+
+std::string Cgi::generateRandomFilename() {
+    const char chars[] =
+        "0123456789"
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "abcdefghijklmnopqrstuvwxyz";
+
+    int num_chars = 62;
+
+    std::time_t t = std::time(0);
+    std::srand(t);
+
+    std::string random_str;
+    for (int i = 0; i < 10; ++i)
+    {
+        random_str += chars[std::rand() % num_chars];
+    }
+
+    std::stringstream ss;
+    ss  << t  << random_str << std::hex << &num_chars;
+    return ss.str();
+}

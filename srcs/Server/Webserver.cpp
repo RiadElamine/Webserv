@@ -116,7 +116,6 @@ void WebServer::_handleAccept() {
     Context.clientResponses[client_fd] = static_cast<Response *>(newClient);
     Context.clientRequests[client_fd] = static_cast<HttpRequest *>(newClient);
     clients[client_fd] = newClient;
-    std::cout << "Client connected: " << client_fd << std::endl;
 }
 
 
@@ -156,8 +155,6 @@ void WebServer::_handleReadable() {
             Context.clientCgiProcesses.insert(
                 std::pair<int, Cgi *>(client_fd, &static_cast<Cgi&>(*(clients[client_fd])))
             );
-
-            std::cout << "CGI request detected for client: " << client_fd << std::endl;
            
             Context.clientCgiProcesses.at(client_fd)->executeCgi();
             return;
@@ -196,12 +193,10 @@ void WebServer::_handleWritable() {
     std::string message("");
     if (!response.is_header_sent()) {
         message = response.getHeader();
-        std::cout << "header: " << message;
         response.set_header_sent(true);
     } else {
         message = response.Read_chunks(100);
     }
-    std::cout << "message: " << message ;
     if (!message.empty()) {
         size_t n = send(Context.event.ident, message.c_str(), message.length(), 0);
         if (n <= 0) {
@@ -275,10 +270,13 @@ void WebServer::_closeConnection() {
     Context.clientRequests.erase(fd_client);
     // remove client response from map
     Context.clientResponses.erase(fd_client);
+    // delete client object
+    delete clients[fd_client];
+    clients.erase(fd_client);
     // close client socket
     shutdown(fd_client, SHUT_WR);
     std::cout << "Shutting down connection: " << fd_client << std::endl;
-    // close(fd_client);
+    close(fd_client);
     std::cout << "Connection closed: " << fd_client << std::endl;
 }
 

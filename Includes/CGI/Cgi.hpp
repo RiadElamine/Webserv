@@ -33,6 +33,7 @@ class Cgi : virtual public brain {
         bool isStdoutDone() const;
         void setNonBlockCloexec(int fd);
         void makestdoutDone();
+        std::string generateRandomFilename();
 
         // child process helpers
         void executeCgiScript();

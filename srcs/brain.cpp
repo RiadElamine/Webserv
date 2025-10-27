@@ -18,8 +18,4 @@ brain::brain( ServerConfig *server, int client_fd, KqueueContext *Context)
 }
 
 // destructor
-brain::~brain()
-{
-    // free resources if needed
-    delete currentLocation;
-}
+brain::~brain() {}

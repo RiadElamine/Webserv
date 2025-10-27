@@ -113,7 +113,6 @@ std::string readFile(std::string path) {
     std::ifstream file;
 
     file.open(path.c_str(), std::ifstream::binary);
-    std::cout << path << std::endl;
 
     if (file) {
         file.seekg(0, file.end);

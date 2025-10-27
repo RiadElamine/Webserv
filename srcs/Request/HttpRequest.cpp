@@ -331,7 +331,6 @@ void HttpRequest::inchunk_body(std::string &data)
     pos += chunk_size;
     contentLength += chunk_size;
     if (contentLength > currentServer->client_max_body_size) {
-        std::cout << "File size exceeded: " << contentLength << " bytes" << std::endl;
         remove(filename.c_str());
         return set_status(413);
     }

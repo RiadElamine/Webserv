@@ -24,20 +24,23 @@ Cgi::~Cgi()
         int status;
         waitpid(cgi_pid, &status, WNOHANG);
     }
+    std::cout << "Removing temporary CGI output file: " << filename_cgi_output << std::endl;
+    if (std::remove(filename_cgi_output.c_str()) != 0)
+    {
+        std::cerr << "Warning: Failed to remove temporary CGI output file: " << filename_cgi_output << std::endl;
+    }
 }
 
 void Cgi::openCgiOutputFile() {
     cgi_dir = currentLocation->root + currentLocation->URI + "/";
-    // generate random name for cgi stdin if needed
-    // filename_cgi_output = generateRandomFilename();
-    filename_cgi_output = "cgi_output.txt";
 
-    // 
+    filename_cgi_output = generateRandomFilename();
+
     std::string path_cgi_output_file = cgi_dir + filename_cgi_output;
 
     cgi_stdout = open(path_cgi_output_file.c_str(), O_CREAT | O_RDWR | O_TRUNC, 0644);
     if (cgi_stdout == -1)
-        throw std::runtime_error("Failed to open cgi_output.txt");
+        throw std::runtime_error("Failed to open cgi_output file");
 }
 
 void Cgi::executeCgi()
