@@ -175,8 +175,6 @@ void Cgi::executeCgiScript()
     changeToCgiDirectory();
 
     setupCgiPipes();
-    
-    std::cout << "In child process to execute CGI script" << std::endl;
 
     // Determine the script interpreter based on file extension
     std::string ext = path.substr(path.find_last_of('.'));
