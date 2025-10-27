@@ -4,6 +4,14 @@
 
 // Execute the CGI script in the child process
 
+void Cgi::changeToCgiDirectory() {
+
+    if (chdir(cgi_dir.c_str()) == -1) {
+        std::cerr << "chdir failed: " << std::strerror(errno) << std::endl;
+        std::exit(1);
+    }
+}
+
 void Cgi::setupCgiPipes()
 {
     if (hasRequestBody())
@@ -36,7 +44,7 @@ void Cgi::setupCgiStdin()
 
 void Cgi::setupCgiStdout()
 {
-    cgi_stdout = open(filename_cgi_output.c_str(), O_CREAT | O_RDWR | O_TRUNC, 0644);
+    cgi_stdout = open(filename_cgi_output.c_str(), O_WRONLY);
     if (cgi_stdout == -1){
         perror("open cgi_stdout");
         exit(1);
@@ -99,14 +107,24 @@ void Cgi::runExecve(const char *interpreter, const std::vector<char*> &args, std
 
 void Cgi::executeCgiScript()
 {
+    close(cgi_stdout);
+    
+    changeToCgiDirectory();
+
     setupCgiPipes();
+    
     std::cout << "In child process to execute CGI script" << std::endl;
 
+    // Determine the script interpreter based on file extension
     std::string ext = path.substr(path.find_last_of('.'));
     std::transform(ext.begin(), ext.end(), ext.begin(), tolower);
     const char *scriptInterpreter = currentLocation->cgi_Path_Info[ext].c_str();
 
+    // Remove cgi_dir prefix if present
     std::string scriptPath = path;
+    if (scriptPath.find(cgi_dir) == 0) {
+        scriptPath.erase(0, cgi_dir.length());
+    }
 
     std::vector<char*> env = buildCgiEnv();
     std::vector<char*> args = buildCgiArgs(scriptPath);

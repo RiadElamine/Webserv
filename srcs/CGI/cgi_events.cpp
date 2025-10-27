@@ -1,15 +1,5 @@
 #include "../../Includes/CGI/Cgi.hpp"
 
-
-void Cgi::setupCgiOuput_Parent()
-{
-    cgi_stdout = open(filename_cgi_output.c_str(), O_CREAT | O_RDWR | O_TRUNC, 0644);
-    if (cgi_stdout == -1)
-        throw std::runtime_error("Failed to open cgi_output.txt");
-    
-    setNonBlocking(cgi_stdout);
-}
-
 // Setup kqueue events in the parent process after forking CGI
 void Cgi::setupParentProcessEvents()
 {

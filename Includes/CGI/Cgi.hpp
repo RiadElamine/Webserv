@@ -9,12 +9,14 @@ class Cgi : virtual public brain {
         pid_t     cgi_pid;
         bool      is_stdout_done;
         int       status;
+        std::string cgi_dir;
 
     public:
         Cgi();
         ~Cgi();
         
         // high-level CGI execution
+        void openCgiOutputFile();
         void executeCgi();
         void _readCgiOutput();
         void handleCgiCompletion();
@@ -34,11 +36,11 @@ class Cgi : virtual public brain {
 
         // child process helpers
         void executeCgiScript();
+        void changeToCgiDirectory();
         void setupCgiPipes();
         bool hasRequestBody();
         void setupCgiStdin();
         void setupCgiStdout();
-        void setupCgiOuput_Parent();
         void redirectCgiInput();
         void redirectCgiOutput();
         std::vector<char*> buildCgiArgs(const std::string &scriptPath);

@@ -4,7 +4,6 @@
 HttpRequest::HttpRequest() {
     contentLength = 0;
     chunked = "";
-    path = "";
     flag_headers = 0;
     body_complete = false;
     // j = 0;

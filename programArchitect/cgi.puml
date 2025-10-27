@@ -25,7 +25,9 @@ alt CGI Request == true
     group CGI Initialization
         WS -> CGI : newCgiInstance()
         activate CGI
-        CGI -> CGI : Create_RandomFileName(cgi_stdout)
+        CGI -> CGI : initializeCgiVariables(cgi_dir)
+        CGI -> CGI : generateRandomFilename(cgi_stdout)
+        CGI -> CGI : openCgiOutputFile(cgi_stdout)
     end
 
     group CGI Execution
@@ -33,6 +35,7 @@ alt CGI Request == true
         activate PROC
         
         alt Child Process (PROC)
+            PROC -> PROC : changeToCgiDirectory()
             PROC -> PROC : setupCgiPipes()
             alt Setup CGI Pipes
                 PROC -> PROC : hasRequestBody()
@@ -41,7 +44,8 @@ alt CGI Request == true
                     PROC -> PROC : setNonBlockCloexec(cgi_stdin)
                     PROC -> PROC : Redirect cgi_stdin to read end of body pipe
                 end
-                PROC -> PROC : Open random_file for (cgi_stdout)
+                PROC -> PROC : close unused pipe ends (cgi_stdout)
+                PROC -> PROC : open body pipe for writing (cgi_stdout)
                 PROC -> PROC : setNonBlockCloexec(cgi_stdout)
                 PROC -> PROC : Redirect stdout to cgi_stdout
             end
@@ -49,7 +53,6 @@ alt CGI Request == true
             PROC -> PROC : buildCgiArgs()
             PROC -> PROC : runExecve()
         else Parent Process (CGI)
-            CGI -> CGI : Open random_file for (cgi_stdout)
             CGI -> CGI : setNonBlock(cgi_stdout)
             CGI -> CGI : setupParentProcessEvents()
             alt setupParentProcessEvents 

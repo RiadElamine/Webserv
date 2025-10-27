@@ -10,7 +10,6 @@ class HttpRequest : virtual public brain {
         std::map<std::string, std::string> headers;
         size_t contentLength;
         std::string chunked;
-        std::string path;
         // std::string version;
         bool flag_headers;
         bool body_complete;

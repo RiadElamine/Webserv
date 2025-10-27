@@ -26,13 +26,25 @@ Cgi::~Cgi()
     }
 }
 
+void Cgi::openCgiOutputFile() {
+    cgi_dir = currentLocation->root + currentLocation->URI + "/";
+    // generate random name for cgi stdin if needed
+    // filename_cgi_output = generateRandomFilename();
+    filename_cgi_output = "cgi_output.txt";
+
+    // 
+    std::string path_cgi_output_file = cgi_dir + filename_cgi_output;
+
+    cgi_stdout = open(path_cgi_output_file.c_str(), O_CREAT | O_RDWR | O_TRUNC, 0644);
+    if (cgi_stdout == -1)
+        throw std::runtime_error("Failed to open cgi_output.txt");
+}
 
 void Cgi::executeCgi()
 {
 
-    // generate random name for cgi stdin if needed
-    // filename_cgi_output = generateRandomFilename();
-    filename_cgi_output = "cgi_output.txt";
+    openCgiOutputFile();
+    
     // Fork a new process to execute the CGI script
     cgi_pid = fork();
     if (cgi_pid == -1) {
@@ -46,7 +58,8 @@ void Cgi::executeCgi()
     } 
     else
     {
-        setupCgiOuput_Parent();
+        filename_cgi_output = cgi_dir +  filename_cgi_output;
+        setNonBlocking(cgi_stdout);
         setupParentProcessEvents();
     }
 }
