@@ -13,10 +13,14 @@ Cgi::Cgi()
 Cgi::~Cgi()
 {
     // cleanup
-    if (cgi_stdout != -1)
+    if (cgi_stdout != -1) {
         close(cgi_stdout);
-    if (cgi_stdin != -1)
+        cgi_stdout = -1;
+    }
+    if (cgi_stdin != -1) {
         close(cgi_stdin);
+        cgi_stdin = -1;
+    }
     if (cgi_pid != -1)
     {
         kill(cgi_pid, SIGKILL);
@@ -24,10 +28,15 @@ Cgi::~Cgi()
         int status;
         waitpid(cgi_pid, &status, WNOHANG);
     }
-    std::cout << "Removing temporary CGI output file: " << filename_cgi_output << std::endl;
-    if (std::remove(filename_cgi_output.c_str()) != 0)
+    
+    // Only attempt to remove the file if it exists and filename is not empty
+    if (!filename_cgi_output.empty())
     {
-        std::cerr << "Warning: Failed to remove temporary CGI output file: " << filename_cgi_output << std::endl;
+        std::cout << "Removing temporary CGI output file: " << filename_cgi_output << std::endl;
+        if (std::remove(filename_cgi_output.c_str()) != 0)
+        {
+            std::cerr << "Warning: Failed to remove temporary CGI output file: " << filename_cgi_output << " - " << strerror(errno) << std::endl;
+        }
     }
 }
 
@@ -72,7 +81,6 @@ void Cgi::_readCgiOutput() {
     ssize_t n = read(cgi_stdout, buffer, sizeof(buffer));
     if (n <= 0)
     {
-        perror("*read");
         state_of_connection = DISCONNECTED;
         return;
     }

@@ -3,6 +3,9 @@
 
 
 WebServer::WebServer(std::vector<ServerConfig>  &servers) {
+    // Initialize kqueue to -1 to indicate it's not yet created
+    Context.kq = -1;
+    
     for (size_t i = 0; i < servers.size(); ++i) {
         for (std::set<std::pair<std::string, uint16_t> >::iterator it = servers[i].listens.begin(); it != servers[i].listens.end(); ++it) {
             //
@@ -48,10 +51,35 @@ WebServer::WebServer(std::vector<ServerConfig>  &servers) {
 }
 
 WebServer::~WebServer() {
+    // Close all client connections and clean up client resources
+    for (std::map<int, Client *>::iterator it = clients.begin(); it != clients.end(); ++it) {
+        // Close the client socket
+        close(it->first);
+        // Delete the client object
+        delete it->second;
+    }
+    clients.clear();
+    
+    // Close all listener sockets
     for (std::map<int, ServerConfig *>::iterator it = listeners.begin(); it != listeners.end(); ++it) {
         close(it->first);
     }
     listeners.clear();
+    
+    // Clean up kqueue if it was initialized
+    if (Context.kq != -1) {
+        close(Context.kq);
+        Context.kq = -1;
+    }
+    
+    // Clean up client requests map
+    Context.clientRequests.clear();
+    
+    // Clean up client responses map
+    Context.clientResponses.clear();
+    
+    // Clean up CGI processes map
+    Context.clientCgiProcesses.clear();
 }
 
 void _addEvent(std::vector<struct kevent> &events,

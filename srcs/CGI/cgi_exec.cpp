@@ -92,8 +92,8 @@ std::vector<char*> Cgi::buildCgiEnv()
 
     for (std::map<std::string, std::string>::const_iterator it = params.begin(); it != params.end(); ++it)
     {
-        std::string params = it->first + "=" + it->second;
-        envVar = strdup(params.c_str());
+        std::string params_str = it->first + "=" + it->second;
+        envVar = strdup(params_str.c_str());
         if (!envVar)
         {
             // Handle memory allocation failure
@@ -119,7 +119,7 @@ std::vector<char*> Cgi::buildCgiEnv()
             env.clear();
             exit(1);
         }
-        env.push_back(strdup(headerVar.c_str()));
+        env.push_back(envVar);  // Fixed: was calling strdup again, causing memory leak
     }
 
     if (!request.getMethod().empty())
@@ -159,13 +159,18 @@ void Cgi::runExecve(const char *interpreter, const std::vector<char*> &args, std
 {
     if (execve(interpreter, const_cast<char* const*>(args.data()), env.data()) == -1)
     {
+        perror("execve");
         exit(1);
     }
+    // If execve succeeds, the process memory is replaced, so no need to free
 }
 
 void Cgi::executeCgiScript()
 {
-    close(cgi_stdout);
+    if (cgi_stdout != -1) {
+        close(cgi_stdout);
+        cgi_stdout = -1;  // Reset to avoid double closing
+    }
     
     changeToCgiDirectory();
 
