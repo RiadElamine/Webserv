@@ -1,7 +1,0 @@
-In child process to execute CGI script
-Status: 200 OK
-Content-Type: text/html
-Content-Length: 10
-Connection: close
-Server: WebServer/1.1.0
-
