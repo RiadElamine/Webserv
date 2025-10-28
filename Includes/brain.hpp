@@ -1,6 +1,7 @@
 #pragma once
 
 #include "./Server/ConfigFile.hpp"
+#include "./status_code.hpp"
 
 class HttpRequest;
 class Cgi;

@@ -162,17 +162,14 @@ void Response::setHeader(Header copyHeader) {
 
 void Response::execute_method() {
     // execute methods only once
-    if (is_method_executed || is_cgi)
+    if (is_method_executed || is_cgi || method == "POST")
         return ;
     else 
         is_method_executed = true;
 
     if (method != "GET" && method != "DELETE" && method != "POST")
-        //return 501 not implemented
-        return ;
+        return make_response(true, Not_Implemented);
 
-    if (method == "POST")
-        return ;
 
     struct stat info;
 

@@ -156,7 +156,7 @@ bool isCgiRequest(Client &client) {
     ServerConfig *currentServer = request.getServer();
     currentLocation = getCurrentLocation(request.getPath(), currentServer);
     response.setCurrentLocation(currentLocation);
-    response.setPath(buildPath(currentLocation->Route, request.getPath(), currentLocation->root));
+    response.setPath(buildPath(request.getPath(), currentLocation->root));
 
     client.is_cgi = isCGI(response.getPath(), currentLocation);
     return client.is_cgi;
@@ -216,27 +216,76 @@ void WebServer::_handleWritable() {
 
     getDataFromRequest(request, response);
     
-    // response.execute_method();
+    response.execute_method();
 
     std::string message("");
     if (!response.is_header_sent()) {
         message = response.getHeader();
+        std::cout << "header: " << message;
         response.set_header_sent(true);
     } else {
         message = response.Read_chunks(100);
     }
     if (!message.empty()) {
+        
         size_t n = send(Context.event.ident, message.c_str(), message.length(), 0);
         if (n <= 0) {
             clients[Context.event.ident]->state_of_connection = DISCONNECTED;
             return ;
         }
     }
-
 //    if data send successfully, we close the connection
     else
         clients[Context.event.ident]->state_of_connection = DISCONNECTED;
 }
+
+// void WebServer::_handleWritable() {                                                                                                                                                                          
+//     Response &response = (*Context.clientResponses[Context.event.ident]);                                                                                                                                    
+//     HttpRequest &request = (*Context.clientRequests[Context.event.ident]);                                                                                                                                   
+                                                                                                                                                                                                             
+//     getDataFromRequest(request, response);                                                                                                                                                                   
+                                                                                                                                                                                                             
+//     response.execute_method();                                                                                                                                                                               
+                                                                                                                                                                                                             
+//     std::string message("");                                                                                                                                                                                 
+//     if (!response.is_header_sent()) {                                                                                                                                                                        
+//         message = response.getHeader();
+//         response.set_header_sent(true);
+//     } else {
+//         message = response.Read_chunks(100);
+//     }
+//     if (!message.empty()) {
+//         ssize_t n = send(Context.event.ident, message.c_str(), message.length(), 0);
+//         if (n <= 0) {
+//             std::cout << "Error sending data to client: " << Context.event.ident << std::endl;
+//             clients[Context.event.ident]->state_of_connection = DISCONNECTED;
+//             return ;
+//         }
+//         // If we couldn't send all data, we still have more to send in the future
+//         if ((size_t)n < message.length()) {
+//             std::cout << "Could not send all data at once, will continue later" << std::endl;
+//             return;
+//         }
+//     } else {
+//         // Check if we have completely finished sending the response
+//         // We need to determine if there is more data available to send
+//         // First, let's try to peek if there are more chunks
+//         // This approach keeps track of the file position before calling Read_chunks
+//         // and checks if we're at the end
+        
+//         // If the current call to Read_chunks returned empty, and a subsequent call would also be empty
+//         // then we're at the end of the response
+//         // Since Read_chunks changes internal state, we can't call it again to check
+//         // So we need to determine if we've reached the end by other means
+        
+//         // If we've sent the header and Read_chunks returned empty, 
+//         // we might have reached the end of the response body
+//         std::cout << "Finished sending response, initiating graceful shutdown: " << Context.event.ident << std::endl;
+//         shutdown(Context.event.ident, SHUT_WR);
+//         clients[Context.event.ident]->state_of_connection = DISCONNECTED;
+//         return;
+//     }
+//  }
 
 void WebServer::handleReceiveEvent()
 {
