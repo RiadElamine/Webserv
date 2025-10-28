@@ -358,7 +358,10 @@ void Response::handle_directorys(Location *currentLocation) {
 
     std::string rePath = path + currentLocation->index;
     if (!currentLocation->index.empty() && FileR_OK(rePath))
+    {
+        path = rePath;
         return make_response(false, OK);
+    }
     
     else {
         if (!currentLocation->autoindex)
