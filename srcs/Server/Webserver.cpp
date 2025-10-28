@@ -221,7 +221,7 @@ void WebServer::_handleWritable() {
     std::string message("");
     if (!response.is_header_sent()) {
         message = response.getHeader();
-        std::cout << "header: " << message;
+        // std::cout << "header: " << message;
         response.set_header_sent(true);
     } else {
         message = response.Read_chunks(100);

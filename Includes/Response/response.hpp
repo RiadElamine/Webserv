@@ -67,9 +67,9 @@ class Response : virtual public brain {
         void addToBody(const char*, size_t size);
         void execute_method();
         void Get(struct stat& );
-        void Delete();
+        void Delete(struct stat& );
         void handle_directorys(Location*);
-        void delete_directory(e_StatusCode&, std::string&, Location*);
+        void delete_directory();
         std::string getResponse();
         void setField_line(std::map<std::string, std::string>&);
         void setPath(std::string _path);

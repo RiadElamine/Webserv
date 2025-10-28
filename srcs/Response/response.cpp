@@ -106,7 +106,6 @@ std::string Response::Read_chunks(size_t size) {
     }
 
     else if (stream.file_stream.eof()) {
-        std::cout << "Encouter EOF" << std::endl;
         return "";
     }
     else {
@@ -131,15 +130,25 @@ std::string Response::getHeader()
 {
     // std::string header;
     std::stringstream header;
+    std::map<std::string, std::string>::iterator tmp;
 
     header << responseHeader.status_line.HttpVersion << " " << responseHeader.status_line.statusCode << " " << responseHeader.status_line.reasonPhrase << "\r\n";
 
-    for(std::map<std::string, std::string>::const_iterator it = responseHeader.field_line.begin(); it != responseHeader.field_line.end(); ++it) {
-        if (to_lower(it->first) == "content-length")
+    for(std::map<std::string, std::string>::iterator it = responseHeader.field_line.begin(); it != responseHeader.field_line.end(); ++it) {
+        if (cgi && to_lower(it->first) == "content-length")
+        {
+            tmp = it;
             header << it->first << ": " << calculate_content_length() << "\r\n";
+        }
         else
             header << it->first << ": " << it->second << "\r\n";
     }
+    if (cgi) {
+        std::stringstream ss;
+        ss << calculate_content_length();
+        responseHeader.field_line[tmp->first] = ss.str();
+    }
+
     header << "\r\n";
     return header.str();
 }
@@ -162,6 +171,7 @@ void Response::setHeader(Header copyHeader) {
 
 void Response::execute_method() {
     // execute methods only once
+
     if (is_method_executed || is_cgi || method == "POST")
         return ;
     else 
@@ -170,38 +180,30 @@ void Response::execute_method() {
     if (method != "GET" && method != "DELETE" && method != "POST")
         return make_response(true, Not_Implemented);
 
-
     struct stat info;
 
-    if (!pathExists(path, &info)) {
+    if (!pathExists(path, &info))
         // respond with 404 code status
-        // statusCode = Not_Found;
-        // mime = "text/html";
-        // body = makeBodyResponse(currentLocation, statusCode, currentServer->error_pages, "");
         return make_response(true, Not_Found);
-    }
-    else if (!methodAllowed(currentLocation, method)) {
+    else if (!methodAllowed(currentLocation, method))
         // statusCode = Method_Not_Allowed;
-        // mime = "text/html";
-        // body = makeBodyResponse(currentLocation, statusCode, currentServer->error_pages, "");
         return make_response(true,  Method_Not_Allowed);
-    }
 
-    else if (method == "GET") {
+    else if (method == "GET")
         return (this->Get(info));
-    } else if (method == "DELETE") {
-        return (this->Delete());
-    }
+    else if (method == "DELETE")
+        return (this->Delete(info));
 
 }
 
-std::string get_old_path(std::string path, std::string root) {
+std::string get_old_path(std::string& path, std::string& root) {
     size_t index = path.find(root);
     if (index == std::string::npos)
         return "";
-    std::string ret = path.substr(index + 1, path.length() - index);
+    index += root.length();
+    std::string ret = path.substr(index, path.length() - index);
     if (ret[0] == '/')
-        ret.erase(0);
+        ret = ret.substr(1);
     return ret;
 }
 
@@ -230,20 +232,18 @@ void Response::make_response(bool is_error, e_StatusCode statusCode, bool is_aut
     // std::cout << "path: " << path << std::endl;
 
     if (is_error) {
-        // set stream to the default error page
         std::string error_page_path = currentServer->error_pages[(int)statusCode];
-        if (!error_page_path.empty()) {
+        if (!error_page_path.empty() && open_stream(error_page_path)) {
             // set stream to the page error
             stream.offset = 0;
-            if (!open_stream(error_page_path))
-                throw std::runtime_error("Can't open error page path");
             content_length = calculate_content_length();
             content_type = getMIME(error_page_path);
         }
         else
         {
-            ss << "<!DOCTYPE html>\n<html>\n<head>\n<title>" << (int) statusCode << getReasonPhrase(statusCode);
-            ss << "</title>\n</head>\n<body>\n<center><h1>" << (int) statusCode << getReasonPhrase(statusCode);
+            // create a generic build error page
+            ss << "<!DOCTYPE html>\n<html>\n<head>\n<title>" << (int) statusCode << " " << getReasonPhrase(statusCode);
+            ss << "</title>\n</head>\n<body>\n<center><h1>" << (int) statusCode << " " << getReasonPhrase(statusCode);
             ss << "</h1></center>\n<hr><center>WebServer/1.0</center>\n</body>\n</html>" ;
             body = ss.str();
             content_length = body.length();
@@ -288,110 +288,50 @@ void Response::make_response(bool is_error, e_StatusCode statusCode, bool is_aut
     fillFieldLine(content_type, ss.str());
 }
 
-//modify path
-
 void Response::Get(struct stat& info) {
-  
 
-    if (info.st_mode & S_IFDIR) {
+    if (info.st_mode & S_IFDIR)
         // handle direcotry
         handle_directorys(currentLocation);
-    }
-    else if (info.st_mode & S_IFREG) {
+    else if (info.st_mode & S_IFREG)
         // handle reqular file
-        // statusCode = OK;
-        // mime = getMIME(path);
-        // body = makeBodyResponse(currentLocation, statusCode, currentServer->error_pages, path);
         return make_response(false, OK);
-    } else {
-        // mime = "text/html";
-        // statusCode = Internal_Server_Error;
-        // body = makeBodyResponse(currentLocation, statusCode, currentServer->error_pages, "");
+    else
+        // Unknown file type
         return make_response(true, Internal_Server_Error);
-    }
-
-    // responseHeader.status_line.statusCode = statusCode;
-    // responseHeader.status_line.reasonPhrase = getReasonPhrase(statusCode);
-    // if (statusCode == Moved_Permanently)
-    //     responseHeader.field_line["Location"] =  "http://localhost:8080" + oldPath + "/";
-    // ss << body.length();
-    // ss.str();
-    // ss.clear();
-    // fillFieldLine(responseHeader.field_line, mime, ss.str());
 }
 
-void Response::Delete() {
-    // e_StatusCode statusCode;
-    // std::string mime("");
-    // std::stringstream ss;
-    // struct stat info;
+void Response::Delete(struct stat& info) {
 
-    // Location *currentLocation = getCurrentLocation(path, currentServer);
-    // // if (currentLocation->root[currentLocation->root.length() - 1] != '/')
-    // //     currentLocation->root += '/';
-    // // path = buildPath(currentLocation->Route, path, currentLocation->root);
-
-    // if (!pathExists(path, &info)) {
-    //     // respond with 404 code status
-    //     statusCode = Not_Found;
-    //     mime = "text/html";
-    //     body = makeBodyResponse(currentLocation, statusCode, currentServer->error_pages, "");
-    // }
-    // else if (!methodAllowed(currentLocation, "DELETE")) {
-    //     statusCode = Method_Not_Allowed;
-    //     // mime = "text/html";
-    //     body = makeBodyResponse(currentLocation, statusCode, currentServer->error_pages, "");
-    // }
-    // else if (info.st_mode & S_IFDIR) {
-    //     // handle direcotry
-    //     statusCode = UNITILAZE;
-    //     delete_directory(statusCode, mime, currentLocation);
-    // }
-    // else if (info.st_mode & S_IFREG) {
-    //     // handle reqular file
-    //     size_t ret = std::remove(path.c_str());
-    //     if (ret) {
-    //         statusCode = Forbidden;
-    //         mime = "text/html";
-    //         body =  makeBodyResponse(currentLocation, statusCode, currentServer->error_pages, "");
-    //     }
-    //     else 
-    //         statusCode = No_Content;
-    // } else {
-    //     mime = "text/html";
-    //     statusCode = Internal_Server_Error;
-    //     body = makeBodyResponse(currentLocation, statusCode, currentServer->error_pages, "");
-    // }
-
-    // responseHeader.status_line.statusCode = statusCode;
-    // responseHeader.status_line.reasonPhrase = getReasonPhrase(statusCode);
-    // ss << body.length();
-    // ss.str();
-    // ss.clear();
-    // fillFieldLine(responseHeader.field_line, mime, ss.str());
+    if (info.st_mode & S_IFDIR)
+         // handle direcotry
+         delete_directory();
+     else if (info.st_mode & S_IFREG) {
+         // handle reqular file
+         size_t ret = std::remove(path.c_str());
+         if (ret)
+             return make_response(true, Forbidden);
+         else
+             return make_response(true, No_Content);
+     }
+     else
+         return make_response(true, Internal_Server_Error);
 }
 
-void Response::delete_directory(e_StatusCode& statusCode, std::string& mime, Location* currentLocation __attribute__ ((unused))) {
+void Response::delete_directory() {
+
     if (path[path.length() - 1] != '/') {
-        statusCode = Moved_Permanently;
-        mime = "text/html";
-        body = makeBodyResponse(NULL, statusCode, currentServer->error_pages, "");
-        return ;
+        return make_response(true, Moved_Permanently);
     }
     if (!isDirectoryEmpty(path)) {
-        statusCode = Conflict;
-        mime = "text/html";
-        body = makeBodyResponse(NULL, statusCode, currentServer->error_pages, "");
+        return make_response(true, Conflict);
     }
     else {
         size_t ret = rmdir(path.c_str());
-        if (ret != 0) {
-            statusCode = Forbidden;
-            mime = "text/html";
-            body = makeBodyResponse(NULL, statusCode, currentServer->error_pages, "");
-        }
+        if (ret != 0)
+            return make_response(true, Forbidden);
         else
-            statusCode = No_Content;
+            return make_response(true, No_Content);
     }
 }
 
@@ -412,43 +352,18 @@ std::string Response::getResponse() {
 }
 
 void Response::handle_directorys(Location *currentLocation) {
-    if (path[path.length() - 1] != '/') {
-        // statusCode = Moved_Permanently;
-        // mime = "text/html";
-        // body = makeBodyResponse(NULL, statusCode, currentServer->error_pages, "");
 
+    if (path[path.length() - 1] != '/')
         return make_response(true, Moved_Permanently);
-    }
+
     std::string rePath = path + currentLocation->index;
-    if (!currentLocation->index.empty() && FileR_OK(rePath)) {
-        // statusCode = OK;
-        // mime = getMIME(rePath);
-        // body = makeBodyResponse(NULL, statusCode, currentServer->error_pages, rePath);
-        path = rePath;
+    if (!currentLocation->index.empty() && FileR_OK(rePath))
         return make_response(false, OK);
-    } else {
-        if (!currentLocation->autoindex) {
-            // statusCode = Forbidden;
-            // mime = "text/html";
-            // body = makeBodyResponse(NULL, statusCode, currentServer->error_pages, "");
+    
+    else {
+        if (!currentLocation->autoindex)
             return make_response(true, Forbidden);
-        } else {
-            // statusCode = OK;
-            // mime = "text/html";
+        else
             return make_response(false, OK, true);
-            
-        }
     }
 }
-
-//char *readheader() {
-//    return NULL;
-//}
-//
-//char * readBuffer(int fd, size_t BUFFER_SIZE, response& response) {
-//
-//    char * buffer[BUFFER_SIZE];
-//    read(fd, buffer, BUFFER_SIZE);
-//    if (check_is_)
-//    response.buffer_string.append(buffer);
-//}
