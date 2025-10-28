@@ -54,25 +54,29 @@ class Response : virtual public brain {
     std::string body;
     fileStream stream;
     bool header_sent;
-    // bool is_method_executed
+    bool cgi;
+    bool is_method_executed;
 
     public:
         Response();
+        ~Response();
         Response& operator=(const Response&);
         void setMethod(std::string );
         void set_Server(ServerConfig *);
         void setHeader(Header );
         void addToBody(const char*, size_t size);
         void execute_method();
-        void Get();
+        void Get(struct stat& );
         void Delete();
-        void handle_directorys(e_StatusCode&, std::string&, Location*);
+        void handle_directorys(Location*);
         void delete_directory(e_StatusCode&, std::string&, Location*);
         std::string getResponse();
         void setField_line(std::map<std::string, std::string>&);
         void setPath(std::string _path);
         std::string Read_chunks(size_t size);
         size_t calculate_content_length();
+        void make_response(bool is_error, e_StatusCode statusCode, bool is_autoindex = false);
+        void fillFieldLine(std::string content_type, std::string content_length);
 
         // getter
         std::string getPath(void);
@@ -88,7 +92,7 @@ class Response : virtual public brain {
         void set_header_sent(bool val);
         void set_offset(size_t pos);
         bool open_stream(std::string& file_path); // if this return false, the server should response with 500
-
+        void set_cgi(bool val);
 
 };
 

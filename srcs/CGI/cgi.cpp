@@ -87,10 +87,11 @@ void Cgi::_readCgiOutput() {
 
     if (parseCGIheader( headers_buffer_CGI, buffer, n, *(Context->clientResponses[this->getClientFd()])))
      {
-         makestdoutDone();
-         if (!Context->clientResponses[client_fd]->open_stream(filename_cgi_output))
-             throw std::runtime_error("Can't open the cgi output file");
-         return;
+        makestdoutDone();
+        if (!Context->clientResponses[client_fd]->open_stream(filename_cgi_output))
+            throw std::runtime_error("Can't open the cgi output file");
+        Context->clientResponses[client_fd]->set_cgi(true);
+        return;
      }
 
      // Reset the timer

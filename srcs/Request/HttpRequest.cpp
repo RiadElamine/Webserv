@@ -388,7 +388,7 @@ void HttpRequest::create_file(int flag)
     Location* it = getCurrentLocation(path, currentServer);
     if (std::find(it->methods.begin(), it->methods.end(), method) == it->methods.end()) 
         return  set_status(405);
-    std::string build_pat = buildPath(it->Route, path, it->root);
+    std::string build_pat = buildPath(path, it->root);
     struct stat buffer;
     if (stat(build_pat.c_str(), &buffer) != 0 || !S_ISDIR(buffer.st_mode)) 
         return  set_status(500);
