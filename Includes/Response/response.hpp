@@ -55,6 +55,9 @@ class Response : virtual public brain {
     fileStream stream;
     bool header_sent;
     bool is_method_executed;
+    bool is_Moved_Permanently;
+    bool is_index;
+    bool is_data_fetched;
 
     public:
         Response();
@@ -67,7 +70,7 @@ class Response : virtual public brain {
         void execute_method();
         void Get(struct stat& );
         void Delete(struct stat& );
-        void handle_directorys(Location*);
+        void handle_directorys();
         void delete_directory();
         std::string getResponse();
         void setField_line(std::map<std::string, std::string>&);
@@ -76,6 +79,8 @@ class Response : virtual public brain {
         size_t calculate_content_length();
         void make_response(bool is_error, e_StatusCode statusCode, bool is_autoindex = false);
         void fillFieldLine(std::string content_type, std::string content_length);
+        bool process_path();
+        void fetch_data_from_request(e_StatusCode, std::string);
 
         // getter
         std::string getPath(void);

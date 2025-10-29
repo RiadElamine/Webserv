@@ -546,7 +546,7 @@ void ConfigFile::fill_server_defaults()
 {
 	std::string errorDir = DEFAULT_PAGE_ERRORS;
 	int codesArray[] = {
-		400, 401, 403, 404, 405, 408,
+		400, 401, 403, 404, 405, 408, 409,
 		413, 414, 500, 501, 502, 503, 504
 	};
 

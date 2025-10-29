@@ -190,7 +190,7 @@ Location* getCurrentLocation(std::string oldPath, ServerConfig *currentServer) {
     if (!currentLocation)
     {
         currentServer->locations.push_back(Location());
-        currentLocation = &currentServer->locations.back(); //need to free it later
+        currentLocation = &currentServer->locations.back(); 
     }
     if (currentLocation->root.empty())
         currentLocation->root = currentServer->global_root;
@@ -231,6 +231,7 @@ void listDirectory(const std::string& path, std::vector<std::string>& entries) {
     DIR* dir = opendir(path.c_str());
     if (!dir) {
         std::cerr << "Cannot open directory: " << path << std::endl;
+        return ;
     }
 
     struct dirent* entry;

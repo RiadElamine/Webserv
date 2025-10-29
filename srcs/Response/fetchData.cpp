@@ -3,13 +3,7 @@
 #include "../../Includes/Request/HttpRequest.hpp"
 
 void getDataFromRequest(HttpRequest &request, Response &response){
-    Header copyHeader;
-
-    response.setMethod(request.getMethod());
-    //Rebuild path before assign it to the response object
-    copyHeader.status_line.HttpVersion = "HTTP/1.1";
-    copyHeader.status_line.statusCode = (e_StatusCode) request.getStatusCode();
-    copyHeader.status_line.reasonPhrase = getReasonPhrase(copyHeader.status_line.statusCode);
-    response.setHeader(copyHeader);
-
+    std::cout << "status code from request: " << (e_StatusCode)request.getStatusCode() << std::endl;
+    std::cout << "method: " << request.getMethod() << std::endl;
+    response.fetch_data_from_request((e_StatusCode)request.getStatusCode(), request.getMethod());
 }

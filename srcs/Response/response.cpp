@@ -8,6 +8,9 @@ Response::Response() {
     header_sent = false;
     stream.offset = 0;
     is_method_executed = false;
+    is_Moved_Permanently = false;
+    is_index = false;
+    is_data_fetched = false;
 }
 
 Response::~Response() {
@@ -40,6 +43,18 @@ void Response::setPath(std::string _path) {
     path = _path;
 }
 
+void Response::fetch_data_from_request(e_StatusCode statusCode, std::string _method) {
+    if (is_data_fetched)
+        return ;
+    responseHeader.status_line.statusCode = statusCode;
+    responseHeader.status_line.reasonPhrase = getReasonPhrase(statusCode);
+    method = _method;
+    is_data_fetched = true;
+    if (statusCode != OK && statusCode != Created) {
+        is_method_executed = true;
+        return make_response(true, statusCode);
+    }
+} 
 
 ///
 std::string Response::getPath(void) {
@@ -93,7 +108,6 @@ std::string Response::Read_chunks(size_t size) {
     std::string ret;
 
     if (!stream.file_stream.is_open()) {
-        std::cout << "read from the body" << std::endl;
         if (stream.offset >= body.length())
             return "";
         ret = body.substr(stream.offset, size);
@@ -148,21 +162,21 @@ std::string Response::getHeader()
     return header.str();
 }
 
-void Response::setHeader(Header copyHeader) {
-    responseHeader.status_line.HttpVersion = copyHeader.status_line.HttpVersion;
-    responseHeader.status_line.statusCode = copyHeader.status_line.statusCode;
-    responseHeader.status_line.reasonPhrase = copyHeader.status_line.reasonPhrase;
-    // check for the status from request parsing
+// void Response::setHeader(Header copyHeader) {
+//     responseHeader.status_line.HttpVersion = copyHeader.status_line.HttpVersion;
+//     responseHeader.status_line.statusCode = copyHeader.status_line.statusCode;
+//     responseHeader.status_line.reasonPhrase = copyHeader.status_line.reasonPhrase;
+//     // check for the status from request parsing
 
-    if (responseHeader.status_line.statusCode != OK) {
-        std::stringstream ss;
-        body = makeBodyResponse(NULL, \
-                                responseHeader.status_line.statusCode, currentServer->error_pages, "");
+//     if (responseHeader.status_line.statusCode != OK) {
+//         std::stringstream ss;
+//         body = makeBodyResponse(NULL, \
+//                                 responseHeader.status_line.statusCode, currentServer->error_pages, "");
 
-        ss << body.length();
-        // fillFieldLine(responseHeader.field_line, "text/html", ss.str());
-    }
-}
+//         ss << body.length();
+//         // fillFieldLine(responseHeader.field_line, "text/html", ss.str());
+//     }
+// }
 
 void Response::execute_method() {
     // execute methods only once
@@ -174,12 +188,19 @@ void Response::execute_method() {
 
     if (method != "GET" && method != "DELETE" && method != "POST")
         return make_response(true, Not_Implemented);
-
+    
     struct stat info;
 
-    if (!pathExists(path, &info))
-        // respond with 404 code status
-        return make_response(true, Not_Found);
+    if (!pathExists(path, &info)) {
+        //path exist but can't access to it
+        if (errno == EACCES)
+            return make_response(true, Forbidden);
+        // path doesn't exist
+        else if (errno == ENOENT)
+            return make_response(true, Not_Found);
+        else
+            return make_response(true, Internal_Server_Error);
+    }
     else if (!methodAllowed(currentLocation, method))
         // statusCode = Method_Not_Allowed;
         return make_response(true,  Method_Not_Allowed);
@@ -224,6 +245,7 @@ void Response::make_response(bool is_error, e_StatusCode statusCode, bool is_aut
     std::stringstream ss;
 
     responseHeader.status_line.statusCode = statusCode;
+    responseHeader.status_line.reasonPhrase = getReasonPhrase(statusCode);
     // std::cout << "path: " << path << std::endl;
 
     if (is_error) {
@@ -267,7 +289,6 @@ void Response::make_response(bool is_error, e_StatusCode statusCode, bool is_aut
         content_length = body.length();
     } else {
         // set stream to the
-        std::cout << "path: " << path << std::endl;
         stream.offset = 0;
         if (!open_stream(path))
             throw std::runtime_error("Can't set the path of the stream file");
@@ -285,9 +306,9 @@ void Response::make_response(bool is_error, e_StatusCode statusCode, bool is_aut
 
 void Response::Get(struct stat& info) {
 
-    if (info.st_mode & S_IFDIR)
+    if (S_ISDIR(info.st_mode))
         // handle direcotry
-        handle_directorys(currentLocation);
+        handle_directorys();
     else if (info.st_mode & S_IFREG)
         // handle reqular file
         return make_response(false, OK);
@@ -298,16 +319,17 @@ void Response::Get(struct stat& info) {
 
 void Response::Delete(struct stat& info) {
 
-    if (info.st_mode & S_IFDIR)
+    if (S_ISDIR(info.st_mode))
          // handle direcotry
          delete_directory();
      else if (info.st_mode & S_IFREG) {
          // handle reqular file
          size_t ret = std::remove(path.c_str());
+        
          if (ret)
-             return make_response(true, Forbidden);
+            return make_response(true, Forbidden);
          else
-             return make_response(true, No_Content);
+            return make_response(true, No_Content);
      }
      else
          return make_response(true, Internal_Server_Error);
@@ -346,22 +368,44 @@ std::string Response::getResponse() {
     return message;
 }
 
-void Response::handle_directorys(Location *currentLocation) {
+void Response::handle_directorys() {
 
-    if (path[path.length() - 1] != '/')
+    if (is_Moved_Permanently)
         return make_response(true, Moved_Permanently);
 
-    std::string rePath = path + currentLocation->index;
-    if (!currentLocation->index.empty() && FileR_OK(rePath))
+    if (is_index)
     {
-        path = rePath;
         return make_response(false, OK);
     }
-    
     else {
         if (!currentLocation->autoindex)
             return make_response(true, Forbidden);
         else
             return make_response(false, OK, true);
     }
+}
+
+bool Response::process_path() {
+    struct stat info;
+
+    if (stat(path.c_str(), &info) != 0) // if path doesn't exist
+        return false;
+
+    if (!S_ISDIR(info.st_mode)) {
+        return true;
+    }
+    if (path[path.length() - 1] != '/')
+    {
+        is_Moved_Permanently = true;
+        return false;
+    }
+
+    std::string rePath = path + currentLocation->index;
+    if (!currentLocation->index.empty() && FileR_OK(rePath))
+    {
+        path = rePath;
+        is_index = true;
+        return true;
+    }
+    return false;
 }
