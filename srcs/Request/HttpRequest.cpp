@@ -140,7 +140,6 @@ void HttpRequest::parse_headers(std::string& data) {
     Route_valid();
     data.erase(0, i+1);
     i = data.find("\r\n");
-    // std::cout << data.substr(0, i) << std::endl;
     if(data.substr(0, i).empty() || (data.substr(0, i) != "HTTP/1.1"))
         return set_status(400);
     data.erase(0, i+2);
@@ -153,7 +152,6 @@ void HttpRequest::parse_headers(std::string& data) {
         size_t colon_pos = line.find(':');
         if (colon_pos != std::string::npos) {
             std::string key = line.substr(0, colon_pos);
-            std::cout << key << std::endl;
             if (key.empty() || key.find_first_not_of(" \t") != 0 || key.find_last_not_of(" \t") != key.size() - 1) {
                 return set_status(400);
             }
@@ -178,11 +176,15 @@ void HttpRequest::parse_headers(std::string& data) {
         contentLength = 0;
     }
 
-    if (headers.find("Transfer-Encoding") != headers.end() && headers["Transfer-Encoding"] == "chunked") {
-        chunked = "chunked";
-    } else {
-        chunked = "";
+    if (headers.find("Transfer-Encoding") != headers.end()) {
+        if (headers["Transfer-Encoding"] == "chunked")
+            chunked = "chunked";
+        else
+            return set_status(400);
     }
+    else
+        chunked = "";
+    if (headers.find("Transfer-Encoding") != headers.end() && headers.find("Content-Length") != headers.end())
     if (headers.find("Content-Type") != headers.end() && headers["Content-Type"].find("multipart/form-data;") != std::string::npos) {
         size_t boundary_pos = headers["Content-Type"].find("boundary=");
         if (boundary_pos == std::string::npos) 
@@ -391,11 +393,13 @@ void HttpRequest::parse_body(std::string& data) {
     {
         if (boundary.empty() || isCGI(path, it))
         {
-            std::ofstream file(filename.c_str(), std::ios::binary | std::ios::app);        
-            size_t bytesToWrite = std::min(static_cast<size_t>(contentLength), data.size());
+            std::ofstream file(filename.c_str(), std::ios::binary | std::ios::app);   
+            // size_t bytesToWrite = std::min(static_cast<size_t>(contentLength), data.size());
+            size_t bytesToWrite = (contentLength > data.size()) ? data.size() : contentLength;
             file.write(data.c_str(), bytesToWrite);
+            std::cout << bytesToWrite << std::endl;
             contentLength -= bytesToWrite;
-            data.erase(0, bytesToWrite); 
+            data.erase(0, bytesToWrite);
             if (contentLength <= 0) {
                 file.close();
                 return set_status(201);
