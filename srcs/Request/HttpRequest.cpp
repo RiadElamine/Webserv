@@ -185,6 +185,7 @@ void HttpRequest::parse_headers(std::string& data) {
     else
         chunked = "";
     if (headers.find("Transfer-Encoding") != headers.end() && headers.find("Content-Length") != headers.end())
+        return set_status(400);
     if (headers.find("Content-Type") != headers.end() && headers["Content-Type"].find("multipart/form-data;") != std::string::npos) {
         size_t boundary_pos = headers["Content-Type"].find("boundary=");
         if (boundary_pos == std::string::npos) 
