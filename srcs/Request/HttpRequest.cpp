@@ -140,7 +140,8 @@ void HttpRequest::parse_headers(std::string& data) {
     Route_valid();
     data.erase(0, i+1);
     i = data.find("\r\n");
-    if(data.substr(0, i).empty() && (data.substr(0, i) != "HTTP/1.1"))
+    // std::cout << data.substr(0, i) << std::endl;
+    if(data.substr(0, i).empty() || (data.substr(0, i) != "HTTP/1.1"))
         return set_status(400);
     data.erase(0, i+2);
     size_t header_end = data.find("\r\n\r\n");
@@ -152,6 +153,7 @@ void HttpRequest::parse_headers(std::string& data) {
         size_t colon_pos = line.find(':');
         if (colon_pos != std::string::npos) {
             std::string key = line.substr(0, colon_pos);
+            std::cout << key << std::endl;
             if (key.empty() || key.find_first_not_of(" \t") != 0 || key.find_last_not_of(" \t") != key.size() - 1) {
                 return set_status(400);
             }
