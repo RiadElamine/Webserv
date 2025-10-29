@@ -157,7 +157,8 @@ bool isCgiRequest(Client &client) {
     currentLocation = getCurrentLocation(request.getPath(), currentServer);
     response.setCurrentLocation(currentLocation);
     response.setPath(buildPath(request.getPath(), currentLocation->root));
-
+    if (!response.process_path())
+        return (false);
     client.is_cgi = isCGI(response.getPath(), currentLocation);
     return client.is_cgi;
 }
@@ -224,7 +225,7 @@ void WebServer::_handleWritable() {
         // std::cout << "header: " << message;
         response.set_header_sent(true);
     } else {
-        message = response.Read_chunks(100);
+        message = response.Read_chunks(10000);
     }
     if (!message.empty()) {
         
