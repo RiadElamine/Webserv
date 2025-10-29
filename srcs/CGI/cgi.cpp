@@ -90,7 +90,6 @@ void Cgi::_readCgiOutput() {
         makestdoutDone();
         if (!Context->clientResponses[client_fd]->open_stream(filename_cgi_output))
             throw std::runtime_error("Can't open the cgi output file");
-        Context->clientResponses[client_fd]->set_cgi(true);
         return;
      }
 

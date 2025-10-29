@@ -54,7 +54,6 @@ class Response : virtual public brain {
     std::string body;
     fileStream stream;
     bool header_sent;
-    bool cgi;
     bool is_method_executed;
 
     public:
@@ -92,7 +91,6 @@ class Response : virtual public brain {
         void set_header_sent(bool val);
         void set_offset(size_t pos);
         bool open_stream(std::string& file_path); // if this return false, the server should response with 500
-        void set_cgi(bool val);
 
 };
 

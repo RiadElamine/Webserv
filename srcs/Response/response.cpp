@@ -8,7 +8,6 @@ Response::Response() {
     header_sent = false;
     stream.offset = 0;
     is_method_executed = false;
-    cgi = false;
 }
 
 Response::~Response() {
@@ -17,10 +16,6 @@ Response::~Response() {
 
 bool Response::is_header_sent() const {
     return header_sent;
-}
-
-void Response::set_cgi(bool val) {
-    is_cgi = val;
 }
 
 void Response::set_header_sent(bool val) {
@@ -122,7 +117,7 @@ size_t Response::calculate_content_length() {
     stream.file_stream.seekg(0, std::ios::end);          // end of file
     std::streampos end = stream.file_stream.tellg();
     stream.file_stream.seekg(current, std::ios::beg);    // restore position
-    size_t size = static_cast<size_t>(end - current);
+    size_t size = static_cast<size_t>(end - current + 1);
     return (size - 1);
 }
 
@@ -135,7 +130,7 @@ std::string Response::getHeader()
     header << responseHeader.status_line.HttpVersion << " " << responseHeader.status_line.statusCode << " " << responseHeader.status_line.reasonPhrase << "\r\n";
 
     for(std::map<std::string, std::string>::iterator it = responseHeader.field_line.begin(); it != responseHeader.field_line.end(); ++it) {
-        if (cgi && to_lower(it->first) == "content-length")
+        if (is_cgi && to_lower(it->first) == "content-length")
         {
             tmp = it;
             header << it->first << ": " << calculate_content_length() << "\r\n";
@@ -143,7 +138,7 @@ std::string Response::getHeader()
         else
             header << it->first << ": " << it->second << "\r\n";
     }
-    if (cgi) {
+    if (is_cgi) {
         std::stringstream ss;
         ss << calculate_content_length();
         responseHeader.field_line[tmp->first] = ss.str();
