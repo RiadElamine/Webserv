@@ -6,7 +6,6 @@ HttpRequest::HttpRequest() {
     chunked = "";
     flag_headers = 0;
     body_complete = false;
-    // j = 0;
     chunk_size = 0;
     boundary = "";
     flag_body = 0;
@@ -105,7 +104,6 @@ void HttpRequest::Route_valid()
     {
         size_t pos = path.find('?');
         std::string query = path.substr(pos + 1);
-        // path = Route.substr(0, pos);
         path.erase(pos);
         if (query.empty() || query[query.size() - 1] == '#')
             return set_status(400);
@@ -122,8 +120,6 @@ void HttpRequest::Route_valid()
             start = and_pos + 1;
         }
     }
-    // else
-    //     path = Route;
     decode(path);
 }
 
@@ -144,7 +140,6 @@ void HttpRequest::parse_headers(std::string& data) {
     Route_valid();
     data.erase(0, i+1);
     i = data.find("\r\n");
-    // version = data.substr(0, i);
     if(data.substr(0, i).empty() && (data.substr(0, i) != "HTTP/1.1"))
         return set_status(400);
     data.erase(0, i+2);
@@ -209,40 +204,6 @@ void HttpRequest::handl_boundary(std::string& data, size_t boundary_pos) {
         size_t start_pos = boundary_pos + boundary.size() + 2;
         data.erase(0, start_pos);
         size_t pos = data.find("filename=", 0);
-        // if (pos  > data.find("\r\n")) {
-        //     std::string name;
-        //     std::string content;
-        //     size_t name_pos = data.find("name="); 
-        //     if (name_pos != std::string::npos) {
-        //         name_pos += 6;
-        //         size_t end_name_pos = data.find('"', name_pos);
-        //         if (end_name_pos != std::string::npos) {
-        //             name = data.substr(name_pos, end_name_pos - name_pos);
-        //         } else 
-        //             return  check(data, pos);
-                
-        //         size_t content_start = data.find("\r\n\r\n", end_name_pos);
-        //         if (content_start != std::string::npos) {
-        //             content_start += 4;
-        //             size_t content_end = data.find("\r\n", content_start);
-        //             if (content_end != std::string::npos) {
-        //                 content = data.substr(content_start, content_end - content_start);
-        //             } else 
-        //                 return check(data, pos);
-        //         } else 
-        //             return check(data, pos);
-        //         data.erase(0, data.find(boundary));
-        //         form_data[name] = content;
-        //         if (data.find("--"+boundary+"--\r\n" , boundary.size()+6) != std::string::npos && data.substr(0, data.find("--"+boundary+"--\r\n" , boundary.size()+6)).find(boundary) == std::string::npos) {
-        //             data.erase(0, data.find("--\r\n") + 4);
-        //             flag_body = 1;
-        //             body_complete = true;
-        //         }
-        //         return;
-        //     }
-        //     else 
-        //         return check(data, pos);
-        // }
         if (pos != std::string::npos) {
                 std::string name;
                 std::string content;
@@ -390,18 +351,16 @@ void HttpRequest::create_file(int flag)
         return  set_status(405);
     std::string build_pat = buildPath(path, it->root);
     struct stat buffer;
-    if (stat(build_pat.c_str(), &buffer) != 0 || !S_ISDIR(buffer.st_mode)) 
+    if (stat(build_pat.c_str(), &buffer) != 0 || !S_ISDIR(buffer.st_mode) || !(buffer.st_mode & S_IWUSR)) 
         return  set_status(500);
     std::string ext;
     if (!boundary.empty() && !form_data["filename"].empty()) {
         const std::string& orig_filename = form_data["filename"];
         size_t dot_pos = orig_filename.find_last_of('.');
-        if (dot_pos != std::string::npos && dot_pos < orig_filename.length() - 1) {
+        if (dot_pos != std::string::npos && dot_pos < orig_filename.length() - 1)
             ext = orig_filename.substr(dot_pos);
-        }
-    } else {
+    } else
         ext = get_mime_type(); 
-    }
     const int MAX_ATTEMPTS = 1000;
     for (int i = 1; i <= MAX_ATTEMPTS; ++i) {
         std::string candidate = build_pat + "/upload_" + random_string(8) + ext;
@@ -413,7 +372,6 @@ void HttpRequest::create_file(int flag)
             return;
         }
     }
-    
 }
 
 

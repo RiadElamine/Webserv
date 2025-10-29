@@ -92,6 +92,7 @@ bool Response::is_cgi_strem_open() const {
 std::string Response::Read_chunks(size_t size) {
     std::string ret;
 
+std::cout << responseHeader.status_line.statusCode << std::endl;
     if (!stream.file_stream.is_open()) {
         std::cout << "read from the body" << std::endl;
         if (stream.offset >= body.length())
