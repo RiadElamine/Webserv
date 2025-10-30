@@ -186,7 +186,7 @@ void WebServer::_handleReadable() {
             );
            
             Context.clientCgiProcesses.at(client_fd)->executeCgi();
-            return;
+            
         }
         else 
         {
@@ -194,12 +194,14 @@ void WebServer::_handleReadable() {
             std::vector<struct kevent> ev;
             _addEvent(ev, client_fd, EVFILT_READ,  EV_DISABLE, 0, 0, (void*)client_event);
             _addEvent(ev, client_fd, EVFILT_WRITE, EV_ENABLE, 0, 0, (void*)client_event);
+            _addEvent(ev, client_fd, EVFILT_TIMER, EV_DISABLE, 0, 0, (void*)client_event);
             if (kevent(Context.kq, ev.data(), ev.size(), NULL, 0, NULL) == -1) {
                 // remember to close the connection and clean up
                 throw std::runtime_error("Failed to modify client events");
             }
         }
         std::cout << "Request received from client: " << client_fd << std::endl;
+        return;
     }
     // Reset the timer
     struct kevent ev;
@@ -228,9 +230,9 @@ void WebServer::_handleWritable() {
         message = response.Read_chunks(10000);
     }
     if (!message.empty()) {
-        
         size_t n = send(Context.event.ident, message.c_str(), message.length(), 0);
         if (n <= 0) {
+            std::cout << "send Failed" << std::endl;
             clients[Context.event.ident]->state_of_connection = DISCONNECTED;
             return ;
         }
@@ -314,7 +316,7 @@ void WebServer::handleTimeoutEvent()
    if (Context.event.udata == (void*)client_event)
    {
        std::cout << "Connection timed out: " << Context.event.ident << std::endl;
-       clients[Context.event.ident]->state_of_connection = DISCONNECTED;
+       Context.clientResponses[Context.event.ident]->setStatusCode(Request_Timeout);
    }
    else
    {
