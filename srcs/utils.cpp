@@ -173,7 +173,6 @@ Location* getCurrentLocation(std::string oldPath, ServerConfig *currentServer) {
 
     for (size_t i = 0; i < currentServer->locations.size(); i++) {
         const Location &loc = currentServer->locations[i];
-
         if (loc.Route == "/") {
             fallBack = &currentServer->locations[i];
         }

@@ -166,7 +166,7 @@ bool isCgiRequest(Client &client) {
 void WebServer::_handleReadable() {
     // Read data from client
     int client_fd = Context.event.ident;
-    char buffer[1024];
+    char buffer[1048576];
     ssize_t n = recv(client_fd, buffer, sizeof(buffer), 0);
     if (n <= 0)
     {

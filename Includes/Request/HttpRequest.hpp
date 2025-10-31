@@ -9,10 +9,8 @@ class HttpRequest : virtual public brain {
         std::map<std::string, std::string> headers;
         size_t contentLength;
         std::string chunked;
-        // std::string version;
         bool flag_headers;
         bool body_complete;
-        // int j;
         size_t chunk_size;
         std::string boundary;
         int flag_body;
@@ -24,6 +22,7 @@ class HttpRequest : virtual public brain {
         std::string RequestData;
         void check(std::string& data, size_t pos);
         std::string remove_dot_segments(std::string path);
+        void make_delay(int status);
     public:
         HttpRequest();
         int  parse_request(char* buffer, ssize_t n);
@@ -32,7 +31,6 @@ class HttpRequest : virtual public brain {
         void decode(std::string &value);
         void parse_headers(std::string& data);
         void parse_body(std::string& data);
-        // void printRequest() const;
         void handl_boundary(std::string& data, size_t boundary_pos);
         bool headers_complete() const {
             return flag_headers;
@@ -47,9 +45,6 @@ class HttpRequest : virtual public brain {
         std::map<std::string, std::string> getHeaders() const {
             return headers;
         }
-        // std::string getVersion() const {
-        //     return version;
-        // }
         int getStatusCode() { return code_status; };
         void inchunk_body(std::string& data);
         std::string getPath() { return path; }

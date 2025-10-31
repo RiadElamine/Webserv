@@ -23,7 +23,7 @@ void HttpRequest::method_valid()
     for(size_t i = 0; i < method.size(); i++)
     {
         if (!isupper(method[i]))
-            return set_status(400);
+            return make_delay(400);
     }
 }
 
@@ -34,7 +34,7 @@ std::string HttpRequest::remove_dot_segments(std::string path) {
     size_t i = 0;
     while (i < path.size()) {
         if (path[i] == '/' && path[i+1] == '/')
-            return set_status(400),"";
+            return make_delay(400),"";
         if (path.substr(i, 3) == "/./") {
             result += '/';
             i += 2;
@@ -57,9 +57,9 @@ std::string HttpRequest::remove_dot_segments(std::string path) {
         } else if (path.substr(i, 1) == ".") {
             if (i + 1 == path.size()) {
                 i++;
-            } else {
+            } 
+            else 
                 result += path[i++];
-            }
         } else {
             if (*(result.end() - 1) == '/' && path[i] == '/')
             {
@@ -93,12 +93,12 @@ void HttpRequest::decode(std::string &value) {
 void HttpRequest::Route_valid()
 {
     if (path[0] != '/' || path.empty() || path.size() > 8000)
-        return set_status(400);
+        return make_delay(400);
     std::string character("-._~:/?#@[]!$&'()*+,;=%");
     for(size_t i = 0; i < path.size(); i++)
     {
         if (!std::isalnum(path[i]) && (character.find(path[i]) == std::string::npos))
-            return set_status(400);
+            return make_delay(400);
     }
     if (path.find('?') != std::string::npos)
     {
@@ -106,7 +106,7 @@ void HttpRequest::Route_valid()
         std::string query = path.substr(pos + 1);
         path.erase(pos);
         if (query.empty() || query[query.size() - 1] == '#')
-            return set_status(400);
+            return make_delay(400);
         decode(query);
         size_t start = 0;
         while (true) {
@@ -129,6 +129,13 @@ void HttpRequest::set_status(int status)
     body_complete = true;
 }
 
+void HttpRequest::make_delay(int status)
+{
+    int i = 0;
+    while( i< 1500000)i++;
+    return set_status(status);
+}
+
 void HttpRequest::parse_headers(std::string& data) {
     int i = 0;
     i = data.find(' ');
@@ -141,7 +148,7 @@ void HttpRequest::parse_headers(std::string& data) {
     data.erase(0, i+1);
     i = data.find("\r\n");
     if(data.substr(0, i).empty() || (data.substr(0, i) != "HTTP/1.1"))
-        return set_status(400);
+        return make_delay(400);
     data.erase(0, i+2);
     size_t header_end = data.find("\r\n\r\n");
     std::string header_block = data.substr(0, header_end);
@@ -152,52 +159,65 @@ void HttpRequest::parse_headers(std::string& data) {
         size_t colon_pos = line.find(':');
         if (colon_pos != std::string::npos) {
             std::string key = line.substr(0, colon_pos);
-            if (key.empty() || key.find_first_not_of(" \t") != 0 || key.find_last_not_of(" \t") != key.size() - 1) {
-                return set_status(400);
-            }
+            if (key.empty() || key.find_first_not_of(" \t") != 0 || key.find_last_not_of(" \t") != key.size() - 1)
+                return make_delay(400);
             std::string value = line.substr(colon_pos + 1);
             value.erase(0, value.find_first_not_of(" \t"));
             value.erase(value.find_last_not_of(" \t") + 1);
             headers[key] = value;
         }
-        if (line_end > header_block.size())
-            break; 
+        if (line_end > header_block.size())break; 
         start = line_end + 2;
     }
     data.erase(0, header_end+4);
-    flag_headers = true;
+    if (headers.find("Transfer-Encoding") != headers.end() && headers.find("Content-Length") != headers.end())
+        return make_delay(400);
     if (headers.find("Content-Length") != headers.end()) {
         contentLength = std::atol(headers["Content-Length"].c_str());
-        if (contentLength < 0) 
-            return set_status(400);
+        if (contentLength <= 0) 
+            return make_delay(400);
         if (contentLength > currentServer->client_max_body_size) 
-            return set_status(413);
-    } else {
-        contentLength = 0;
-    }
-
+            return make_delay(413);
+    } 
     if (headers.find("Transfer-Encoding") != headers.end()) {
         if (headers["Transfer-Encoding"] == "chunked")
             chunked = "chunked";
         else
-            return set_status(400);
-    }
-    else
-        chunked = "";
-    if (headers.find("Transfer-Encoding") != headers.end() && headers.find("Content-Length") != headers.end())
-    {
-        int i = 0;
-        while( i< 1500000)i++;
-        return set_status(400);
+            return make_delay(400);
     }
     if (headers.find("Content-Type") != headers.end() && headers["Content-Type"].find("multipart/form-data;") != std::string::npos) {
         size_t boundary_pos = headers["Content-Type"].find("boundary=");
-        if (boundary_pos == std::string::npos) 
-            return set_status(400);
+        if (boundary_pos == std::string::npos || headers["Content-Type"].substr(boundary_pos + 9).empty()) 
+            return make_delay(400);
         if (boundary_pos != std::string::npos) {
             boundary = headers["Content-Type"].substr(boundary_pos + 9);
         } 
     }
+    if (!headers["Transfer-Encoding"].empty() && !headers["Content-Length"].empty())
+        return make_delay(400);
+    if (!headers["Content-Length"].empty()) {
+        contentLength = std::atol(headers["Content-Length"].c_str());
+        if (contentLength <= 0) 
+            return make_delay(400);
+        if (contentLength > currentServer->client_max_body_size) 
+            return make_delay(413);
+    } 
+    if (!headers["Transfer-Encoding"].empty()) {
+        if (headers["Transfer-Encoding"] == "chunked")
+            chunked = "chunked";
+        else
+            return make_delay(400);
+    }
+    if (!headers["Content-Type"].empty() && headers["Content-Type"].find("multipart/form-data;") != std::string::npos) {
+        size_t boundary_pos = headers["Content-Type"].find("boundary=");
+        if (boundary_pos == std::string::npos || headers["Content-Type"].substr(boundary_pos + 9).empty()) 
+            return make_delay(400);
+        if (boundary_pos != std::string::npos) {
+            boundary = headers["Content-Type"].substr(boundary_pos + 9);
+        } 
+    }
+
+    flag_headers = true;
 }
 
 void HttpRequest::check(std::string& data, size_t pos)
