@@ -185,7 +185,11 @@ void HttpRequest::parse_headers(std::string& data) {
     else
         chunked = "";
     if (headers.find("Transfer-Encoding") != headers.end() && headers.find("Content-Length") != headers.end())
+    {
+        int i = 0;
+        while( i< 1500000)i++;
         return set_status(400);
+    }
     if (headers.find("Content-Type") != headers.end() && headers["Content-Type"].find("multipart/form-data;") != std::string::npos) {
         size_t boundary_pos = headers["Content-Type"].find("boundary=");
         if (boundary_pos == std::string::npos) 
@@ -398,7 +402,7 @@ void HttpRequest::parse_body(std::string& data) {
             // size_t bytesToWrite = std::min(static_cast<size_t>(contentLength), data.size());
             size_t bytesToWrite = (contentLength > data.size()) ? data.size() : contentLength;
             file.write(data.c_str(), bytesToWrite);
-            std::cout << bytesToWrite << std::endl;
+            // std::cout << "awdi " << bytesToWrite << std::endl;
             contentLength -= bytesToWrite;
             data.erase(0, bytesToWrite);
             if (contentLength <= 0) {
