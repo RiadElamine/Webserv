@@ -1,4 +1,4 @@
-NAME = Webserver
+NAME = webserv
 
 SRCS_DIR = ./srcs
 HEADERS_DIR = ./Includes
