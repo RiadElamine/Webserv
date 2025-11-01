@@ -118,7 +118,6 @@ void Cgi::finalizeCgiProcess(int statusCode) {
         std::vector<struct kevent> ev;
         _addEvent(ev, this->getClientFd(), EVFILT_READ,  EV_DISABLE, 0, 0, (void *)client_event);
         _addEvent(ev, this->getClientFd(), EVFILT_WRITE, EV_ENABLE, 0, 0, (void *)client_event);
-        _addEvent(ev, this->getClientFd(), EVFILT_TIMER, EV_ENABLE, 0, timeout, (void *)client_event);
         if (kevent(Context->kq, ev.data(), ev.size(), NULL, 0, NULL) == -1) {
             throw std::runtime_error("Failed to modify client events");
         }
