@@ -315,8 +315,16 @@ void WebServer::handleTimeoutEvent()
 {
    if (Context.event.udata == (void*)client_event)
    {
-       std::cout << "Connection timed out: " << Context.event.ident << std::endl;
-       Context.clientResponses[Context.event.ident]->setStatusCode(Request_Timeout);
+        int client_fd = Context.event.ident;
+       std::cout << "Connection timed out: " << client_fd << std::endl;
+       Context.clientResponses[client_fd]->setStatusCode(Request_Timeout);
+        std::vector<struct kevent> ev;
+        _addEvent(ev, client_fd, EVFILT_READ,  EV_DISABLE, 0, 0, (void *)client_event);
+        _addEvent(ev, client_fd, EVFILT_WRITE, EV_ENABLE, 0, 0, (void *)client_event);
+        _addEvent(ev, client_fd, EVFILT_TIMER, EV_DISABLE, 0, 0, (void *)client_event);
+        if (kevent(Context.kq, ev.data(), ev.size(), NULL, 0, NULL) == -1) {
+            throw std::runtime_error("Failed to modify client events");
+        }
    }
    else
    {
