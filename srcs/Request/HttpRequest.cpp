@@ -471,7 +471,6 @@ int HttpRequest::parse_request(char* buffer, ssize_t n) {
         return (body_complete);
     while (!RequestData.empty())
     {
-        std::cout << RequestData << std::endl;
         if (need_boundary == true)
         {
             need_boundary = false;
