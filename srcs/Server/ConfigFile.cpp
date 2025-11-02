@@ -203,8 +203,8 @@ void ConfigFile::ParseRedir()
 	if (check_semi == 1)
 	{
 		indexOfRedircat = Convert_to__Number<int>(data);
-		if (indexOfRedircat < 100 || indexOfRedircat > 599)
-			throw std::out_of_range("value " + data + " must be between 300 and 599");
+		if (indexOfRedircat < 300 || indexOfRedircat > 399)
+			throw std::out_of_range("value " + data + " must be between 300 and 399");
 	}
 	else
 	{
@@ -451,7 +451,7 @@ void ConfigFile::verifyLocationPath()
 
 	pos = word.find("{", i);
 	data = word.substr(i, pos);
-	if (data.empty() || data.find_first_of(";}") != std::string::npos)
+	if (data.empty() || data.find_first_of(";}.*+?[]()") != std::string::npos)
 		throw std::invalid_argument("syntax error : fail to get path of location");
 	else if (pos != std::string::npos)
 		i += data.length();
