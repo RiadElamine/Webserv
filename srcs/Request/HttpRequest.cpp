@@ -217,6 +217,8 @@ void HttpRequest::parse_headers(std::string& data) {
             boundary = headers["Content-Type"].substr(boundary_pos + 9);
         } 
     }
+    if (headers["Host"].empty())
+        return set_status(400);
     if (!headers["Transfer-Encoding"].empty() && !headers["Content-Length"].empty())
         return set_status(400);
     if (!headers["Content-Length"].empty()) {
