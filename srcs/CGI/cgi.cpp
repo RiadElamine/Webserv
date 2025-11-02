@@ -77,8 +77,8 @@ void Cgi::executeCgi()
 }
 
 void Cgi::_readCgiOutput() {
-    char buffer[4096];
-    ssize_t n = read(cgi_stdout, buffer, sizeof(buffer));
+    char buffer[BUFFER_SIZE];
+    ssize_t n = read(cgi_stdout, buffer, BUFFER_SIZE);
     if (n <= 0)
     {
         state_of_connection = DISCONNECTED;

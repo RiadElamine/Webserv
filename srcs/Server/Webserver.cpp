@@ -166,7 +166,7 @@ bool isCgiRequest(Client &client) {
 void WebServer::_handleReadable() {
     // Read data from client
     int client_fd = Context.event.ident;
-    char buffer[1048576];
+    char buffer[BUFFER_SIZE];
     ssize_t n = recv(client_fd, buffer, sizeof(buffer), 0);
     if (n <= 0)
     {
@@ -227,9 +227,11 @@ void WebServer::_handleWritable() {
         // std::cout << "header: " << message;
         response.set_header_sent(true);
     } else {
-        message = response.Read_chunks(10000);
+        message = response.Read_chunks(BUFFER_SIZE);
     }
     if (!message.empty()) {
+
+        // shutdown(Context.event.ident, SHUT_RD);
         size_t n = send(Context.event.ident, message.c_str(), message.length(), 0);
         if (n <= 0) {
             std::cout << "send Failed" << std::endl;
@@ -358,11 +360,11 @@ void WebServer::_closeConnection() {
     Context.clientRequests.erase(fd_client);
     // remove client response from map
     Context.clientResponses.erase(fd_client);
+    shutdown(fd_client, SHUT_RD);
     // delete client object
     delete clients[fd_client];
     clients.erase(fd_client);
     // close client socket
-    shutdown(fd_client, SHUT_WR);
     std::cout << "Shutting down connection: " << fd_client << std::endl;
     close(fd_client);
     std::cout << "Connection closed: " << fd_client << std::endl;

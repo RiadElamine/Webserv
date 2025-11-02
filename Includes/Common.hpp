@@ -34,6 +34,7 @@
 #include "status_code.hpp"
 // Timeout duration
 #define timeout 1000 // 
+#define BUFFER_SIZE 1024
 
 
 // type of event

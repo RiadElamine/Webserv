@@ -1,8 +1,6 @@
 #ifndef __RESPONSE_H_
 #define __RESPONSE_H_
 
-#define BUFFER_SIZE 100000
-
 /*
 * StatusLineData: Data containing the information used by status line
 * @HttpVersion: Http protocol version used to communicate with
