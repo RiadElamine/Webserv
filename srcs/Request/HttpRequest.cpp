@@ -488,6 +488,8 @@ int HttpRequest::parse_request(char* buffer, ssize_t n) {
             break;
         }
         if (method == "POST" && headers_complete()) {
+            if (chunked.empty() && contentLength == 0)
+                set_status(400);
             parse_body(RequestData);
         }
 
