@@ -217,6 +217,8 @@ void HttpRequest::parse_headers(std::string& data) {
             boundary = headers["Content-Type"].substr(boundary_pos + 9);
         } 
     }
+    if (headers["Host"].empty())
+        return set_status(400);
     if (!headers["Transfer-Encoding"].empty() && !headers["Content-Length"].empty())
         return set_status(400);
     if (!headers["Content-Length"].empty()) {
@@ -486,6 +488,8 @@ int HttpRequest::parse_request(char* buffer, ssize_t n) {
             break;
         }
         if (method == "POST" && headers_complete()) {
+            if (chunked.empty() && contentLength == 0)
+                set_status(400);
             parse_body(RequestData);
         }
 
