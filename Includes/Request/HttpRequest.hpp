@@ -13,7 +13,6 @@ class HttpRequest : virtual public brain {
         bool body_complete;
         size_t chunk_size;
         std::string boundary;
-        int flag_body;
         int flag_boundary;
         std::map<std::string, std::string> form_data;
         std::string inchunk;
@@ -22,42 +21,28 @@ class HttpRequest : virtual public brain {
         std::string RequestData;
         void check(std::string& data, size_t pos);
         std::string remove_dot_segments(std::string path);
-        void make_delay(int status);
     public:
-        HttpRequest();
-        int  parse_request(char* buffer, ssize_t n);
+        void set_status(int status);
         void method_valid();
         void Route_valid();
         void decode(std::string &value);
         void parse_headers(std::string& data);
         void parse_body(std::string& data);
         void handl_boundary(std::string& data, size_t boundary_pos);
-        bool headers_complete() const {
-            return flag_headers;
-        }
-        int getContentLength() const {
-            return contentLength;
-        }
-
-        std::string getMethod() const {
-            return method;
-        }
-        std::map<std::string, std::string> getHeaders() const {
-            return headers;
-        }
-        int getStatusCode() { return code_status; };
-        void inchunk_body(std::string& data);
-        std::string getPath() { return path; }
-        ServerConfig *getServer() const {
-            return currentServer;
-        }
+        bool headers_complete() const;
         void create_file(int flag);
-        std::string get_filename() const {
-            return filename;
-        }
+        void inchunk_body(std::string& data);
+        HttpRequest();
+        int  parse_request(char* buffer, ssize_t n);
+
+        std::string getMethod() const;
+        std::map<std::string, std::string> getHeaders() const;
+        int getStatusCode()const;
+        std::string getPath() { return path; }
+        ServerConfig *getServer() const;
+        std::string get_filename() const;
         std::string get_mime_type()const;
-        void setStatusCode(int code_status) { this->code_status = code_status; }
-        void set_status(int status);
+        void setStatusCode(int code_status);
 };
 
 #endif

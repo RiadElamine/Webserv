@@ -136,21 +136,6 @@ std::vector<char*> Cgi::buildCgiEnv()
         }
         env.push_back(envVar);
     }
-    if (request.getContentLength() > 0)
-    {
-        std::stringstream contentLengthVar;
-        contentLengthVar << "CONTENT_LENGTH=" << request.getContentLength();
-        envVar = strdup(contentLengthVar.str().c_str());
-        if (!envVar)
-        {
-            // Handle memory allocation failure
-            for (size_t i = 0; i < env.size(); ++i)
-                free(env[i]);
-            env.clear();
-            exit(1);
-        }
-        env.push_back(envVar);
-    }
     env.push_back(NULL);
     return env;
 }
