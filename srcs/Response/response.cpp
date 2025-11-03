@@ -17,6 +17,10 @@ Response::~Response() {
     stream.file_stream.close();
 }
 
+size_t Response::get_status_code() {
+    return responseHeader.status_line.statusCode;
+}
+
 bool Response::is_header_sent() const {
     return header_sent;
 }
@@ -41,6 +45,10 @@ void Response::setMethod(std::string _method) {
 
 void Response::setPath(std::string _path) {
     path = _path;
+}
+
+void Response::set_is_fetched_data(bool val) {
+    is_data_fetched = val;
 }
 
 void Response::fetch_data_from_request(e_StatusCode statusCode, std::string _method) {
@@ -85,6 +93,10 @@ void Response::setField_line(std::map<std::string, std::string>& filed_line) {
 
 void Response::set_offset(size_t pos) {
    stream.offset = pos;
+}
+
+void Response::set_method_executed(bool val) {
+    is_method_executed = val;
 }
 
 size_t Response::get_offset(void) const {
@@ -141,20 +153,24 @@ std::string Response::getHeader()
     std::stringstream header;
     std::map<std::string, std::string>::iterator tmp;
 
+    size_t content_length(body.length());
+
     header << responseHeader.status_line.HttpVersion << " " << responseHeader.status_line.statusCode << " " << responseHeader.status_line.reasonPhrase << "\r\n";
 
     for(std::map<std::string, std::string>::iterator it = responseHeader.field_line.begin(); it != responseHeader.field_line.end(); ++it) {
         if (is_cgi && to_lower(it->first) == "content-length")
         {
             tmp = it;
-            header << it->first << ": " << calculate_content_length() << "\r\n";
+            if (body.empty())
+                content_length = calculate_content_length();
+            header << it->first << ": " << content_length << "\r\n";
         }
         else
             header << it->first << ": " << it->second << "\r\n";
     }
     if (is_cgi) {
         std::stringstream ss;
-        ss << calculate_content_length();
+        ss << content_length ;
         responseHeader.field_line[tmp->first] = ss.str();
     }
 
@@ -180,12 +196,16 @@ std::string Response::getHeader()
 
 void Response::execute_method() {
     // execute methods only once
-
-    if (is_method_executed || is_cgi || method == "POST")
+    if (is_method_executed || method == "POST")
         return ;
-    else 
-        is_method_executed = true;
-    if (!currentLocation->redirect.empty()) {
+    is_method_executed = true;
+    if (is_cgi) {
+        if (responseHeader.status_line.statusCode != OK && responseHeader.status_line.statusCode != Created)
+            return make_response(true, responseHeader.status_line.statusCode);
+        return ;
+    }
+
+    if (currentLocation && !currentLocation->redirect.empty()) {
         std::map<int, std::string>::iterator it = currentLocation->redirect.begin();
         return make_response(true, (e_StatusCode) it->first);
     }
@@ -264,7 +284,6 @@ void Response::make_response(bool is_error, e_StatusCode statusCode, bool is_aut
 
     responseHeader.status_line.statusCode = statusCode;
     responseHeader.status_line.reasonPhrase = getReasonPhrase(statusCode);
-    // std::cout << "path: " << path << std::endl;
 
     if (is_error) {
         std::string error_page_path = currentServer->error_pages[(int)statusCode];
@@ -285,7 +304,6 @@ void Response::make_response(bool is_error, e_StatusCode statusCode, bool is_aut
             content_type = "text/html";
         }
     } else if (is_autoindex) {
-        std::cout <<  "autoindex" << std::endl;
         std::vector<std::string> entries;
         listDirectory(path, entries);
 

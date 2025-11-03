@@ -88,9 +88,12 @@ class Response : virtual public brain {
         bool is_cgi_strem_open() const;
         bool is_header_sent() const;
         std::string getHeader();
+        size_t get_status_code();
 
         // setter
         void setCurrentLocation(Location *loc);
+        void set_is_fetched_data(bool);
+        void set_method_executed(bool);
         void setStatusCode(int statusCode);
         void set_header_sent(bool val);
         void set_offset(size_t pos);

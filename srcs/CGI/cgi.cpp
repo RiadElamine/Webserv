@@ -1,5 +1,6 @@
 #include "../../Includes/CGI/Cgi.hpp"
 #include "../../Includes/utils.hpp"
+#include "../../Includes/Request/HttpRequest.hpp"
 
 Cgi::Cgi()
 {
@@ -32,7 +33,6 @@ Cgi::~Cgi()
     // Only attempt to remove the file if it exists and filename is not empty
     if (!filename_cgi_output.empty())
     {
-        std::cout << "Removing temporary CGI output file: " << filename_cgi_output << std::endl;
         if (std::remove(filename_cgi_output.c_str()) != 0)
         {
             std::cerr << "Warning: Failed to remove temporary CGI output file: " << filename_cgi_output << " - " << strerror(errno) << std::endl;
@@ -110,7 +110,7 @@ void Cgi::finalizeCgiProcess(int statusCode) {
         if (statusCode != Doesnt_fail)
         {
             // send error response to client
-            Context->clientResponses[this->getClientFd()]->setStatusCode(statusCode);
+            this->Context->clientRequests[client_fd]->setStatusCode(statusCode);
         }
         // enable write event on client socket to send response
         // disable read event on client socket
@@ -142,14 +142,12 @@ void Cgi::handleCgiCompletion()
     {
         // we dont change the status code, let the response handler do it
         _status_code = Doesnt_fail;
-        std::cout << "--CGI process completed successfully for client: " << client_fd << std::endl;
     }
     else
     {
         // CGI exited with error
         // send 502 Bad Gateway response to client
         _status_code = Bad_Gateway;
-        std::cout << "--CGI process failed for client: " << client_fd << std::endl;
     }
     this->finalizeCgiProcess(_status_code);
 }

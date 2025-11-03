@@ -12,8 +12,7 @@ def getIndexBody():
 	"""
 		getIndexBody - return the body response for the index file
 	"""
-	body = """
-<!DOCTYPE html>
+	body = """<!DOCTYPE html>
 <html lang="en">
 <head>
 	<meta charset="UTF-8">

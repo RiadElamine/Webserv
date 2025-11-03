@@ -33,7 +33,7 @@
 // Project-specific headers
 #include "status_code.hpp"
 // Timeout duration
-#define timeout 1000 // 
+#define timeout 10000
 #define BUFFER_SIZE 1024
 
 

@@ -1,0 +1,96 @@
+<?php
+function getIndexBody() {
+    return <<<HTML
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Welcome to Webserver</title>
+	<style>
+		* {
+			box-sizing: border-box;
+			margin: 0;
+			padding: 0;
+		}
+		body {
+			background: radial-gradient(circle at top, #0d0d0f 0%, #000000 80%);
+			height: 100vh;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			overflow: hidden;
+			font-family: 'Orbitron', sans-serif;
+			color: #00ffe0;
+		}
+		h1 {
+			font-size: 3rem;
+			letter-spacing: 2px;
+			text-shadow: 0 0 15px #00ffe0, 0 0 30px #00c0ff;
+			animation: pulse 2s infinite alternate;
+		}
+		@keyframes pulse {
+			0% {
+				text-shadow: 0 0 10px #00ffe0, 0 0 30px #00c0ff;
+				transform: scale(1);
+			}
+			100% {
+				text-shadow: 0 0 20px #00ffff, 0 0 60px #00c0ff;
+				transform: scale(1.05);
+			}
+		}
+		.line {
+			position: absolute;
+			width: 100%;
+			height: 2px;
+			background: linear-gradient(90deg, transparent, #00ffe0, transparent);
+			top: 50%;
+			animation: moveLine 3s linear infinite;
+			opacity: 0.4;
+		}
+		@keyframes moveLine {
+			0% { transform: translateX(-100%); }
+			100% { transform: translateX(100%); }
+		}
+		footer {
+			position: absolute;
+			bottom: 30px;
+			color: #0088aa;
+			font-size: 0.9rem;
+			letter-spacing: 1px;
+			text-shadow: 0 0 10px #00c0ff;
+			opacity: 0.8;
+			animation: fadeIn 3s ease-in-out forwards;
+		}
+		@keyframes fadeIn {
+			from { opacity: 0; transform: translateY(10px); }
+			to { opacity: 0.8; transform: translateY(0); }
+		}
+	</style>
+</head>
+<body>
+	<div class="line"></div>
+	<h1>Welcome to Webserver</h1>
+	<footer>Powered by CGI & PHP ⚙️</footer>
+</body>
+</html>
+HTML;
+}
+
+function getHeader($bodyLength) {
+    // Send CGI-style headers manually
+    header("Status: 200 OK");
+    header("Content-Type: text/html");
+    header("Content-Length: " . $bodyLength);
+    header("Connection: close");
+    header("Server: WebServer/1.1.0");
+}
+
+function main() {
+    $body = getIndexBody();
+    getHeader(strlen($body));
+    echo $body;
+}
+
+// Entry point
+main();
+?>

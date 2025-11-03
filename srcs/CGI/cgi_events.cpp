@@ -3,7 +3,6 @@
 // Setup kqueue events in the parent process after forking CGI
 void Cgi::setupParentProcessEvents()
 {
-    std::cout << "--CGI process started with PID: " << cgi_pid << " for client: " << client_fd << std::endl;
     std::vector<struct kevent> ev;
     addCgiReadAndTimeoutEvents(ev);
     disableClientEvents(ev);

@@ -176,8 +176,7 @@ void WebServer::_handleReadable() {
     
     if (Context.clientRequests[client_fd]->parse_request(buffer, n))
     {
-        // request fully received
-        // check if it's a cgi request or not
+
         if (isCgiRequest(*(clients[client_fd])))
         {
             // if i have cgi to execute, i will do it here
@@ -200,7 +199,6 @@ void WebServer::_handleReadable() {
                 throw std::runtime_error("Failed to modify client events");
             }
         }
-        std::cout << "Request received from client: " << client_fd << std::endl;
         return;
     }
     // Reset the timer
@@ -224,7 +222,6 @@ void WebServer::_handleWritable() {
     std::string message("");
     if (!response.is_header_sent()) {
         message = response.getHeader();
-        // std::cout << "header: " << message;
         response.set_header_sent(true);
     } else {
         message = response.Read_chunks(BUFFER_SIZE);
@@ -234,7 +231,6 @@ void WebServer::_handleWritable() {
         // shutdown(Context.event.ident, SHUT_RD);
         size_t n = send(Context.event.ident, message.c_str(), message.length(), 0);
         if (n <= 0) {
-            std::cout << "send Failed" << std::endl;
             clients[Context.event.ident]->state_of_connection = DISCONNECTED;
             return ;
         }
@@ -244,53 +240,6 @@ void WebServer::_handleWritable() {
         clients[Context.event.ident]->state_of_connection = DISCONNECTED;
 }
 
-// void WebServer::_handleWritable() {                                                                                                                                                                          
-//     Response &response = (*Context.clientResponses[Context.event.ident]);                                                                                                                                    
-//     HttpRequest &request = (*Context.clientRequests[Context.event.ident]);                                                                                                                                   
-                                                                                                                                                                                                             
-//     getDataFromRequest(request, response);                                                                                                                                                                   
-                                                                                                                                                                                                             
-//     response.execute_method();                                                                                                                                                                               
-                                                                                                                                                                                                             
-//     std::string message("");                                                                                                                                                                                 
-//     if (!response.is_header_sent()) {                                                                                                                                                                        
-//         message = response.getHeader();
-//         response.set_header_sent(true);
-//     } else {
-//         message = response.Read_chunks(100);
-//     }
-//     if (!message.empty()) {
-//         ssize_t n = send(Context.event.ident, message.c_str(), message.length(), 0);
-//         if (n <= 0) {
-//             std::cout << "Error sending data to client: " << Context.event.ident << std::endl;
-//             clients[Context.event.ident]->state_of_connection = DISCONNECTED;
-//             return ;
-//         }
-//         // If we couldn't send all data, we still have more to send in the future
-//         if ((size_t)n < message.length()) {
-//             std::cout << "Could not send all data at once, will continue later" << std::endl;
-//             return;
-//         }
-//     } else {
-//         // Check if we have completely finished sending the response
-//         // We need to determine if there is more data available to send
-//         // First, let's try to peek if there are more chunks
-//         // This approach keeps track of the file position before calling Read_chunks
-//         // and checks if we're at the end
-        
-//         // If the current call to Read_chunks returned empty, and a subsequent call would also be empty
-//         // then we're at the end of the response
-//         // Since Read_chunks changes internal state, we can't call it again to check
-//         // So we need to determine if we've reached the end by other means
-        
-//         // If we've sent the header and Read_chunks returned empty, 
-//         // we might have reached the end of the response body
-//         std::cout << "Finished sending response, initiating graceful shutdown: " << Context.event.ident << std::endl;
-//         shutdown(Context.event.ident, SHUT_WR);
-//         clients[Context.event.ident]->state_of_connection = DISCONNECTED;
-//         return;
-//     }
-//  }
 
 void WebServer::handleReceiveEvent()
 {
@@ -318,8 +267,7 @@ void WebServer::handleTimeoutEvent()
    if (Context.event.udata == (void*)client_event)
    {
         int client_fd = Context.event.ident;
-       std::cout << "Connection timed out: " << client_fd << std::endl;
-       Context.clientResponses[client_fd]->setStatusCode(Request_Timeout);
+       Context.clientRequests[client_fd]->setStatusCode(Request_Timeout);
         std::vector<struct kevent> ev;
         _addEvent(ev, client_fd, EVFILT_READ,  EV_DISABLE, 0, 0, (void *)client_event);
         _addEvent(ev, client_fd, EVFILT_WRITE, EV_ENABLE, 0, 0, (void *)client_event);
@@ -327,13 +275,13 @@ void WebServer::handleTimeoutEvent()
         if (kevent(Context.kq, ev.data(), ev.size(), NULL, 0, NULL) == -1) {
             throw std::runtime_error("Failed to modify client events");
         }
+
    }
    else
    {
        // CGI timeout event
-       std::cout << "CGI process timed out for client: " << std::endl;
        Cgi *e = static_cast<Cgi*>(Context.event.udata);
-       e->finalizeCgiProcess(Gateway_Timeout);
+       e->finalizeCgiProcess(Bad_Gateway);
     }
 }
 
@@ -365,7 +313,6 @@ void WebServer::_closeConnection() {
     delete clients[fd_client];
     clients.erase(fd_client);
     // close client socket
-    std::cout << "Shutting down connection: " << fd_client << std::endl;
     close(fd_client);
     std::cout << "Connection closed: " << fd_client << std::endl;
 }
