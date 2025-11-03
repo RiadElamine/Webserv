@@ -185,6 +185,10 @@ void Response::execute_method() {
         return ;
     else 
         is_method_executed = true;
+    if (!currentLocation->redirect.empty()) {
+        std::map<int, std::string>::iterator it = currentLocation->redirect.begin();
+        return make_response(true, (e_StatusCode) it->first);
+    }
 
     if (method != "GET" && method != "DELETE" && method != "POST")
         return make_response(true, Not_Implemented);
@@ -223,16 +227,30 @@ std::string get_old_path(std::string& path, std::string& root) {
     return ret;
 }
 
+
+void Response::handle_redirection() {
+    std::string location;
+
+    if (responseHeader.status_line.statusCode == Moved_Permanently) {
+        location = currentLocation->redirect[responseHeader.status_line.statusCode];
+        if (location.empty()) {
+            location = get_old_path(path, currentLocation->root);
+            if (location.empty())
+                location = "http://localhost:8080/";
+            else
+                location = "http://localhost:8080/" + location + "/";
+        }
+    }
+    else
+        location = currentLocation->redirect[responseHeader.status_line.statusCode];
+    responseHeader.field_line["Location"] =  location;
+}
+
 void Response::fillFieldLine(std::string content_type, std::string content_length) {
     responseHeader.field_line["Date"] = getTimeOftheDay();
-    if (responseHeader.status_line.statusCode == Moved_Permanently) {
-        std::string location = get_old_path(path, currentLocation->root);
-        if (location.empty())
-            location = "http://localhost:8080/";
-        else
-            location = "http://localhost:8080/" + location + "/";
-        responseHeader.field_line["Location"] =  location;
-    }
+    if (responseHeader.status_line.statusCode <= 399 && responseHeader.status_line.statusCode >= 300)
+        handle_redirection();
+
     responseHeader.field_line["Content-Type"] = content_type;
     responseHeader.field_line["Content-Length"] = content_length;
     responseHeader.field_line["Connection"] = "close";

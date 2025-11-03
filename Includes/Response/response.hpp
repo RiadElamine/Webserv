@@ -79,6 +79,7 @@ class Response : virtual public brain {
         void fillFieldLine(std::string content_type, std::string content_length);
         bool process_path();
         void fetch_data_from_request(e_StatusCode, std::string);
+        void handle_redirection();
 
         // getter
         std::string getPath(void);
