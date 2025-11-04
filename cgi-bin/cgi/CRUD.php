@@ -7,11 +7,7 @@ function getIndexBody() {
 	<meta charset="UTF-8">
 	<title>Welcome to Webserver</title>
 	<style>
-		* {
-			box-sizing: border-box;
-			margin: 0;
-			padding: 0;
-		}
+		* { box-sizing: border-box; margin: 0; padding: 0; }
 		body {
 			background: radial-gradient(circle at top, #0d0d0f 0%, #000000 80%);
 			height: 100vh;
@@ -29,14 +25,8 @@ function getIndexBody() {
 			animation: pulse 2s infinite alternate;
 		}
 		@keyframes pulse {
-			0% {
-				text-shadow: 0 0 10px #00ffe0, 0 0 30px #00c0ff;
-				transform: scale(1);
-			}
-			100% {
-				text-shadow: 0 0 20px #00ffff, 0 0 60px #00c0ff;
-				transform: scale(1.05);
-			}
+			0% { text-shadow: 0 0 10px #00ffe0, 0 0 30px #00c0ff; transform: scale(1); }
+			100% { text-shadow: 0 0 20px #00ffff, 0 0 60px #00c0ff; transform: scale(1.05); }
 		}
 		.line {
 			position: absolute;
@@ -77,12 +67,17 @@ HTML;
 }
 
 function getHeader($bodyLength) {
-    // Send CGI-style headers manually
-    header("Status: 200 OK");
-    header("Content-Type: text/html");
-    header("Content-Length: " . $bodyLength);
-    header("Connection: close");
-    header("Server: WebServer/1.1.0");
+    // Manually print CGI-style headers
+    $headers = array(
+        "Status: 200 OK",
+        "Content-Type: text/html",
+        "Content-Length: $bodyLength",
+        "Connection: close",
+        "Server: WebServer/1.1.0"
+    );
+
+    // Join headers with CRLF and add an empty line before body
+    echo implode("\r\n", $headers) . "\r\n\r\n";
 }
 
 function main() {
