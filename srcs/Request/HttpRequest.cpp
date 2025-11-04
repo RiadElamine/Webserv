@@ -405,7 +405,7 @@ std::string HttpRequest::get_mime_type() const{
 void HttpRequest::create_file(int flag)
 {
     Location* it = getCurrentLocation(path, currentServer);
-    if (std::find(it->methods.begin(), it->methods.end(), method) == it->methods.end()) 
+    if ((std::find(it->methods.begin(), it->methods.end(), method) == it->methods.end())) 
         return  set_status(405);
     std::string build_pat = buildPath(path, it->root);
     struct stat buffer;
@@ -439,10 +439,10 @@ void HttpRequest::parse_body(std::string& data) {
     Location *it = getCurrentLocation(path, currentServer);
     if (filename == "" && boundary.empty())
         create_file(0);
+    if (code_status != 200)
+        return ;
     if (!chunked.empty())
-    {
         inchunk_body(data);
-    }
     if (contentLength > 0 && chunked.empty())
     {
         if (boundary.empty() || isCGI(path, it))
