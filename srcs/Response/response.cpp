@@ -410,6 +410,7 @@ bool Response::process_path() {
     if (stat(path.c_str(), &info) != 0) // if path doesn't exist
     {
         std::cout << "path doesn't exist" << std::endl;
+        std::cout << "path: " << path << std::endl;
         return false;
     }
 
