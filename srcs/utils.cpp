@@ -25,6 +25,7 @@ std::string getReasonPhrase(e_StatusCode statusCode) {
         case Unauthorized: return "Unauthorized";
         case Forbidden: return "Forbidden";
         case Not_Found: return "Not Found";
+        case Found: return "Found";
         case Method_Not_Allowed: return "Method Not Allowed";
         case Request_Timeout: return "Request Timeout";
         case Conflict: return "Conflict";

@@ -178,22 +178,6 @@ std::string Response::getHeader()
     return header.str();
 }
 
-// void Response::setHeader(Header copyHeader) {
-//     responseHeader.status_line.HttpVersion = copyHeader.status_line.HttpVersion;
-//     responseHeader.status_line.statusCode = copyHeader.status_line.statusCode;
-//     responseHeader.status_line.reasonPhrase = copyHeader.status_line.reasonPhrase;
-//     // check for the status from request parsing
-
-//     if (responseHeader.status_line.statusCode != OK) {
-//         std::stringstream ss;
-//         body = makeBodyResponse(NULL, \
-//                                 responseHeader.status_line.statusCode, currentServer->error_pages, "");
-
-//         ss << body.length();
-//         // fillFieldLine(responseHeader.field_line, "text/html", ss.str());
-//     }
-// }
-
 void Response::execute_method() {
     // execute methods only once
     if (is_method_executed || method == "POST")
@@ -204,7 +188,6 @@ void Response::execute_method() {
             return make_response(true, responseHeader.status_line.statusCode);
         return ;
     }
-
     if (currentLocation && !currentLocation->redirect.empty()) {
         std::map<int, std::string>::iterator it = currentLocation->redirect.begin();
         return make_response(true, (e_StatusCode) it->first);
@@ -252,17 +235,17 @@ void Response::handle_redirection() {
     std::string location;
 
     if (responseHeader.status_line.statusCode == Moved_Permanently) {
-        location = currentLocation->redirect[responseHeader.status_line.statusCode];
-        if (location.empty()) {
+        try {
+            location = currentLocation->redirect.at(responseHeader.status_line.statusCode);
+        } catch (std::exception &e) {
             location = get_old_path(path, currentLocation->root);
-            if (location.empty())
-                location = "http://localhost:8080/";
-            else
-                location = "http://localhost:8080/" + location + "/";
+            location = location + "/";
         }
     }
-    else
-        location = currentLocation->redirect[responseHeader.status_line.statusCode];
+    else {
+        location = currentLocation->redirect.at(responseHeader.status_line.statusCode);
+    }
+
     responseHeader.field_line["Location"] =  location;
 }
 
@@ -425,13 +408,17 @@ bool Response::process_path() {
     struct stat info;
 
     if (stat(path.c_str(), &info) != 0) // if path doesn't exist
+    {
+        std::cout << "path doesn't exist" << std::endl;
         return false;
+    }
 
     if (!S_ISDIR(info.st_mode)) {
         return true;
     }
     if (path[path.length() - 1] != '/')
     {
+        std::cout << "move permanentlly" << std::endl;
         is_Moved_Permanently = true;
         return false;
     }

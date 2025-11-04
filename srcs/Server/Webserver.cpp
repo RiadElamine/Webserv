@@ -158,7 +158,10 @@ bool isCgiRequest(Client &client) {
     response.setCurrentLocation(currentLocation);
     response.setPath(buildPath(request.getPath(), currentLocation->root));
     if (!response.process_path())
+    {
+        client.is_cgi = false;
         return (false);
+    }
     client.is_cgi = isCGI(response.getPath(), currentLocation);
     return client.is_cgi;
 }
