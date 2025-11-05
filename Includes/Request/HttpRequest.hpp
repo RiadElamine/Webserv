@@ -21,7 +21,6 @@ class HttpRequest : virtual public brain {
         std::string RequestData;
         void check(std::string& data, size_t pos);
         std::string remove_dot_segments(std::string path);
-    public:
         void set_status(int status);
         void method_valid();
         void Route_valid();
@@ -32,6 +31,7 @@ class HttpRequest : virtual public brain {
         bool headers_complete() const;
         void create_file(int flag);
         void inchunk_body(std::string& data);
+    public:
         HttpRequest();
         int  parse_request(char* buffer, ssize_t n);
 

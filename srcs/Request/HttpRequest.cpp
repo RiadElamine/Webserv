@@ -256,26 +256,25 @@ void HttpRequest::handl_boundary(std::string& data, size_t boundary_pos) {
     if (flag_boundary == 0) {
         size_t start_pos = boundary_pos + boundary.size() + 2;
         data.erase(0, start_pos);
-        size_t pos = data.find("filename=", 0);
-        if (pos != std::string::npos) {
-                std::string name;
-                std::string content;
-                size_t name_pos = data.find("filename=");
-                if (name_pos != std::string::npos) {
-                    name_pos += 10;
-                    size_t end_name_pos = data.find('"', name_pos);
-                    if (end_name_pos != std::string::npos) {
-                        name = data.substr(name_pos, end_name_pos - name_pos);
-                        form_data["filename"] = name;
-                        create_file(1);
-                        data.erase(0, end_name_pos + 3);
-                        data.erase(0, data.find("\r\n\r\n") + 4);
-                        flag_boundary = 1;
-                    } else 
-                        return check(data, pos);
-                } else 
-                    return check(data, pos);
-        }
+        std::string name;
+        std::string content;
+        size_t name_pos = data.find("filename=");
+        if (name_pos != std::string::npos) {
+            name_pos += 10;
+            size_t end_name_pos = data.find('"', name_pos);
+            if (end_name_pos != std::string::npos) {
+                name = data.substr(name_pos, end_name_pos - name_pos);
+                form_data["filename"] = name;
+                create_file(1);
+                data.erase(0, end_name_pos + 3);
+                data.erase(0, data.find("\r\n\r\n") + 4);
+                flag_boundary = 1;
+            } 
+            else 
+                return check(data, name_pos);
+        } 
+        else 
+            return check(data, name_pos);
     }
     if (flag_boundary == 1) {
         std::ofstream file(form_data["filename"], std::ios::binary | std::ios::app);
@@ -295,69 +294,65 @@ void HttpRequest::handl_boundary(std::string& data, size_t boundary_pos) {
     }
 }
 
-void HttpRequest::inchunk_body(std::string &data)
-{
-   Location *it = getCurrentLocation(path, currentServer); 
+void HttpRequest::inchunk_body(std::string &data) {
+    Location *it = getCurrentLocation(path, currentServer); 
     std::ofstream file(filename.c_str(), std::ios::binary | std::ios::app);
-    std::istringstream iss;
+
     size_t pos = 0;
-    if (chunk_size == 0) {
+    size_t total_consumed = 0; 
+    while (pos < data.size()) {
         size_t chunk_size_end = data.find("\r\n", pos);
         if (chunk_size_end == std::string::npos) {
-            file.close();
             need_boundary = true;
-            return;
+            break;
         }
         std::string size_line = data.substr(pos, chunk_size_end - pos);
-        iss.str(size_line);
-        iss.clear(); 
-        iss >> std::hex >> chunk_size;
-        if (chunk_size == 0) {
-            data.erase(0, chunk_size_end + 2);
-            file.close();
-            if (boundary.empty())
-                set_status(201);
-            return;
-        }
-        pos = chunk_size_end + 2;
-        if (pos + chunk_size + 2 > data.size()) {
+        if (size_line.empty()) {
             need_boundary = true;
-            chunk_size = 0;
+            break;
+        }
+        std::stringstream ss;
+        ss << std::hex << size_line;
+        if (!(ss >> chunk_size)) {
+            set_status(400);
             return;
         }
+        pos = chunk_size_end + 2; 
+        if (pos + chunk_size + 2 > data.size()) {
+            need_boundary = true; 
+            break;
+        }
+        inchunk.append(data, pos, chunk_size);
+        total_consumed = pos + chunk_size + 2;
+        pos = total_consumed;
+    }
+    contentLength += total_consumed;
+    if (contentLength > currentServer->client_max_body_size) {
+        if (boundary.empty())
+            std::remove(filename.c_str());
+        else
+            std::remove(form_data["filename"].c_str());
+        return set_status(413);
     }
     if (boundary.empty() || isCGI(path, it))
     {
-        if (!file.is_open())
-            file.open(filename.c_str(), std::ios::binary | std::ios::app);
-        file.write(data.c_str() + pos, chunk_size);
+        file.write(inchunk.c_str(), inchunk.size());
+        if (chunk_size == 0)
+        {
+            file.close();
+            set_status(201);
+        }
+        inchunk.clear();
     }
     else if (!boundary.empty())
     {
-        inchunk.append(data.c_str() + pos, chunk_size);
         size_t boundary_pos = inchunk.find(boundary);
-        size_t boundary_end = inchunk.find(boundary, boundary_pos + boundary.size());
-        size_t inchunkpos = inchunk.find("--\r\n", boundary_pos);
-        if (boundary_end != std::string::npos || (boundary_pos != std::string::npos && inchunkpos != std::string::npos)) {
-            handl_boundary(inchunk, boundary_pos);
-        }
+        handl_boundary(inchunk, boundary_pos);
     }
-    pos += chunk_size;
-    contentLength += chunk_size;
-    if (contentLength > currentServer->client_max_body_size) {
-        remove(filename.c_str());
-        return set_status(413);
-    }
-    if (data.substr(pos, 2) != "\r\n") {
-        file.close();
-        return set_status(400);
-    }
-    pos += 2;
-    chunk_size = 0;
-    if (pos > 0) {
-        data.erase(0, pos);
-    }
+    data.erase(0, total_consumed);
 }
+
+
 
 std::string random_string(size_t length) {
     const char chars[] =
@@ -372,9 +367,7 @@ std::string random_string(size_t length) {
 
     std::string random_str;
     for (int i = 0; i < 10; ++i)
-    {
         random_str += chars[std::rand() % num_chars];
-    }
 
     std::stringstream ss;
     ss  << t  << random_str << std::hex << &num_chars;
@@ -405,11 +398,16 @@ std::string HttpRequest::get_mime_type() const{
 void HttpRequest::create_file(int flag)
 {
     Location* it = getCurrentLocation(path, currentServer);
-    if ((std::find(it->methods.begin(), it->methods.end(), method) == it->methods.end())) 
-        return  set_status(405);
     std::string build_pat = buildPath(path, it->root);
     struct stat buffer;
-    if (stat(build_pat.c_str(), &buffer) != 0 || !S_ISDIR(buffer.st_mode) || !(buffer.st_mode & S_IWUSR)) 
+
+    if (!pathExists(build_pat, &buffer)) {
+        return set_status(404);
+    }
+    if ((std::find(it->methods.begin(), it->methods.end(), method) == it->methods.end())) 
+        return  set_status(405);
+
+    if (!S_ISDIR(buffer.st_mode) || !(buffer.st_mode & S_IWUSR)) 
         return  set_status(500);
     std::string ext;
     if (!boundary.empty() && !form_data["filename"].empty()) {
@@ -421,7 +419,7 @@ void HttpRequest::create_file(int flag)
         ext = get_mime_type(); 
     const int MAX_ATTEMPTS = 1000;
     for (int i = 1; i <= MAX_ATTEMPTS; ++i) {
-        std::string candidate = build_pat + "/upload_" + random_string(8) + ext;
+        std::string candidate = build_pat + "/upload_" + random_string(i) + ext;
         if (stat(candidate.c_str(), &buffer) != 0) {
             if (flag == 1)
                 form_data["filename"] = candidate;
@@ -439,7 +437,7 @@ void HttpRequest::parse_body(std::string& data) {
     Location *it = getCurrentLocation(path, currentServer);
     if (filename == "" && boundary.empty())
         create_file(0);
-    if (code_status != 200)
+    if (code_status != 200 && code_status != 201)
         return ;
     if (!chunked.empty())
         inchunk_body(data);
