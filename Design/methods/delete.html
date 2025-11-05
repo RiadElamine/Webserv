@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Delete Resource - Webserv</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Poppins', sans-serif;
+    }
+
+    body {
+      background: radial-gradient(circle at 20% 20%, #1a1f35, #0d0f1a);
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .glow {
+      position: fixed;
+      width: 300px;
+      height: 300px;
+      border-radius: 50%;
+      background: linear-gradient(45deg, #00b4d8, #0077b6);
+      filter: blur(120px);
+      opacity: 0.6;
+      animation: float 6s ease-in-out infinite alternate;
+      z-index: 0;
+    }
+
+    .glow:nth-child(1) { top: -80px; left: -80px; }
+    .glow:nth-child(2) { bottom: -80px; right: -80px; background: linear-gradient(45deg, #7209b7, #3a0ca3); }
+
+    @keyframes float { to { transform: translateY(40px) translateX(20px); } }
+
+    .container {
+      position: relative;
+      z-index: 10;
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 40px;
+      width: 100%;
+      max-width: 600px;
+      text-align: center;
+      box-shadow: 0 0 30px rgba(0,0,0,0.5);
+      animation: fadeIn 1.2s ease;
+    }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+    h1 {
+      font-weight: 600;
+      color: #e63946;
+      margin-bottom: 10px;
+      font-size: 1.8rem;
+    }
+
+    p.subtext {
+      color: #cdd1e0;
+      margin-bottom: 30px;
+      font-size: 0.95rem;
+    }
+
+    .warning {
+      background: rgba(230, 57, 70, 0.1);
+      border: 1px solid rgba(230, 57, 70, 0.3);
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 30px;
+      font-size: 0.9rem;
+      color: #ffb3ba;
+    }
+
+    .input-group {
+      margin-bottom: 25px;
+      text-align: left;
+    }
+
+    .input-group label {
+      display: block;
+      color: #cdd1e0;
+      margin-bottom: 8px;
+      font-size: 0.9rem;
+    }
+
+    .input-group input {
+      width: 100%;
+      padding: 14px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 10px;
+      color: #fff;
+      font-size: 1rem;
+      transition: 0.3s;
+    }
+
+    .input-group input:focus {
+      outline: none;
+      border-color: #e63946;
+      background: rgba(255,255,255,0.08);
+    }
+
+    .input-group input::placeholder {
+      color: rgba(255,255,255,0.3);
+    }
+
+    .example {
+      font-size: 0.85rem;
+      color: #888;
+      margin-top: 5px;
+    }
+
+    .btn {
+      padding: 14px 30px;
+      border: none;
+      border-radius: 15px;
+      color: #fff;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: 0.3s ease;
+      margin: 10px;
+    }
+
+    .btn-delete {
+      background: linear-gradient(45deg, #e63946, #b5179e);
+    }
+
+    .btn-delete:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 25px rgba(230, 57, 70, 0.6);
+    }
+
+    .btn-cancel {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .btn-cancel:hover {
+      background: rgba(255,255,255,0.15);
+      transform: scale(1.05);
+    }
+
+    form {
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div class="glow"></div>
+  <div class="glow"></div>
+
+  <div class="container">
+    <h1>Delete Resource</h1>
+    <p class="subtext">Specify the path of the resource to delete</p>
+
+    <div class="warning">
+      ⚠️ Warning: This action will send a DELETE request to the server. Make sure the path is correct.
+    </div>
+
+    <form id="deleteForm" method="POST" target="response_window">
+      <input type="hidden" name="_method" value="DELETE">
+      
+      <div class="input-group">
+        <label for="pathInput">Resource Path:</label>
+        <input type="text" id="pathInput" name="path" placeholder="/delete/filename.txt" value="/delete/" required>
+        <div class="example">Example: /delete/test.txt or /delete/image.png</div>
+      </div>
+
+      <button class="btn btn-delete" type="submit">Send DELETE Request</button>
+      <button class="btn btn-cancel" type="button" onclick="window.close()">Close</button>
+    </form>
+  </div>
+
+  <script>
+    const form = document.getElementById('deleteForm');
+    const pathInput = document.getElementById('pathInput');
+
+    // Focus on input
+    pathInput.focus();
+    pathInput.setSelectionRange(pathInput.value.length, pathInput.value.length);
+
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const path = pathInput.value.trim();
+      
+      if (!path) {
+        alert('Please enter a path to delete');
+        return;
+      }
+
+      if (!path.startsWith('/')) {
+        alert('Path must start with /');
+        return;
+      }
+
+      if (!confirm(`Are you sure you want to delete: ${path}?`)) {
+        return;
+      }
+
+      // Set form action to the specified path
+      form.action = 'http://localhost:8080' + path;
+      
+      // Open response window
+      window.open('', 'response_window', 'width=700,height=600');
+      
+      // Submit form
+      form.submit();
+    });
+  </script>
+</body>
+</html>
