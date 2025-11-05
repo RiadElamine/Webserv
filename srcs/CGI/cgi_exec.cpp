@@ -15,8 +15,13 @@ void Cgi::changeToCgiDirectory() {
 
 void Cgi::setupCgiPipes()
 {
+    filename = "upload_.bin";
     if (hasRequestBody())
+    {
         setupCgiStdin();
+    std::cerr << filename << std::endl;
+
+    }
 
     setupCgiStdout();
 }
@@ -84,58 +89,104 @@ std::vector<char*> Cgi::buildCgiArgs(const std::string &scriptPath)
     return args;
 }
 
-std::vector<char*> Cgi::buildCgiEnv()
+void addEnvVar(std::vector<char*>& env, const std::string& var)
 {
-    std::vector<char*> env;
-    const std::map<std::string, std::string> &params = this->params;
-    char *envVar;
+    char* envVar = strdup(var.c_str());
+    if (!envVar)
+    {
+        // Handle memory allocation failure
+        for (size_t i = 0; i < env.size(); ++i)
+            free(env[i]);
+        env.clear();
+        std::cerr << "Memory allocation failed in addEnvVar()\n";
+        exit(1);
+    }
+    env.push_back(envVar);
+}
+
+void addParamsToEnv(std::vector<char*>& env, const std::map<std::string, std::string>& params)
+{
+    std::string param_str = "QUERY_STRING=";
 
     for (std::map<std::string, std::string>::const_iterator it = params.begin(); it != params.end(); ++it)
     {
-        std::string params_str = it->first + "=" + it->second;
-        envVar = strdup(params_str.c_str());
-        if (!envVar)
-        {
-            // Handle memory allocation failure
-            for (size_t i = 0; i < env.size(); ++i)
-                free(env[i]);
-            env.clear();
-            exit(1);
-        }
-        env.push_back(envVar);
+        param_str += it->first + "=" + it->second + "&";
     }
 
-    HttpRequest &request = *Context->clientRequests[client_fd];
-    std::map<std::string, std::string> headers = request.getHeaders();
+    if (!params.empty()) {
+        param_str.pop_back(); 
+    }
+
+    addEnvVar(env, param_str); 
+}
+
+void Cgi::updateCGIEnvironment(std::vector<char*>& env, const HttpRequest &req) 
+{
+    std::map<std::string, std::string> headers = req.getHeaders();
+
+    // 1. Set CGI-required static variables
+    addEnvVar(env, "GATEWAY_INTERFACE=CGI/1.1");
+    addEnvVar(env, "SERVER_PROTOCOL=HTTP/1.1");
+    addEnvVar(env, "SERVER_SOFTWARE=WebServer/1.0");
+
+    // 2. Headers
     for (std::map<std::string, std::string>::const_iterator it = headers.begin(); it != headers.end(); ++it)
     {
-        std::string headerVar = it->first + "=" + it->second;
-        envVar = strdup(headerVar.c_str());
-        if (!envVar)
-        {
-            // Handle memory allocation failure
-            for (size_t i = 0; i < env.size(); ++i)
-                free(env[i]);
-            env.clear();
-            exit(1);
-        }
-        env.push_back(envVar);  // Fixed: was calling strdup again, causing memory leak
-    }
+        std::string key = it->first;
+        std::string value = it->second;
 
-    if (!request.getMethod().empty())
-    {
-        std::string requestMethodVar = "REQUEST_METHOD=" + request.getMethod();
-        envVar = strdup(requestMethodVar.c_str());
-        if (!envVar)
+        std::transform(key.begin(), key.end(), key.begin(), ::toupper);
+        std::replace(key.begin(), key.end(), '-', '_');
+
+        if (key == "CONTENT_LENGTH" || key == "CONTENT_TYPE")
         {
-            // Handle memory allocation failure
-            for (size_t i = 0; i < env.size(); ++i)
-                free(env[i]);
-            env.clear();
-            exit(1);
+            addEnvVar(env, key + "=" + value);
         }
-        env.push_back(envVar);
+        else if (key == "HOST")
+        {
+            std::string host = value;
+            std::string port = "80";
+            std::string::size_type pos = value.find(':');
+            if (pos != std::string::npos)
+            {
+                host = value.substr(0, pos);
+                port = value.substr(pos + 1);
+            }
+            addEnvVar(env, "SERVER_NAME=" + host);
+            addEnvVar(env, "SERVER_PORT=" + port);
+        }
+        else if (key == "AUTHORIZATION")
+        {
+            std::string authType = value;
+            std::string::size_type space = value.find(' ');
+            if (space != std::string::npos)
+                authType = value.substr(0, space);
+            addEnvVar(env, "AUTH_TYPE=" + authType);
+        }
+        else
+        {
+            addEnvVar(env, "HTTP_" + key + "=" + value);
+        }
+  
+        if (!req.getMethod().empty())
+            addEnvVar(env, "REQUEST_METHOD=" + req.getMethod());
+
+        if (!path.empty())
+            addEnvVar(env, "SCRIPT_NAME=" + path);
+
     }
+}
+
+std::vector<char*> Cgi::buildCgiEnv()
+{
+    std::vector<char*> env;
+
+    addParamsToEnv(env,  this->params);
+
+    // 
+    HttpRequest &request = *Context->clientRequests[client_fd];
+    updateCGIEnvironment(env, request);
+
     env.push_back(NULL);
     return env;
 }

@@ -45,6 +45,7 @@ class Cgi : virtual public brain {
         void redirectCgiInput();
         void redirectCgiOutput();
         std::vector<char*> buildCgiArgs(const std::string &scriptPath);
+        void updateCGIEnvironment(std::vector<char*>& env, const HttpRequest &req);
         std::vector<char*> buildCgiEnv();
         void runExecve(const char *interpreter, const std::vector<char*> &args, std::vector<char*> &env);
 
