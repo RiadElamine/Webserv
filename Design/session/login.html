@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Webserv Login</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Poppins', sans-serif;
+    }
+
+    body {
+      height: 100vh;
+      background: radial-gradient(circle at 20% 20%, #1a1f35, #0d0f1a);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: #fff;
+      overflow: hidden;
+    }
+
+    .glow {
+      position: absolute;
+      width: 300px;
+      height: 300px;
+      border-radius: 50%;
+      background: linear-gradient(45deg, #00b4d8, #0077b6);
+      filter: blur(120px);
+      opacity: 0.6;
+      animation: float 6s ease-in-out infinite alternate;
+    }
+
+    .glow:nth-child(1) {
+      top: -80px;
+      left: -80px;
+    }
+    .glow:nth-child(2) {
+      bottom: -80px;
+      right: -80px;
+      background: linear-gradient(45deg, #7209b7, #3a0ca3);
+    }
+
+    @keyframes float {
+      to { transform: translateY(40px) translateX(20px); }
+    }
+
+    .login-container {
+      position: relative;
+      z-index: 10;
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 40px 50px;
+      width: 380px;
+      text-align: center;
+      box-shadow: 0 0 30px rgba(0,0,0,0.5);
+      animation: fadeIn 1.2s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    h1 {
+      font-weight: 600;
+      margin-bottom: 10px;
+      color: #00b4d8;
+    }
+
+    p {
+      font-size: 0.9rem;
+      margin-bottom: 25px;
+      color: #cdd1e0;
+    }
+
+    input[type="text"], input[type="password"] {
+      width: 100%;
+      padding: 12px;
+      margin: 8px 0 18px;
+      border: none;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      outline: none;
+      transition: 0.3s;
+    }
+
+    input:focus {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(45deg, #00b4d8, #0077b6);
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.3s;
+      margin-top: 10px;
+    }
+
+    button:hover {
+      background: linear-gradient(45deg, #0077b6, #00b4d8);
+      transform: scale(1.03);
+    }
+
+    .toggle {
+      margin-top: 15px;
+      color: #bbb;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: color 0.3s;
+    }
+
+    .toggle:hover {
+      color: #00b4d8;
+    }
+
+    .footer-text {
+      margin-top: 20px;
+      font-size: 0.8rem;
+      color: #888;
+    }
+  </style>
+</head>
+<body>
+  <div class="glow"></div>
+  <div class="glow"></div>
+
+  <div class="login-container">
+    <h1>Welcome to Webserv</h1>
+    <p id="form-title">Login to test your HTTP server functionalities</p>
+
+    <form id="auth-form" method="POST" action="/login">
+      <input type="text" name="username" placeholder="Username" required>
+      <input type="password" name="password" placeholder="Password" required>
+      <div id="signup-fields" style="display: none;">
+        <input type="password" name="confirm_password" placeholder="Confirm Password">
+      </div>
+      <button type="submit" id="submit-btn">Login</button>
+    </form>
+
+    <div class="toggle" id="toggle-link">Don't have an account? Sign up</div>
+
+    <div class="footer-text">© 2025 Webserv Project</div>
+  </div>
+
+  <script>
+    const toggle = document.getElementById('toggle-link');
+    const form = document.getElementById('auth-form');
+    const title = document.getElementById('form-title');
+    const signupFields = document.getElementById('signup-fields');
+    const submitBtn = document.getElementById('submit-btn');
+
+    let isSignup = false;
+
+    toggle.addEventListener('click', () => {
+      isSignup = !isSignup;
+      if (isSignup) {
+        form.action = '/signup';
+        title.textContent = 'Create your Webserv account';
+        submitBtn.textContent = 'Sign up';
+        toggle.textContent = 'Already have an account? Log in';
+        signupFields.style.display = 'block';
+      } else {
+        form.action = '/login';
+        title.textContent = 'Login to test your HTTP server functionalities';
+        submitBtn.textContent = 'Login';
+        toggle.textContent = "Don't have an account? Sign up";
+        signupFields.style.display = 'none';
+      }
+    });
+  </script>
+</body>
+</html>
+
