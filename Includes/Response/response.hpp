@@ -56,6 +56,7 @@ class Response : virtual public brain {
     bool is_Moved_Permanently;
     bool is_index;
     bool is_data_fetched;
+    bool to_open;
 
     public:
         Response();
@@ -94,6 +95,7 @@ class Response : virtual public brain {
         void setCurrentLocation(Location *loc);
         void set_is_fetched_data(bool);
         void set_method_executed(bool);
+        void set_to_open(bool);
         void setStatusCode(int statusCode);
         void set_header_sent(bool val);
         void set_offset(size_t pos);

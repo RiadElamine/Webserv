@@ -71,24 +71,33 @@ void make_field_line(std::map<std::string, std::string>& filed_line, std::string
 }
 
 
-size_t match_only(std::string str, char match, size_t start, size_t end, size_t occurence) {
-    size_t count(0);
-    size_t index;
+size_t match_only(std::string str) {
+    // size_t count(0);
+    // size_t index;
 
-    for (;start < end; ++start) {
-        if (str[start] == match) {
-            index = start;
-            ++count;
-        }
+    // for (;start < end; ++start) {
+    //     if (str[start] == match) {
+    //         index = start;
+    //         ++count;
+    //     }
+    // }
+    // if (count == occurence)
+    //     return index;
+    // return std::string::npos;
+
+    for(size_t i = 0; i < str.size(); i++) {
+        if (std::isdigit(str[i]))
+            continue;
+        if (std::isspace(str[i]) && !std::isspace(str[i + 1]))
+            return i;
+        break ;
     }
-    if (count == occurence)
-        return index;
     return std::string::npos;
 }
 
 void set_statusCode(std::string& statusCode, Response& response) {
     size_t len = statusCode.size();
-    size_t index = match_only(statusCode, ' ', 0, len, 1);
+    size_t index = match_only(statusCode);
     if (index == std::string::npos && !isdigit(statusCode[len - 1]))
         throw std::runtime_error("status code and the reason phrase should have only one space between them");
     std::stringstream ss(statusCode);
@@ -135,9 +144,12 @@ bool parseCGIheader(std::string& header, char *buffer , size_t buffer_size, Resp
 
         response.setField_line(field_line);
     } catch (std::exception& e) {
+        std::cout << "error: " << e.what() << std::endl;
         response.setStatusCode(502);
+        response.set_to_open(false);
     }
-
+    response.set_is_fetched_data(true);
+    response.set_method_executed(true);
     return true;
 }
 

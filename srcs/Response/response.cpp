@@ -11,6 +11,7 @@ Response::Response() {
     is_Moved_Permanently = false;
     is_index = false;
     is_data_fetched = false;
+    to_open = true;
 }
 
 Response::~Response() {
@@ -91,6 +92,10 @@ void Response::setField_line(std::map<std::string, std::string>& filed_line) {
     }
 }
 
+void Response::set_to_open(bool val) {
+    to_open = val;
+}
+
 void Response::set_offset(size_t pos) {
    stream.offset = pos;
 }
@@ -104,6 +109,8 @@ size_t Response::get_offset(void) const {
 }
 
 bool Response::open_stream(std::string& file_path) {
+    if (!to_open)
+        return true;
     stream.file_stream.open(file_path.c_str(), std::ios_base::in | std::ios_base::binary);
     
     if (!stream.file_stream.is_open())
@@ -171,7 +178,7 @@ std::string Response::getHeader()
     if (is_cgi) {
         std::stringstream ss;
         ss << content_length ;
-        responseHeader.field_line[tmp->first] = ss.str();
+        // responseHeader.field_line[tmp->first] = ss.str();
     }
 
     header << "\r\n";
@@ -180,7 +187,7 @@ std::string Response::getHeader()
 
 void Response::execute_method() {
     // execute methods only once
-    if (is_method_executed || method == "POST")
+    if (is_method_executed)
         return ;
     is_method_executed = true;
     if (is_cgi) {
@@ -188,12 +195,16 @@ void Response::execute_method() {
             return make_response(true, responseHeader.status_line.statusCode);
         return ;
     }
+    std::cout << currentLocation->Route << std::endl;
     if (currentLocation && !currentLocation->redirect.empty()) {
         std::map<int, std::string>::iterator it = currentLocation->redirect.begin();
         return make_response(true, (e_StatusCode) it->first);
     }
+    
+    if (method == "POST")
+        return ;
 
-    if (method != "GET" && method != "DELETE" && method != "POST")
+    if (method != "GET" && method != "DELETE")
         return make_response(true, Not_Implemented);
     
     struct stat info;
