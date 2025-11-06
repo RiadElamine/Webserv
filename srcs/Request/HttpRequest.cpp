@@ -12,6 +12,7 @@ HttpRequest::HttpRequest() {
     need_boundary = false;
     code_status = 200;
     filename = "";
+    repath = "";
 }
 
 
@@ -394,6 +395,15 @@ std::string HttpRequest::get_mime_type() const{
     return mime_types.find(ext) != mime_types.end() ? mime_types.at(ext) : ".bin";
 }
 
+std::string split_path_dir(std::string path, struct stat &buffer)
+{
+    if (buffer.st_mode & S_IFDIR)
+        return path;
+    size_t index = path.rfind("/");
+    if (index == 0 || index == std::string::npos)
+        return path;
+    return path.substr(0, index);
+}
 
 void HttpRequest::create_file(int flag)
 {
@@ -407,7 +417,8 @@ void HttpRequest::create_file(int flag)
     if ((std::find(it->methods.begin(), it->methods.end(), method) == it->methods.end())) 
         return  set_status(405);
 
-    if (!S_ISDIR(buffer.st_mode) || !(buffer.st_mode & S_IWUSR)) 
+    repath = split_path_dir(build_pat, buffer);
+    if (!(buffer.st_mode & S_IWUSR))
         return  set_status(500);
     std::string ext;
     if (!boundary.empty() && !form_data["filename"].empty()) {
@@ -419,7 +430,7 @@ void HttpRequest::create_file(int flag)
         ext = get_mime_type(); 
     const int MAX_ATTEMPTS = 1000;
     for (int i = 1; i <= MAX_ATTEMPTS; ++i) {
-        std::string candidate = build_pat + "/upload_" + random_string(i) + ext;
+        std::string candidate = repath + "/upload_" + random_string(i) + ext;
         if (stat(candidate.c_str(), &buffer) != 0) {
             if (flag == 1)
                 form_data["filename"] = candidate;
@@ -448,8 +459,8 @@ void HttpRequest::parse_body(std::string& data) {
             std::ofstream file(filename.c_str(), std::ios::binary | std::ios::app);   
             size_t bytesToWrite = (contentLength > data.size()) ? data.size() : contentLength;
             file.write(data.c_str(), bytesToWrite);
-
             contentLength -= bytesToWrite;
+            std::cout << bytesToWrite << std::endl;
             data.erase(0, bytesToWrite);
             if (contentLength <= 0) {
                 file.close();

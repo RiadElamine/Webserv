@@ -80,14 +80,6 @@ std::string makeBodyResponse(Location *currentLocation, int statusCode, std::map
     return body;
 }
 
-// void fillFieldLine(std::map<std::string, std::string> &field_line, std::string contentType, std::string contentLength) {
-//     field_line["Date"] = getTimeOftheDay();
-//     field_line["Content-Type"] = contentType;
-//     field_line["Content-Length"] = contentLength;
-//     field_line["Connection"] = "close";
-//     field_line["Server"] = "WebServer/1.1.0";
-// }
-
 std::string getMIME(std::string path) {
     std::string mime;
     size_t index = path.rfind(".");

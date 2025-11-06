@@ -169,7 +169,7 @@ bool isCgiRequest(Client &client) {
 void WebServer::_handleReadable() {
     // Read data from client
     int client_fd = Context.event.ident;
-    char buffer[BUFFER_SIZE];
+    char buffer[1048576];
     ssize_t n = recv(client_fd, buffer, sizeof(buffer), 0);
     if (n <= 0)
     {
@@ -180,7 +180,7 @@ void WebServer::_handleReadable() {
     if (Context.clientRequests[client_fd]->parse_request(buffer, n))
     {
 
-        if (isCgiRequest(*(clients[client_fd])))
+        if (isCgiRequest(*(clients[client_fd])) && (Context.clientRequests[client_fd]->getStatusCode() == 200 || Context.clientRequests[client_fd]->getStatusCode() == 201))
         {
             // if i have cgi to execute, i will do it here
             Context.clientCgiProcesses.insert(

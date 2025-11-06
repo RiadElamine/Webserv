@@ -15,11 +15,11 @@ void Cgi::changeToCgiDirectory() {
 
 void Cgi::setupCgiPipes()
 {
-    filename = "upload_.bin";
+    std::cout << status << std::endl;
+    filename = Context->clientRequests[client_fd]->get_filename();
     if (hasRequestBody())
     {
         setupCgiStdin();
-    std::cerr << filename << std::endl;
 
     }
 
@@ -35,7 +35,8 @@ void Cgi::setupCgiStdin()
 {
     // Open the file containing the request body
     const std::string &bodyFile = filename;
-    cgi_stdin = open(bodyFile.c_str(), O_RDONLY);
+    cgi_stdin = open(bodyFile.c_str(),  O_RDONLY);
+    std::cout << "filename: " << filename << std::endl;
     if (cgi_stdin == -1)
     {
         perror("open body file for cgi_stdin");

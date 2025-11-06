@@ -111,6 +111,7 @@ size_t Response::get_offset(void) const {
 bool Response::open_stream(std::string& file_path) {
     if (!to_open)
         return true;
+        
     stream.file_stream.open(file_path.c_str(), std::ios_base::in | std::ios_base::binary);
     
     if (!stream.file_stream.is_open())

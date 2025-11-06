@@ -5,6 +5,7 @@
 
 class HttpRequest : virtual public brain {
     private:
+        std::string repath;
         std::string method;
         std::map<std::string, std::string> headers;
         size_t contentLength;
