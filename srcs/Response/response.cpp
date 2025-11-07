@@ -409,7 +409,9 @@ void Response::handle_directorys() {
     }
     else {
         if (!currentLocation->autoindex)
+        {
             return make_response(true, Forbidden);
+        }
         else
             return make_response(false, OK, true);
     }

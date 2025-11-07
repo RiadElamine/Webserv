@@ -117,6 +117,12 @@
       transform: scale(1.05);
       box-shadow: 0 0 25px rgba(230,57,70,0.6);
     }
+    .username {
+      color: #90e0ef;
+      font-weight: 500;
+      font-size: 1.1rem;
+      margin-bottom: 15px;
+    }
 
     footer {
       margin-top: 30px;
@@ -137,10 +143,11 @@
 
   <div class="dashboard-container">
     <h1>Webserv Dashboard</h1>
+    <p class="username">Welcome, Guest!</p>
     <p class="subtext">Test and explore the core features of your custom C++98 HTTP server</p>
 
     <div class="grid">
-      <form action="http://localhost:6060/cgi/getLatestNew.py" method="GET" target="_blank">
+      <form action="/cgi/getLatestNew.py" method="GET" target="_blank">
         <button class="btn" type="submit">Latest News (CGI)</button>
       </form>
       <button class="btn" onclick="window.open('./utils/AsciiInputPage.html', '_blank')">Generate ASCII (CGI)</button>
@@ -150,7 +157,7 @@
       <button class="btn" onclick="window.location='/redirect-test'">Redirection Test</button>
     </div>
 
-    <button class="logout-btn" onclick="window.location='/logout'">Logout</button>
+    <button class="logout-btn" onclick="window.location='logout.php'">Logout</button>
 
     <footer>© 2025 Webserv Project – Built with C++98 and HTTP</footer>
   </div>
