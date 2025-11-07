@@ -196,7 +196,6 @@ void Response::execute_method() {
             return make_response(true, responseHeader.status_line.statusCode);
         return ;
     }
-    std::cout << currentLocation->Route << std::endl;
     if (currentLocation && !currentLocation->redirect.empty()) {
         std::map<int, std::string>::iterator it = currentLocation->redirect.begin();
         return make_response(true, (e_StatusCode) it->first);
@@ -421,8 +420,6 @@ bool Response::process_path() {
 
     if (stat(path.c_str(), &info) != 0) // if path doesn't exist
     {
-        std::cout << "path doesn't exist" << std::endl;
-        std::cout << "path: " << path << std::endl;
         return false;
     }
 
@@ -431,7 +428,6 @@ bool Response::process_path() {
     }
     if (path[path.length() - 1] != '/')
     {
-        std::cout << "move permanentlly" << std::endl;
         is_Moved_Permanently = true;
         return false;
     }

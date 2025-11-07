@@ -42,12 +42,8 @@ Cgi::~Cgi()
 
 void Cgi::openCgiOutputFile() {
     cgi_dir = currentLocation->root + currentLocation->Route + "/";
-
     filename_cgi_output = generateRandomFilename();
-
-    std::string path_cgi_output_file = cgi_dir + filename_cgi_output;
-
-    cgi_stdout = open(path_cgi_output_file.c_str(), O_CREAT | O_RDWR | O_TRUNC, 0644);
+    cgi_stdout = open(filename_cgi_output.c_str(), O_CREAT | O_RDWR | O_TRUNC, 0644);
     if (cgi_stdout == -1)
         throw std::runtime_error("Failed to open cgi_output file");
 }
@@ -70,7 +66,6 @@ void Cgi::executeCgi()
     } 
     else
     {
-        filename_cgi_output = cgi_dir +  filename_cgi_output;
         setNonBlocking(cgi_stdout);
         setupParentProcessEvents();
     }

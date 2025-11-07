@@ -460,7 +460,6 @@ void HttpRequest::parse_body(std::string& data) {
             size_t bytesToWrite = (contentLength > data.size()) ? data.size() : contentLength;
             file.write(data.c_str(), bytesToWrite);
             contentLength -= bytesToWrite;
-            std::cout << bytesToWrite << std::endl;
             data.erase(0, bytesToWrite);
             if (contentLength <= 0) {
                 file.close();
