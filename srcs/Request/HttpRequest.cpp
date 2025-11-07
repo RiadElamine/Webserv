@@ -482,10 +482,7 @@ int HttpRequest::parse_request(char* buffer, ssize_t n) {
     while (!RequestData.empty())
     {
         if (need_boundary == true)
-        {
-            need_boundary = false;
             break;
-        }
         if (!headers_complete()) {
             parse_headers(RequestData);
         }
@@ -502,5 +499,6 @@ int HttpRequest::parse_request(char* buffer, ssize_t n) {
         }
 
     }
+    need_boundary = false;
     return (body_complete);
 }
