@@ -31,7 +31,7 @@ int main(int argc, char **argv)
         std::cerr << e.what() << '\n';
 
     }
-    
+    std::cout << "server: shutting down..." << std::endl;
     delete server;
 }
 
