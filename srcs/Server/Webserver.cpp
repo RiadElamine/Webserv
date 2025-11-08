@@ -338,47 +338,53 @@ void WebServer::startServer() {
     signal(SIGINT, handle_sigint);
 
     while (_start) {
-        int nev = kevent(Context.kq, NULL, 0, Context.evlist.data(), Context.evlist.size(), NULL);
-        if (nev == -1)
+        try
         {
-            if (errno == EINTR)
+            int nev = kevent(Context.kq, NULL, 0, Context.evlist.data(), Context.evlist.size(), NULL);
+            if (nev == -1)
             {
-                continue;
+                if (errno == EINTR)
+                {
+                    continue;
+                }
+                throw std::runtime_error("kevent error");
             }
-            throw std::runtime_error("kevent error");
+            if (nev == (int)Context.evlist.size())
+            {
+                Context.evlist.resize(Context.evlist.size() * 2);
+            }
+
+            for (int i = 0; i < nev; ++i) {
+                Context.event = Context.evlist[i];
+
+                if (Context.event.filter == EVFILT_READ)
+                {
+                    handleReceiveEvent();
+                } 
+                else if (Context.event.filter == EVFILT_WRITE)
+                {
+                    _handleWritable();
+                }
+                else if (Context.event.filter == EVFILT_TIMER)
+                {
+                    handleTimeoutEvent();
+                }
+                else if (Context.event.filter == EVFILT_PROC && (Context.event.fflags & NOTE_EXIT))
+                {
+                    // CGI process exited
+                    Cgi* cgiClient = static_cast<Cgi*>(Context.event.udata);
+                    cgiClient->handleCgiCompletion();
+                }
+            }
         }
-        if (nev == (int)Context.evlist.size())
+        catch(const std::exception& e)
         {
-            Context.evlist.resize(Context.evlist.size() * 2);
+            std::cerr << e.what() << '\n';
         }
-
-        for (int i = 0; i < nev; ++i) {
-            Context.event = Context.evlist[i];
-
-            if (Context.event.filter == EVFILT_READ)
-            {
-                handleReceiveEvent();
-            } 
-            else if (Context.event.filter == EVFILT_WRITE)
-            {
-                _handleWritable();
-            }
-            else if (Context.event.filter == EVFILT_TIMER)
-            {
-                handleTimeoutEvent();
-            }
-            else if (Context.event.filter == EVFILT_PROC && (Context.event.fflags & NOTE_EXIT))
-            {
-                // CGI process exited
-                Cgi* cgiClient = static_cast<Cgi*>(Context.event.udata);
-                cgiClient->handleCgiCompletion();
-            }
-            if (Context.event.udata == (void *)client_event &&
-                    clients[Context.event.ident]->state_of_connection == DISCONNECTED)
-            {
-                _closeConnection();
-            }
+        if (Context.event.udata == (void *)client_event &&
+                clients[Context.event.ident]->state_of_connection == DISCONNECTED)
+        {
+            _closeConnection();
         }
-
     }
 }

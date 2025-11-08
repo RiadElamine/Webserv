@@ -19,18 +19,10 @@ int main(int argc, char **argv)
     }
 
     // Start the web server
-    try
-    {
-        WebServer webserver(*server);
-        std::cout << "server: waiting for connections..." << std::endl;
-        webserver.startServer();
-    }
-    catch(const std::exception& e)
-    {
-        std::cerr << "WebServer error: ";
-        std::cerr << e.what() << '\n';
 
-    }
+    WebServer webserver(*server);
+    std::cout << "server: waiting for connections..." << std::endl;
+    webserver.startServer();
     std::cout << "server: shutting down..." << std::endl;
     delete server;
 }

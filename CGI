@@ -1,4 +1,0 @@
-Status: 500 Internal Server Error
-Content-Type: text/html
-
-<html><body><h1>500 Internal Server Error</h1><p>[Errno 2] No such file or directory: '/Users/oel-asri/Kingsave/Webserv/cgi-bin/cgi//templates/News.html'</p></body></html>

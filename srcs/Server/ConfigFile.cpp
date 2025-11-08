@@ -536,10 +536,8 @@ std::vector<ServerConfig> *ConfigFile::parse()
 void ConfigFile::fill_server_defaults()
 {
 	std::string errorDir = DEFAULT_PAGE_ERRORS;
-	int codesArray[] = {
-		400, 401, 403, 404, 405, 408, 409,
-		413, 414, 500, 501, 502, 503, 504
-	};
+	int arr[] = {201, 301, 400, 403, 404, 405, 409, 413, 500, 501, 502, 503};
+    std::vector<int> codesArray(arr, arr + sizeof(arr) / sizeof(arr[0]));
 
 	for (std::vector<ServerConfig>::iterator it = servers->begin(); it != servers->end(); ++it)
 	{
@@ -555,7 +553,7 @@ void ConfigFile::fill_server_defaults()
 			if (loc->index.empty())
 				loc->index = it->global_index;
 		}
-		for (int i = 0 ; i != 13; ++i) 
+		for (size_t i = 0 ; i != codesArray.size(); ++i) 
 		{
 			std::ostringstream errorPage ; errorPage << codesArray[i];
 			std::string filePath = errorDir + errorPage.str() + ".html";
