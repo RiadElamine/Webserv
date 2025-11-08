@@ -253,7 +253,7 @@ void HttpRequest::check(std::string& data, size_t pos)
 
 void HttpRequest::handl_boundary(std::string& data, size_t boundary_pos) {
     if (flag_boundary == 0) {
-        size_t start_pos = boundary_pos + boundary.size() + 2;
+        size_t start_pos = boundary_pos + boundary.size();
         data.erase(0, start_pos);
         std::string name;
         std::string content;
@@ -265,9 +265,13 @@ void HttpRequest::handl_boundary(std::string& data, size_t boundary_pos) {
                 name = data.substr(name_pos, end_name_pos - name_pos);
                 form_data["filename"] = name;
                 create_file(1);
-                data.erase(0, end_name_pos + 3);
-                data.erase(0, data.find("\r\n\r\n") + 4);
+                data.erase(0, data.find("\r\n\r\n")+ 4);
                 flag_boundary = 1;
+                if (data.find(boundary) == std::string::npos)
+                {
+                    need_boundary = true;
+                    return;
+                }
             } 
             else 
                 return check(data, name_pos);
@@ -282,7 +286,7 @@ void HttpRequest::handl_boundary(std::string& data, size_t boundary_pos) {
             data.clear();
             return;
         }
-        file << data.substr(0, data.find(boundary) - 2) << std::flush;
+        file << data.substr(0, data.find(boundary) - 2);
         flag_boundary = 0;
         file.close();
         code_status = 201;
@@ -291,7 +295,7 @@ void HttpRequest::handl_boundary(std::string& data, size_t boundary_pos) {
             body_complete = true;
             return;
         }
-        data.erase(0, data.find(boundary));
+        data.erase(0, data.find(boundary) - 2);
     }
 }
 
