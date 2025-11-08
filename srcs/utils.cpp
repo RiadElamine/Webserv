@@ -225,7 +225,7 @@ bool methodAllowed(const Location* location, const std::string& method) {
     const std::vector<std::string>& methods = location->methods;
 
     // If no methods are configured → allow all
-    if (methods.empty())
+    if (methods.empty() && method == "GET")
         return true;
 
     // Check if method is in the list

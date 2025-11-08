@@ -156,13 +156,15 @@ bool isCgiRequest(Client &client) {
     ServerConfig *currentServer = request.getServer();
     currentLocation = getCurrentLocation(request.getPath(), currentServer);
     response.setCurrentLocation(currentLocation);
-    response.setPath(buildPath(request.getPath(), currentLocation->root));
+    response.setPath(buildPath(request.getPath(), currentLocation->root, currentLocation->Route));
     if (!response.process_path())
     {
         client.is_cgi = false;
         return (false);
     }
     client.is_cgi = isCGI(response.getPath(), currentLocation);
+    if (client.is_cgi && !methodAllowed(currentLocation, request.getMethod()))
+        client.is_cgi = false;
     return client.is_cgi;
 }
 

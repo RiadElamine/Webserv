@@ -144,7 +144,7 @@ bool parseCGIheader(std::string& header, char *buffer , size_t buffer_size, Resp
 
         response.setField_line(field_line);
     } catch (std::exception& e) {
-        std::cout << "error: " << e.what() << std::endl;
+        std::cerr << "error: " << e.what() << std::endl;
         response.make_response(true, Bad_Gateway);
         response.set_to_open(false);
     }
