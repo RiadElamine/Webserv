@@ -24,7 +24,7 @@ ascii_bytes = create_ascii('oussama', 'doom')
 
 # Headers as bytes
 headers = (
-    b"HTTP/1.1 200 OK\r\n"
+    b"Status: 200 OK\r\n"
     b"Connection: close\r\n"
     b"Content-Type: text/plain; charset=utf-8\r\n"
     b"Content-Length: " + str(len(ascii_bytes)).encode('ascii') + b"\r\n"
