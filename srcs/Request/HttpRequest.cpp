@@ -60,7 +60,6 @@ int HttpRequest::getStatusCode() const
 std::string HttpRequest::remove_dot_segments(std::string path) {
     std::string result;
     result.reserve(path.size());
-    std::cout << result << std::endl;
     size_t i = 0;
     while (i < path.size()) {
         if (path[i] == '/' && path[i + 1] == '/')
