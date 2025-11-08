@@ -6,8 +6,8 @@
 // Execute the CGI script in the child process
 
 void Cgi::changeToCgiDirectory() {
-
     if (chdir(cgi_dir.c_str()) == -1) {
+std::cerr << "hreee " << cgi_dir << std::endl;
         std::cerr << "chdir failed: " << std::strerror(errno) << std::endl;
         std::exit(1);
     }
@@ -15,7 +15,6 @@ void Cgi::changeToCgiDirectory() {
 
 void Cgi::setupCgiPipes()
 {
-    std::cout << status << std::endl;
     filename = Context->clientRequests[client_fd]->get_filename();
     if (hasRequestBody())
     {
@@ -36,7 +35,6 @@ void Cgi::setupCgiStdin()
     // Open the file containing the request body
     const std::string &bodyFile = filename;
     cgi_stdin = open(bodyFile.c_str(),  O_RDONLY);
-    std::cout << "filename: " << filename << std::endl;
     if (cgi_stdin == -1)
     {
         perror("open body file for cgi_stdin");
@@ -199,18 +197,15 @@ void Cgi::runExecve(const char *interpreter, const std::vector<char*> &args, std
         perror("execve");
         exit(1);
     }
-    // If execve succeeds, the process memory is replaced, so no need to free
 }
 
 void Cgi::executeCgiScript()
 {
     if (cgi_stdout != -1) {
         close(cgi_stdout);
-        cgi_stdout = -1;  // Reset to avoid double closing
+        cgi_stdout = -1; 
     }
     
-    changeToCgiDirectory();
-
     setupCgiPipes();
 
     // Determine the script interpreter based on file extension
@@ -226,6 +221,8 @@ void Cgi::executeCgiScript()
 
     std::vector<char*> env = buildCgiEnv();
     std::vector<char*> args = buildCgiArgs(scriptPath);
+
+    changeToCgiDirectory();
 
     runExecve(scriptInterpreter, args, env);
 }

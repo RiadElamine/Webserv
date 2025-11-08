@@ -179,7 +179,7 @@ std::string Response::getHeader()
     if (is_cgi) {
         std::stringstream ss;
         ss << content_length ;
-        // responseHeader.field_line[tmp->first] = ss.str();
+        // responseHeader.field_line[tmp->first] = ss.str(); //content-length
     }
 
     header << "\r\n";
@@ -190,13 +190,13 @@ void Response::execute_method() {
     // execute methods only once
     if (is_method_executed)
         return ;
+
     is_method_executed = true;
     if (is_cgi) {
         if (responseHeader.status_line.statusCode != OK && responseHeader.status_line.statusCode != Created)
             return make_response(true, responseHeader.status_line.statusCode);
         return ;
     }
-    std::cout << currentLocation->Route << std::endl;
     if (currentLocation && !currentLocation->redirect.empty()) {
         std::map<int, std::string>::iterator it = currentLocation->redirect.begin();
         return make_response(true, (e_StatusCode) it->first);
@@ -357,9 +357,9 @@ void Response::Delete(struct stat& info) {
          // handle reqular file
          size_t ret = std::remove(path.c_str());
         
-         if (ret)
+        if (ret)
             return make_response(true, Forbidden);
-         else
+        else
             return make_response(true, No_Content);
      }
      else
@@ -410,7 +410,9 @@ void Response::handle_directorys() {
     }
     else {
         if (!currentLocation->autoindex)
+        {
             return make_response(true, Forbidden);
+        }
         else
             return make_response(false, OK, true);
     }
@@ -421,8 +423,6 @@ bool Response::process_path() {
 
     if (stat(path.c_str(), &info) != 0) // if path doesn't exist
     {
-        std::cout << "path doesn't exist" << std::endl;
-        std::cout << "path: " << path << std::endl;
         return false;
     }
 
@@ -431,7 +431,6 @@ bool Response::process_path() {
     }
     if (path[path.length() - 1] != '/')
     {
-        std::cout << "move permanentlly" << std::endl;
         is_Moved_Permanently = true;
         return false;
     }

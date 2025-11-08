@@ -14,7 +14,7 @@ size_t matchNB(const std::string& Route, const std::string& path);
 // Function to get the location from the server config based on Route path
 Location* getCurrentLocation(std::string oldPath, ServerConfig *currentServer);
 
-std::string buildPath(std::string path, std::string root) ;
+std::string buildPath(std::string path, std::string root, std::string Route) ;
 
 
 void getDataFromRequest(HttpRequest &request, Response &response);
