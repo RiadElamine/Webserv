@@ -15,7 +15,6 @@ class Location
         std::vector<std::string> methods;
         bool autoindex;
         std::map<int, std::string> redirect;
-        std::string upload_store;
         std::map<std::string, std::string> cgi_Path_Info;
 
         void reset();
@@ -83,7 +82,6 @@ class ConfigFile
         void ParseAutoindex();
         void ParseMethods();
         void ParseCGIPath();
-        void ParseUpload();
         void ParseRedir();
         void ParseLocationRoot();
         void ParseIndex();
