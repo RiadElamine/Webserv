@@ -60,20 +60,23 @@ int HttpRequest::getStatusCode() const
 std::string HttpRequest::remove_dot_segments(std::string path) {
     std::string result;
     result.reserve(path.size());
-
+    std::cout << result << std::endl;
     size_t i = 0;
     while (i < path.size()) {
-        if (path[i] == '/' && path[i+1] == '/')
-            return set_status(400),"";
+        if (path[i] == '/' && path[i + 1] == '/')
+        {
+            i++;
+            continue;
+        }
         if (path.substr(i, 3) == "/./") {
             result += '/';
-            i += 2;
+            i += 3;
         } else if (path.substr(i, 4) == "/../") {
             if (!result.empty()) {
                 size_t last_slash = result.find_last_of('/', result.size() - 2);
                 result.resize(last_slash + 1);
             }
-            i += 3;
+            i += 4;
         } else if (path.substr(i, 2) == "..") {
             if (i + 2 == path.size()) {
                 if (!result.empty()) {
@@ -81,23 +84,17 @@ std::string HttpRequest::remove_dot_segments(std::string path) {
                     result.resize(last_slash + 1);
                 }
                 i += 2;
-            } else {
+            } else 
                 result += path[i++];
-            }
         } else if (path.substr(i, 1) == ".") {
-            if (i + 1 == path.size()) {
+            if (i + 1 == path.size() &&  result[result.size() - 1] == '/') {
                 i++;
             } 
             else 
                 result += path[i++];
-        } else {
-            if (*(result.end() - 1) == '/' && path[i] == '/')
-            {
-                i++;
-                continue;
-            }
+        } 
+        else 
             result += path[i++];
-        }
     }
     return result;
 }
@@ -151,6 +148,7 @@ void HttpRequest::Route_valid()
         }
     }
     decode(path);
+    path = remove_dot_segments(path);
 }
 
 void HttpRequest::set_status(int status)
@@ -408,7 +406,7 @@ std::string split_path_dir(std::string path, struct stat &buffer)
 void HttpRequest::create_file(int flag)
 {
     Location* it = getCurrentLocation(path, currentServer);
-    std::string build_pat = buildPath(path, it->root);
+    std::string build_pat = buildPath(path, it->root, it->Route);
     struct stat buffer;
 
     if (!pathExists(build_pat, &buffer)) {
@@ -460,7 +458,6 @@ void HttpRequest::parse_body(std::string& data) {
             size_t bytesToWrite = (contentLength > data.size()) ? data.size() : contentLength;
             file.write(data.c_str(), bytesToWrite);
             contentLength -= bytesToWrite;
-            std::cout << bytesToWrite << std::endl;
             data.erase(0, bytesToWrite);
             if (contentLength <= 0) {
                 file.close();
@@ -483,10 +480,7 @@ int HttpRequest::parse_request(char* buffer, ssize_t n) {
     while (!RequestData.empty())
     {
         if (need_boundary == true)
-        {
-            need_boundary = false;
             break;
-        }
         if (!headers_complete()) {
             parse_headers(RequestData);
         }
@@ -501,7 +495,7 @@ int HttpRequest::parse_request(char* buffer, ssize_t n) {
                 set_status(400);
             parse_body(RequestData);
         }
-
     }
+    need_boundary = false;
     return (body_complete);
 }
