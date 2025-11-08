@@ -1,2 +1,2 @@
 #!/bin/sh
-curl http://localhost:8086/cgi/test.sh
+curl -sS http://localhost:8080/cgi/test.sh
