@@ -265,6 +265,7 @@ void HttpRequest::handl_boundary(std::string& data, size_t boundary_pos) {
                 name = data.substr(name_pos, end_name_pos - name_pos);
                 form_data["filename"] = name;
                 create_file(1);
+                data.erase(0, end_name_pos + 2);
                 data.erase(0, data.find("\r\n\r\n")+ 4);
                 flag_boundary = 1;
                 if (data.find(boundary) == std::string::npos)
@@ -282,8 +283,9 @@ void HttpRequest::handl_boundary(std::string& data, size_t boundary_pos) {
     if (flag_boundary == 1) {
         std::ofstream file(form_data["filename"], std::ios::binary | std::ios::app);
         if (data.find(boundary) == std::string::npos) {
-            file.write(data.c_str(), data.size() - boundary.size() - 4);
+            file.write(data.c_str(), data.size());
             data.clear();
+            need_boundary = true;
             return;
         }
         file << data.substr(0, data.find(boundary) - 2);
@@ -315,20 +317,17 @@ void HttpRequest::inchunk_body(std::string &data) {
         std::string size_line = data.substr(pos, chunk_size_end - pos);
         if (size_line.empty()) {
             need_boundary = true;
-            std::cout << "Empty chunk size line detected." << std::endl;
             break;
         }
         std::stringstream ss;
         ss << std::hex << size_line;
         if (!(ss >> chunk_size)) {
             set_status(400);
-            std::cout << "Invalid chunk size format: " << size_line << std::endl;
             return;
         }
         pos = chunk_size_end + 2; 
         if (pos + chunk_size + 2 > data.size()) {
             need_boundary = true; 
-            std::cout << "Incomplete chunk data detected." << std::endl;
             break;
         }
         inchunk.append(data, pos, chunk_size);
