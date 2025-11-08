@@ -36,7 +36,7 @@ std::string getReasonPhrase(e_StatusCode statusCode) {
         case Service_Unavailable: return "Service Unavailable";
         case Gateway_Timeout: return "Gateway Timeout";
         default:
-            throw std::runtime_error("Status Code Not Implemented");
+            return "Unknown Status";
     }
 }
 
@@ -191,11 +191,25 @@ Location* getCurrentLocation(std::string oldPath, ServerConfig *currentServer) {
     return currentLocation;
 }
 
-std::string buildPath(std::string path, std::string root) {
-    // std::string reminder = path.substr(Route.size());
+std::string buildPath(std::string path, std::string root, std::string Route) {
+ 
+    if (root[root.size() - 1] != '/') 
+        root += "/"; 
 
-    return root + path;
+    if (path == Route)
+        return root;
+    
+    std::string reminder = path.substr(Route.size());
+
+    if (reminder == "/") 
+        return root;
+
+    else if (reminder[0] == '/')
+        reminder.erase(0, 1);
+
+    return root + reminder;
 }
+
 
 
 /**
