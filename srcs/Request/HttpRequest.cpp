@@ -207,6 +207,7 @@ void HttpRequest::parse_headers(std::string& data) {
         else
             return set_status(400);
     }
+
     if (headers.find("Content-Type") != headers.end() && headers["Content-Type"].find("multipart/form-data;") != std::string::npos) {
         size_t boundary_pos = headers["Content-Type"].find("boundary=");
         if (boundary_pos == std::string::npos || headers["Content-Type"].substr(boundary_pos + 9).empty()) 
@@ -237,7 +238,7 @@ void HttpRequest::parse_headers(std::string& data) {
         if (boundary_pos == std::string::npos || headers["Content-Type"].substr(boundary_pos + 9).empty()) 
             return set_status(400);
         if (boundary_pos != std::string::npos) {
-            boundary = headers["Content-Type"].substr(boundary_pos + 9);
+            boundary ="--" + headers["Content-Type"].substr(boundary_pos + 9);
         } 
     }
 }
@@ -277,20 +278,23 @@ void HttpRequest::handl_boundary(std::string& data, size_t boundary_pos) {
     if (flag_boundary == 1) {
         std::ofstream file(form_data["filename"], std::ios::binary | std::ios::app);
         if (data.find(boundary) == std::string::npos) {
-            file.write(data.c_str(), data.size());
+            file.write(data.c_str(), data.size() - boundary.size() - 4);
             data.clear();
             return;
         }
-        file << data.substr(0, data.find(boundary) - 4);
+        file << data.substr(0, data.find(boundary) - 2) << std::flush;
         flag_boundary = 0;
         file.close();
         code_status = 201;
-        if (data.find("--"+boundary+"--\r\n" , boundary.size()+6) != std::string::npos && data.substr(0, data.find("--"+boundary+"--\r\n" , boundary.size()+6)).find(boundary) == std::string::npos) {
+        if (data.find(boundary+"--\r\n" , boundary.size() + 4) != std::string::npos && data.find(boundary+"--\r\n" , boundary.size() + 4) == data.find(boundary)) {
             data.clear();
             body_complete = true;
+            return;
         }
+        data.erase(0, data.find(boundary));
     }
 }
+
 
 void HttpRequest::inchunk_body(std::string &data) {
     Location *it = getCurrentLocation(path, currentServer); 
@@ -307,17 +311,20 @@ void HttpRequest::inchunk_body(std::string &data) {
         std::string size_line = data.substr(pos, chunk_size_end - pos);
         if (size_line.empty()) {
             need_boundary = true;
+            std::cout << "Empty chunk size line detected." << std::endl;
             break;
         }
         std::stringstream ss;
         ss << std::hex << size_line;
         if (!(ss >> chunk_size)) {
             set_status(400);
+            std::cout << "Invalid chunk size format: " << size_line << std::endl;
             return;
         }
         pos = chunk_size_end + 2; 
         if (pos + chunk_size + 2 > data.size()) {
             need_boundary = true; 
+            std::cout << "Incomplete chunk data detected." << std::endl;
             break;
         }
         inchunk.append(data, pos, chunk_size);
@@ -344,8 +351,14 @@ void HttpRequest::inchunk_body(std::string &data) {
     }
     else if (!boundary.empty())
     {
-        size_t boundary_pos = inchunk.find(boundary);
-        handl_boundary(inchunk, boundary_pos);
+        while (!inchunk.empty())
+        {
+            size_t boundary_pos = inchunk.find(boundary);
+            if (need_boundary == true)
+                break;
+            handl_boundary(inchunk, boundary_pos);
+        }
+        
     }
     data.erase(0, total_consumed);
 }
@@ -409,6 +422,7 @@ void HttpRequest::create_file(int flag)
     struct stat buffer;
 
     if (!pathExists(build_pat, &buffer)) {
+        std::cout << "Path does not exist: " << build_pat << std::endl;
         return set_status(404);
     }
     if ((std::find(it->methods.begin(), it->methods.end(), method) == it->methods.end())) 
@@ -439,8 +453,6 @@ void HttpRequest::create_file(int flag)
 }
 
 
-
-
 void HttpRequest::parse_body(std::string& data) {
     Location *it = getCurrentLocation(path, currentServer);
     if (filename == "" && boundary.empty())
@@ -469,7 +481,6 @@ void HttpRequest::parse_body(std::string& data) {
         }
     }
 }
-
 
 int HttpRequest::parse_request(char* buffer, ssize_t n) {
     RequestData.append(buffer, n);
