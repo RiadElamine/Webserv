@@ -59,7 +59,6 @@ void ConfigFile::Initialize()
 	funcs_location.insert(std::make_pair("autoindex", &ConfigFile::ParseAutoindex));
 	funcs_location.insert(std::make_pair("methods", &ConfigFile::ParseMethods));
 	funcs_location.insert(std::make_pair("cgi_Path_Info", &ConfigFile::ParseCGIPath));
-	funcs_location.insert(std::make_pair("upload", &ConfigFile::ParseUpload));
 	funcs_location.insert(std::make_pair("redir", &ConfigFile::ParseRedir));
 	funcs_location.insert(std::make_pair("root", &ConfigFile::ParseLocationRoot));
 	funcs_location.insert(std::make_pair("index", &ConfigFile::ParseIndex));
@@ -73,7 +72,6 @@ void Location::reset()
 	methods.clear();
 	autoindex = false;
 	redirect.clear();
-	upload_store.clear();
 	cgi_Path_Info.clear();
 
 }
@@ -101,7 +99,6 @@ void ConfigFile::resetLocation()
 	directiveFlagsLocation["autoindex"] = false;
 	directiveFlagsLocation["methods"] = false;
 	directiveFlagsLocation["cgi_Path_Info"] = false;
-	directiveFlagsLocation["upload"] = false;
 	directiveFlagsLocation["redir"] = false;
 	directiveFlagsLocation["root"] = false;
 	directiveFlagsLocation["index"] = false;
@@ -189,12 +186,6 @@ void ConfigFile::ParseMethods()
 	if (i >= length)
 		return;
 	verifyDelimiterLocation(SEMICOLON);
-}
-
-void ConfigFile::ParseUpload()
-{
-	std::string data = get_data_location();
-	location.upload_store = data;
 }
 
 void ConfigFile::ParseRedir()
@@ -563,8 +554,6 @@ void ConfigFile::fill_server_defaults()
 				loc->root = it->global_root;
 			if (loc->index.empty())
 				loc->index = it->global_index;
-			if (loc->upload_store.empty())
-				loc->upload_store = "/tmp";
 		}
 		for (int i = 0 ; i != 13; ++i) 
 		{

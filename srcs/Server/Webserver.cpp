@@ -1,6 +1,7 @@
 #include "../../Includes/Server/Webserver.hpp"
 #include "../../Includes/utils.hpp"
 
+bool _start = true;
 
 WebServer::WebServer(std::vector<ServerConfig>  &servers) {
     // Initialize kqueue to -1 to indicate it's not yet created
@@ -65,7 +66,6 @@ WebServer::~WebServer() {
         close(it->first);
     }
     listeners.clear();
-    
     // Clean up kqueue if it was initialized
     if (Context.kq != -1) {
         close(Context.kq);
@@ -320,6 +320,12 @@ void WebServer::_closeConnection() {
     std::cout << "Connection closed: " << fd_client << std::endl;
 }
 
+void handle_sigint(int sig)
+{
+    (void)sig;
+    _start = false;
+}
+
 void WebServer::startServer() {
 
     Context.kq = kqueue();
@@ -327,10 +333,16 @@ void WebServer::startServer() {
 
     registerEvents();
 
-    while (true) {
+    signal(SIGINT, handle_sigint);
+
+    while (_start) {
         int nev = kevent(Context.kq, NULL, 0, Context.evlist.data(), Context.evlist.size(), NULL);
         if (nev == -1)
         {
+            if (errno == EINTR)
+            {
+                continue;
+            }
             throw std::runtime_error("kevent error");
         }
         if (nev == (int)Context.evlist.size())
