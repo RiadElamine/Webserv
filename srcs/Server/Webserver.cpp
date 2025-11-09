@@ -3,16 +3,19 @@
 
 bool _start = true;
 
-WebServer::WebServer(std::vector<ServerConfig>  &servers) {
-    // Initialize kqueue to -1 to indicate it's not yet created
+WebServer::WebServer(std::vector<ServerConfig>  &servers) : Servers(servers) {
     Context.kq = -1;
-    
-    for (size_t i = 0; i < servers.size(); ++i) {
-        for (std::set<std::pair<std::string, uint16_t> >::iterator it = servers[i].listens.begin(); it != servers[i].listens.end(); ++it) {
+}
+
+void WebServer::setupServerSockets()
+{ 
+    for (size_t i = 0; i < Servers.size(); ++i) {
+        for (std::set<std::pair<std::string, uint16_t> >::iterator it = Servers[i].listens.begin(); it != Servers[i].listens.end(); ++it) {
             //
             std::stringstream   portStr;
             struct              addrinfo hints;
-            struct              addrinfo *servinfo;
+            struct              addrinfo *servinfo = NULL;
+            int                 fd = -1;
 
             memset(&hints, 0, sizeof(hints));
             hints.ai_family = AF_INET;
@@ -20,33 +23,48 @@ WebServer::WebServer(std::vector<ServerConfig>  &servers) {
 
             std::string host = it->first;
             portStr << it->second; 
-            int ad = getaddrinfo(host.c_str(), portStr.str().c_str(), &hints, &servinfo);
-            if (ad != 0) {
-                std::cerr << "getaddrinfo: ";
-                throw std::runtime_error(gai_strerror(ad));
+            try
+            {
+                int ad = getaddrinfo(host.c_str(), portStr.str().c_str(), &hints, &servinfo);
+                if (ad != 0) {
+                    std::cerr << "getaddrinfo: ";
+                    throw std::runtime_error(gai_strerror(ad));
+                }
+                //
+                struct addrinfo p = *servinfo;
+                int fd = socket(p.ai_family, p.ai_socktype, p.ai_protocol);
+                if (fd < 0) {
+                    throw std::runtime_error("Failed to create socket");
+                }
+                //
+                int yes = 1;
+                if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes))) {
+                    throw std::runtime_error("Failed to set socket options");
+                }
+                //
+                if (bind(fd, p.ai_addr, p.ai_addrlen) == -1) {
+                    throw std::runtime_error("Failed to bind socket");
+                }
+                //
+                if (listen(fd, SOMAXCONN) == -1) {
+                    throw std::runtime_error("Failed to listen on socket");
+                }
+                //
+                listeners.insert(std::make_pair(fd, &Servers[i]));
+                freeaddrinfo(servinfo);
             }
-            //
-            struct addrinfo p = *servinfo;
-            int fd = socket(p.ai_family, p.ai_socktype, p.ai_protocol);
-            if (fd < 0) {
-                throw std::runtime_error("Failed to create socket");
+            catch (const std::exception &e)
+            {
+                // Cleanup on failure
+                if (servinfo != NULL) {
+                    freeaddrinfo(servinfo);
+                }
+                if (fd >= 0) {
+                    close(fd);
+                }
+
+                throw ;
             }
-            //
-            int yes = 1;
-            if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes))) {
-                throw std::runtime_error("Failed to set socket options");
-            }
-            //
-            if (bind(fd, p.ai_addr, p.ai_addrlen) == -1) {
-                throw std::runtime_error("Failed to bind socket");
-            }
-            //
-            if (listen(fd, SOMAXCONN) == -1) {
-                throw std::runtime_error("Failed to listen on socket");
-            }
-            //
-            listeners.insert(std::make_pair(fd, &servers[i]));
-            freeaddrinfo(servinfo);
         }
     }
 }
@@ -330,10 +348,18 @@ void handle_sigint(int sig)
 
 void WebServer::startServer() {
 
-    Context.kq = kqueue();
-    if (Context.kq == -1) throw std::runtime_error("Failed to create kqueue");
+    try
+    {
+        setupServerSockets();
+        Context.kq = kqueue();
+        if (Context.kq == -1) throw std::runtime_error("Failed to create kqueue");
 
-    registerEvents();
+        registerEvents();
+    }
+    catch (const std::exception &e)
+    {
+        throw std::runtime_error(e.what());
+    }
 
     signal(SIGINT, handle_sigint);
 
