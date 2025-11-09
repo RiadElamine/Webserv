@@ -207,32 +207,8 @@ void HttpRequest::parse_headers(std::string& data) {
         else
             return set_status(400);
     }
-
-    if (headers.find("Content-Type") != headers.end() && headers["Content-Type"].find("multipart/form-data;") != std::string::npos) {
-        size_t boundary_pos = headers["Content-Type"].find("boundary=");
-        if (boundary_pos == std::string::npos || headers["Content-Type"].substr(boundary_pos + 9).empty()) 
-            return set_status(400);
-        if (boundary_pos != std::string::npos) {
-            boundary = headers["Content-Type"].substr(boundary_pos + 9);
-        } 
-    }
     if (headers["Host"].empty())
         return set_status(400);
-    if (!headers["Transfer-Encoding"].empty() && !headers["Content-Length"].empty())
-        return set_status(400);
-    if (!headers["Content-Length"].empty()) {
-        contentLength = std::atol(headers["Content-Length"].c_str());
-        if (contentLength <= 0) 
-            return set_status(400);
-        if (contentLength > currentServer->client_max_body_size) 
-            return set_status(413);
-    } 
-    if (!headers["Transfer-Encoding"].empty()) {
-        if (headers["Transfer-Encoding"] == "chunked")
-            chunked = "chunked";
-        else
-            return set_status(400);
-    }
     if (!headers["Content-Type"].empty() && headers["Content-Type"].find("multipart/form-data;") != std::string::npos) {
         size_t boundary_pos = headers["Content-Type"].find("boundary=");
         if (boundary_pos == std::string::npos || headers["Content-Type"].substr(boundary_pos + 9).empty()) 
