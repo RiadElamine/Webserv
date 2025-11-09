@@ -242,7 +242,6 @@ std::string get_old_path(std::string& path, std::string& root) {
     return ret;
 }
 
-
 void Response::handle_redirection() {
     std::string location;
 
@@ -250,8 +249,12 @@ void Response::handle_redirection() {
         try {
             location = currentLocation->redirect.at(responseHeader.status_line.statusCode);
         } catch (std::exception &e) {
-            location = get_old_path(path, currentLocation->root);
-            location = location + "/";
+            std::string url = get_old_path(path, currentLocation->root);
+            std::string Route = currentLocation->Route;
+            if (!url.empty() && !Route.empty() && url.front() != '/' && Route.back() != '/')
+                url = "/" + url;
+            location =  Route + url + "/";
+            std::cout << location << std::endl;
         }
     }
     else {
