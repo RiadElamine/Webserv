@@ -7,8 +7,6 @@
 
 void Cgi::changeToCgiDirectory() {
     if (chdir(cgi_dir.c_str()) == -1) {
-std::cerr << "hreee " << cgi_dir << std::endl;
-        std::cerr << "chdir failed: " << std::strerror(errno) << std::endl;
         std::exit(1);
     }
 }
@@ -19,7 +17,6 @@ void Cgi::setupCgiPipes()
     if (hasRequestBody())
     {
         setupCgiStdin();
-
     }
 
     setupCgiStdout();
@@ -41,6 +38,8 @@ void Cgi::setupCgiStdin()
         close(cgi_stdout);
         exit(1);
     }
+    if (!filename.empty())
+        std::remove(bodyFile.c_str());
 
     setNonBlockCloexec(cgi_stdin);
 

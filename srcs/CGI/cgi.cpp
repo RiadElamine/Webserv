@@ -33,16 +33,18 @@ Cgi::~Cgi()
     // Only attempt to remove the file if it exists and filename is not empty
     if (!filename_cgi_output.empty())
     {
-        if (std::remove(filename_cgi_output.c_str()) != 0)
-        {
-            std::cerr << "Warning: Failed to remove temporary CGI output file: " << filename_cgi_output << " - " << strerror(errno) << std::endl;
-        }
+        std::remove(filename_cgi_output.c_str());
+    }
+
+    if (!filename.empty())
+    {
+        std::remove(filename.c_str());
     }
 }
 
 void Cgi::openCgiOutputFile() {
     cgi_dir = currentLocation->root + "/";
-    filename_cgi_output = generateRandomFilename();
+    filename_cgi_output = "/tmp/." + generateRandomFilename();
     cgi_stdout = open(filename_cgi_output.c_str(), O_CREAT | O_RDWR | O_TRUNC, 0644);
     if (cgi_stdout == -1)
         throw std::runtime_error("Failed to open cgi_output file");
@@ -85,6 +87,8 @@ void Cgi::_readCgiOutput() {
         makestdoutDone();
         if (!Context->clientResponses[client_fd]->open_stream(filename_cgi_output))
             throw std::runtime_error("Can't open the cgi output file");
+        if (!filename_cgi_output.empty())
+            std::remove(filename_cgi_output.c_str());
         return;
      }
 

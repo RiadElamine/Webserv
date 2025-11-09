@@ -20,7 +20,6 @@
         $GLOBALS['location'] = "/login/";
         $GLOBALS['statusCode'] = 302;
         session_destroy();
-        fwrite(STDERR, $_SESSION['logged_in']);
     }
     else {
         // User is logged in, show dashboard

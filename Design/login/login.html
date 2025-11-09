@@ -163,10 +163,9 @@
     const signupFields = document.getElementById('signup-fields');
     const submitBtn = document.getElementById('submit-btn');
 
-    let isSignup = false;
+    let isSignup = {{isSignup}};
 
-    toggle.addEventListener('click', () => {
-      isSignup = !isSignup;
+    function updateForm() {
       if (isSignup) {
         form.action = '/signup';
         title.textContent = 'Create your Webserv account';
@@ -180,7 +179,17 @@
         toggle.textContent = "Don't have an account? Sign up";
         signupFields.style.display = 'none';
       }
+    }
+
+    // Run once on load
+    updateForm();
+
+    // Add event listener to toggle between login/signup
+    toggle.addEventListener('click', () => {
+      isSignup = !isSignup;
+      updateForm();
     });
+
   </script>
 </body>
 </html>

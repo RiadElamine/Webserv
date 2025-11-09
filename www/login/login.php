@@ -73,7 +73,6 @@
 
     // --- Read the HTML file dynamically ---
     function getPageBody() {
-        fwrite(STDERR, "Loading login page\n");
         $path = "../../Design/login/login.html";
         if (!file_exists($path)) {
             exit(1);
@@ -82,7 +81,9 @@
         $body = file_get_contents($path);
         parse_str($_SERVER['QUERY_STRING'] ?? '', $query);
         $isSignup = isset($query['isSignup']) && $query['isSignup'] === 'true';
+        fwrite(STDERR, "isSignup: " . ($isSignup ? 'true' : 'false') . "\n");
         $body = str_replace('{{isSignup}}', $isSignup ? 'true' : 'false', $body);
+        fwrite(STDERR, $body . "\n");
     
         return $body;
     }

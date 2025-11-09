@@ -11,7 +11,6 @@
         if (is_array($cookies)) {
             foreach ($cookies as $name => $value) {
                 $_COOKIE[$name] = $value;
-                fwrite(STDERR, "Cookie: " . $name . " = " . $value . "\n");
             }
         }
     }
