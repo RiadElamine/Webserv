@@ -8,10 +8,12 @@ class WebServer {
         WebServer(std::vector<ServerConfig>  &servers);
         ~WebServer();
         void startServer();
+        void setupServerSockets();
     private:
         KqueueContext              Context;
         std::map<int, ServerConfig *> listeners;
         std::map<int, Client *>       clients;
+        std::vector<ServerConfig>     &Servers;
 
         // Methods
         void    registerEvents();
