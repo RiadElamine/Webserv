@@ -1,6 +1,9 @@
-from pyfiglet import Figlet
 import os
 import sys
+# Add the path where pyfiglet is installed
+sys.path.insert(0, '/Users/oel-asri/.local/pipx/venvs/pyfiglet/lib/python3.14/site-packages')
+
+from pyfiglet import Figlet
 from urllib.parse import parse_qs
 
 def create_ascii(name, font, color=None):

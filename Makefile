@@ -31,7 +31,7 @@ HEADER = Includes/CGI/Cgi.hpp \
          Includes/status_code.hpp \
          Includes/utils.hpp
 
-CFLAGS = -Wall -Wextra -Werror -std=c++98 -g -fsanitize=address
+CFLAGS = -Wall -Wextra -Werror -std=c++98
 
 all : $(NAME)
 

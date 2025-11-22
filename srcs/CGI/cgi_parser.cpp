@@ -72,19 +72,6 @@ void make_field_line(std::map<std::string, std::string>& filed_line, std::string
 
 
 size_t match_only(std::string str) {
-    // size_t count(0);
-    // size_t index;
-
-    // for (;start < end; ++start) {
-    //     if (str[start] == match) {
-    //         index = start;
-    //         ++count;
-    //     }
-    // }
-    // if (count == occurence)
-    //     return index;
-    // return std::string::npos;
-
     for(size_t i = 0; i < str.size(); i++) {
         if (std::isdigit(str[i]))
             continue;
@@ -145,6 +132,7 @@ bool parseCGIheader(std::string& header, char *buffer , size_t buffer_size, Resp
         response.setField_line(field_line);
     } catch (std::exception& e) {
         std::cerr << "error: " << e.what() << std::endl;
+        response.set_offset(0);
         response.make_response(true, Bad_Gateway);
         response.set_to_open(false);
     }

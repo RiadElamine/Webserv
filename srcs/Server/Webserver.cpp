@@ -364,23 +364,23 @@ void WebServer::startServer() {
     signal(SIGINT, handle_sigint);
 
     while (_start) {
-        try
+        int nev = kevent(Context.kq, NULL, 0, Context.evlist.data(), Context.evlist.size(), NULL);
+        if (nev == -1)
         {
-            int nev = kevent(Context.kq, NULL, 0, Context.evlist.data(), Context.evlist.size(), NULL);
-            if (nev == -1)
+            if (errno == EINTR)
             {
-                if (errno == EINTR)
-                {
-                    continue;
-                }
-                throw std::runtime_error("kevent error");
+                continue;
             }
-            if (nev == (int)Context.evlist.size())
-            {
-                Context.evlist.resize(Context.evlist.size() * 2);
-            }
+            throw std::runtime_error("kevent error");
+        }
+        if (nev == (int)Context.evlist.size())
+        {
+            Context.evlist.resize(Context.evlist.size() * 2);
+        }
 
-            for (int i = 0; i < nev; ++i) {
+        for (int i = 0; i < nev; ++i) {
+            try
+            {
                 Context.event = Context.evlist[i];
 
                 if (Context.event.filter == EVFILT_READ)
@@ -402,15 +402,15 @@ void WebServer::startServer() {
                     cgiClient->handleCgiCompletion();
                 }
             }
-        }
-        catch(const std::exception& e)
-        {
-            std::cerr << e.what() << '\n';
-        }
-        if (Context.event.udata == (void *)client_event &&
-                clients[Context.event.ident]->state_of_connection == DISCONNECTED)
-        {
-            _closeConnection();
+            catch (const std::exception& e)
+            {
+                std::cerr << e.what() << '\n';
+            }
+            if (Context.event.udata == (void *)client_event &&
+                    clients[Context.event.ident]->state_of_connection == DISCONNECTED)
+            {
+                _closeConnection();
+            }
         }
     }
 }

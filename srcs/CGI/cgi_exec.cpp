@@ -38,8 +38,6 @@ void Cgi::setupCgiStdin()
         close(cgi_stdout);
         exit(1);
     }
-    if (!filename.empty())
-        std::remove(bodyFile.c_str());
 
     setNonBlockCloexec(cgi_stdin);
 

@@ -241,8 +241,8 @@ void ConfigFile::ParseErrorPages()
 	if (check_semi == 1)
 	{
 		indexOfErrorPages = Convert_to__Number<int>(data);
-		if (indexOfErrorPages < 300 || indexOfErrorPages > 599)
-			throw std::out_of_range("value " + data + " must be between 300 and 599");
+		if (indexOfErrorPages < 100 || indexOfErrorPages > 599)
+			throw std::out_of_range("value " + data + " must be between 100 and 599");
 	}
 	else
 	{

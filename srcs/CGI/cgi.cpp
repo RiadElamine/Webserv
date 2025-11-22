@@ -36,7 +36,7 @@ Cgi::~Cgi()
         std::remove(filename_cgi_output.c_str());
     }
 
-    if (!filename.empty())
+    if (!filename.empty() && is_cgi)
     {
         std::remove(filename.c_str());
     }
@@ -87,8 +87,6 @@ void Cgi::_readCgiOutput() {
         makestdoutDone();
         if (!Context->clientResponses[client_fd]->open_stream(filename_cgi_output))
             throw std::runtime_error("Can't open the cgi output file");
-        if (!filename_cgi_output.empty())
-            std::remove(filename_cgi_output.c_str());
         return;
      }
 

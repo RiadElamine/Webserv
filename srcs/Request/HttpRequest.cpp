@@ -25,6 +25,7 @@ void HttpRequest::method_valid()
         if (!isupper(method[i]))
             return set_status(400);
     }
+    return set_status(501);
 }
 
 bool HttpRequest::headers_complete() const {
@@ -241,6 +242,8 @@ void HttpRequest::handl_boundary(std::string& data, size_t boundary_pos) {
                 name = data.substr(name_pos, end_name_pos - name_pos);
                 form_data["filename"] = name;
                 create_file(1);
+                if (code_status != 200 && code_status != 201)
+                    return;
                 data.erase(0, end_name_pos + 2);
                 data.erase(0, data.find("\r\n\r\n")+ 4);
                 flag_boundary = 1;
@@ -400,10 +403,8 @@ void HttpRequest::create_file(int flag)
     std::string build_pat = buildPath(path, it->root, it->Route);
     struct stat buffer;
 
-    if (!pathExists(build_pat, &buffer)) {
-        std::cout << "Path does not exist: " << build_pat << std::endl;
+    if (!pathExists(build_pat, &buffer))
         return set_status(404);
-    }
     if ((std::find(it->methods.begin(), it->methods.end(), method) == it->methods.end())) 
         return  set_status(405);
 
